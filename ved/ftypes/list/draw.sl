@@ -1,4 +1,4 @@
-private variable func = [&srv->gotorc_draw, &srv->gotorc];
+private variable func = [&smg->setrcdr, &smg->setrc];
 
 define draw ()
 {

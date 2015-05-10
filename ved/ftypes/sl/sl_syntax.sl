@@ -13,12 +13,12 @@ private variable regexps = [
 %functions
   pcre_compile ("\
 ((evalfile(?=\s))\
-|(?<!\w)(import(?=\s))\
 |(?<!\w)(sigprocmask(?=\s))\
 |(?<!\w)(\(\)(?=\s))\
-|(?<!\w)(ineed(?=\s))\
-|(?<!\w)(ineedfrom(?=\s))\
-|(?<!\w)(ineedmdl(?=\s))\
+|(?<!\w)(load(?=\s))\
+|(?<!\w)(loaddfrom(?=\s))\
+|(?<!\w)(importfrom(?=\s))\
+|(?<!\w)(loadfile(?=\s))\
 |(?<!\w)(fork(?=\s))\
 |(?<!\w)(pipe(?=\s))\
 |(?<!\w)(execv(?=\s))\

@@ -18,7 +18,7 @@ private define add (self, s, rows)
     {
     fnames[s.fname] = init_ftype (ftype);
     c = fnames[s.fname];
-    ineed (sprintf ("%s_settype", ftype));
+    loadfile (sprintf ("%s_settype", ftype), NULL, &on_eval_err);
     variable func = __get_reference (sprintf ("%s_settype", ftype));
     (@func) (c, s.fname, rows, NULL);
     c._i = c._len >= s.lnr - 1 ? s.lnr - 1 : 0;
@@ -76,7 +76,7 @@ private define add (self, s, rows)
 private define togglecur ()
 {
   cf_.clrs[-1] = INFOCLRBG;
-  srv->set_color_in_region (INFOCLRBG, cf_.rows[-1], 0, 1, COLUMNS);
+  smg->hlregion (INFOCLRBG, cf_.rows[-1], 0, 1, COLUMNS);
   IMG[cf_.rows[-1]][1] = INFOCLRBG;
   frame = frame ? 0 : 1;
   prev_fn = cf_._fname;
@@ -87,7 +87,7 @@ private define set_cf (fname)
   cf_ = fnames[fname];
   cf_.clrs[-1] = INFOCLRFG;
   IMG[cf_.rows[-1]][1] = INFOCLRFG;
-  srv->set_color_in_region (INFOCLRFG, cf_.rows[-1], 0, 1, COLUMNS);
+  smg->hlregion (INFOCLRFG, cf_.rows[-1], 0, 1, COLUMNS);
   topline_dr (" -- PAGER --");
 }
 
@@ -151,7 +151,7 @@ private define chframe ()
   togglecur ();
   set_cf (fn);
 
-  srv->gotorc_draw (cf_.ptr[0], cf_.ptr[1]);
+  smg->setrcdr (cf_.ptr[0], cf_.ptr[1]);
 }
 
 private define myquit ()
@@ -219,7 +219,7 @@ define ved (s, fname, rows)
 
   clear (1, LINES);
 
-  srv->set_color_in_region (INFOCLRBG, cf_.rows[0] - 1, 0, 1, COLUMNS);
+  smg->hlregion (INFOCLRBG, cf_.rows[0] - 1, 0, 1, COLUMNS);
  
   s.draw ();
 

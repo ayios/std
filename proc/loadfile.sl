@@ -4,7 +4,7 @@ __set_argc_argv (__argv[[1:]]);
 
 () = evalfile (path_dirname (__FILE__) + "/../load");
 
-define exit_on_eval_err ()
+define on_eval_err ()
 {
   exit (1);
 }
@@ -12,16 +12,16 @@ define exit_on_eval_err ()
 try
   loadfrom ("stdio", "ar_to_fp", NULL, NULL);
 catch ParseError:
-  exit_on_eval_err ();
+  on_eval_err ();
 
-define exit_on_eval_err (msg, err)
+define on_eval_err (msg, err)
 {
   () = ar_to_fp (msg, "%s\n", stderr);
   exit (err);
 }
  
 % for now NULL
-loadfile (file, NULL, &exit_on_eval_err);
+loadfile (file, NULL, &on_eval_err);
 
 %define _usage ()
 %{

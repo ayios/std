@@ -1,4 +1,4 @@
-ineedmdl ("curl", NULL;err_func = &exit_on_eval_err);
+ineedmdl ("curl", NULL;err_func = &on_eval_err);
 
 private define write_to_var_callback (out, str)
 {

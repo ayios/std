@@ -1,1 +1,1 @@
-loadfrom ("ved", "vedinit", NULL, &exit_on_eval_err);
+loadfrom ("ved", "vedinit", NULL, &on_eval_err);

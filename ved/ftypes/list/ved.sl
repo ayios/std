@@ -1,8 +1,8 @@
 variable lpagerf = Assoc_Type[Ref_Type];
 variable lpagerc;
 
-ineed ("initfunctions");
-ineed ("listfuncs");
+loadfile ("initfunctions", NULL, &on_eval_err);
+loadfile ("listfuncs", NULL, &on_eval_err);
 
 private define _vedloop_ (s)
 {

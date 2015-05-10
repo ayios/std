@@ -1,6 +1,6 @@
 define sl_lexicalhl ();
 
-ineed ("sl_syntax");
+loadfile ("sl_syntax", NULL, &on_eval_err);
 
 define sl_settype (s, fname, rows, lines)
 {

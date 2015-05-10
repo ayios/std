@@ -1,7 +1,7 @@
-ineedmdl ("pcre", NULL;errfunc = &exit_on_eval_err);
+importfrom ("std", "pcre", NULL, &on_eval_err);
 
-ineed ("fswalk");
-ineed ("cmdopt");
+loadfrom ("dir", "fswalk", NULL, &on_eval_err);
+loadfrom ("parse", "cmdopt", NULL, &on_eval_err);
 
 private variable
   MAXDEPTH = 1,

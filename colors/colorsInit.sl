@@ -1,1 +1,1 @@
-loadfrom ("colors", "colorsinit", NULL, &exit_on_eval_err);
+loadfrom ("colors", "colorsinit", NULL, &on_eval_err);

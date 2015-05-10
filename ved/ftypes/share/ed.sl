@@ -1,4 +1,4 @@
-loadfile ("insert_mode", NULL, &exit_on_eval_err);
+loadfile ("insert_mode", NULL, &on_eval_err);
 
 private define newline_str (s)
 {

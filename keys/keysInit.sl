@@ -1,1 +1,1 @@
-loadfrom ("keys", "keysinit", 1, &exit_on_eval_err);
+loadfrom ("keys", "keysinit", 1, &on_eval_err);

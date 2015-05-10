@@ -1,4 +1,4 @@
-loadfrom ("dir", "evaldir", NULL, &exit_on_eval_err);
+loadfrom ("dir", "evaldir", NULL, &on_eval_err);
 
 rlf_ = struct
   {

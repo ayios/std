@@ -1,5 +1,5 @@
-ineed ("initfunctions";errfunc=&exit_on_eval_err);
-ineed ("sl_settype";errfunc=&exit_on_eval_err);
+loadfile ("initfunctions", NULL, &on_eval_err);
+loadfile ("sl_settype", NULL, &on_eval_err);
 
 set_img ();
 

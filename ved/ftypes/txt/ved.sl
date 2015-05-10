@@ -1,5 +1,5 @@
-loadfile ("initfunctions", NULL, &exit_on_eval_err);
-loadfile ("txt_settype", NULL, &exit_on_eval_err);
+loadfile ("initfunctions", NULL, &on_eval_err);
+loadfile ("txt_settype", NULL, &on_eval_err);
 
 set_img ();
 

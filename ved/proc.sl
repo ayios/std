@@ -62,13 +62,13 @@ set_slang_load_path (sprintf (
   path_get_delimiter (),
   get_slang_load_path ()));
 
-define exit_on_eval_err (err, code)
+define on_eval_err (err, code)
 {
   () = array_map (Integer_Type, &fprintf, stderr, "%s\n", err);
   exit (code);
 }
 
-importfrom ("std", "socket",  NULL, &exit_on_eval_err);
+importfrom ("std", "socket",  NULL, &on_eval_err);
 
 ifnot (VEDPROC._inited)
   {
@@ -80,16 +80,16 @@ ifnot (VEDPROC._inited)
   VEDPROC._state = VEDPROC._state | CONNECTED;
   }
 
-loadfrom ("stdio", "readfile", NULL, &exit_on_eval_err);
-loadfrom ("dir", "isdirectory", NULL, &exit_on_eval_err);
-loadfrom ("sys", "which", NULL, &exit_on_eval_err);
-loadfrom ("string", "repeat", NULL, &exit_on_eval_err);
+loadfrom ("stdio", "readfile", NULL, &on_eval_err);
+loadfrom ("dir", "isdirectory", NULL, &on_eval_err);
+loadfrom ("sys", "which", NULL, &on_eval_err);
+loadfrom ("string", "repeat", NULL, &on_eval_err);
 
-loadfrom ("sock", "sockInit", 1, &exit_on_eval_err);
-loadfrom ("keys", "keysInit", 1, &exit_on_eval_err);
-loadfrom ("smg", "smgInit", 1, &exit_on_eval_err);
+loadfrom ("sock", "sockInit", 1, &on_eval_err);
+loadfrom ("keys", "keysInit", 1, &on_eval_err);
+loadfrom ("smg", "smgInit", 1, &on_eval_err);
 
-loadfile (MYPATH + "/ftypes/Init", NULL, &exit_on_eval_err);
+loadfile (MYPATH + "/ftypes/Init", NULL, &on_eval_err);
 
 define send_int (i)
 {
@@ -211,7 +211,7 @@ define exit_me (exit_code)
   exit (exit_code);
 }
 
-define exit_on_eval_err (err, code)
+define on_eval_err (err, code)
 {
   () = array_map (Integer_Type, &fprintf, stderr, "%s\n", err);
   exit_me (code);
