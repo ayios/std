@@ -66,6 +66,16 @@ static define reset ()
   slsmg_reset_smg ();
 }
 
+static define suspend ()
+{
+  slsmg_suspend_smg ();
+}
+
+static define resume ()
+{
+  slsmg_resume_smg ();
+}
+
 static define setrc (row, col)
 {
   slsmg_gotorc (row, col);
@@ -105,9 +115,6 @@ static define cls ()
 
 static define addnstr (str, len)
 {
-  () = fprintf (stderr, "%S\n", str);
-  () = fprintf (stderr, "%S\n", getenv ("TERM"));
-  () = fflush (stderr);
   slsmg_write_nstring (str, len);
 }
 
@@ -159,4 +166,90 @@ static define atrceraseeoldr (row, col)
 {
   atrceraseeol (row, col);
   slsmg_refresh ();
+}
+
+static define set_img (lines)
+{
+  variable i;
+ 
+  SMGIMG = List_Type[lines];
+ 
+  _for i (1, length (SMGIMG) - 1)
+    SMGIMG[i] = {" ", 0, i, 0};
+ 
+  SMGIMG[0] = {strftime ("%c"), 3, 0, 0};
+}
+
+static define restorerows (r, ptr, refresh)
+{
+  variable len = length (r);
+  variable ar = String_Type[0];
+  variable rows = Integer_Type[0];
+  variable clrs = Integer_Type[0];
+  variable cols = Integer_Type[0];
+  variable columns = qualifier ("columns", COLUMNS);
+  variable i;
+
+  _for i (0, len - 1)
+    {
+    ar = [ar, SMGIMG[r[i]][0]];
+    clrs = [clrs, SMGIMG[r[i]][1]];
+    rows = [rows, SMGIMG[r[i]][2]];
+    cols = [cols, SMGIMG[r[i]][3]];
+    }
+
+  aratrcaddnstr (ar, clrs, rows, cols, columns);
+
+  ifnot (NULL == ptr)
+    smg->setrc (ptr[0], ptr[1]);
+
+  ifnot (NULL == refresh)
+    smg->refresh ();
+}
+
+static define restore (cmp_lnrs, pos, columns)
+{
+  variable
+    i,
+    ar = String_Type[0],
+    rows = Integer_Type[0],
+    clrs = Integer_Type[0],
+    cols = Integer_Type[0];
+
+  if (length (cmp_lnrs) == length (SMGIMG))
+    _for i (0, length (SMGIMG) - 1)
+      {
+      ar = [ar, SMGIMG[i][0]];
+      clrs = [clrs, SMGIMG[i][1]];
+      rows = [rows, SMGIMG[i][2]];
+      cols = [cols, SMGIMG[i][3]];
+      }
+  else if (length (cmp_lnrs) > length (SMGIMG))
+      {
+      _for i (0, length (SMGIMG) - 1)
+        {
+        ar = [ar, SMGIMG[i][0]];
+        clrs = [clrs, SMGIMG[i][1]];
+        rows = [rows, SMGIMG[i][2]];
+        cols = [cols, SMGIMG[i][3]];
+        }
+
+      _for i (i + 1, length (cmp_lnrs) - 1)
+        {
+        ar = [ar, repeat (" ", columns)];
+        clrs = [clrs, 0];
+        rows = [rows, rows[-1] + 1];
+        cols = [cols, 0];
+        }
+      }
+  else
+    _for i (length (SMGIMG) - length (cmp_lnrs), length (SMGIMG) - 1)
+      {
+      ar = [ar, SMGIMG[i][0]];
+      clrs = [clrs, SMGIMG[i][1]];
+      rows = [rows, SMGIMG[i][2]];
+      cols = [cols, SMGIMG[i][3]];
+      }
+ 
+  aratrcaddnstrdr (ar, clrs, rows, cols, pos[0], pos[1], columns);
 }

@@ -1,0 +1,20 @@
+ SYNOPSIS
+  change file mode bits
+
+ USAGE
+  chmod --mode [options] file
+
+ DESCRIPTION
+  change file mode bits
+
+ OPTIONS
+
+  --mode       mode bits as octal e.g., 0644
+  --recursive  change recursivelly
+  --directories change mode bits to directories when `recursive'
+  --help       show this message
+  --info       show information
+
+  NOTES
+ 
+  chown doesn't change permission to symbolic links

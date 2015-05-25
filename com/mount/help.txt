@@ -1,0 +1,17 @@
+ SYNOPSIS
+  mount  [options]
+
+ USAGE
+  usage mount [options]
+
+ DESCRIPTION
+  mount filesystems or print mounted filesystems
+
+ OPTIONS
+	
+  --mountpoint=  MountPoint
+  --device=      Device
+
+  NOTES
+
+This is a simple mount command wrapper, because there are no specific S-Lang libs.

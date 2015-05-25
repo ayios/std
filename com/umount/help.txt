@@ -1,0 +1,16 @@
+ SYNOPSIS
+  umount  [options]
+
+ USAGE
+  usage mount --mountpoint [options]
+
+ DESCRIPTION
+  umount filesystems
+
+ OPTIONS
+	
+  --mountpoint=  MountPoint
+
+  NOTES
+
+This is a simple umount command wrapper, because there are no specific S-Lang libs.

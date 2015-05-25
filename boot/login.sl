@@ -1,8 +1,8 @@
-define getloginname ()
+static define getloginname ()
 {
   variable name;
 
-  () = fputs ("login:", stdout);
+  () = fputs ("login: ", stdout);
   () = fgets (&name, stdin);
   () = fflush (stdout);
 

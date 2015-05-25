@@ -1,7 +1,10 @@
+loadfrom ("dir", "isdirectory", NULL, &on_eval_err);
+
 define which (executable)
 {
   variable
     ar,
+    st,
     path;
 
   path = getenv ("PATH");
@@ -10,7 +13,7 @@ define which (executable)
 
   path = strchop (path, path_get_delimiter (), 0);
   path = array_map (String_Type, &path_concat, path, executable);
-  path = path [wherenot (array_map (Integer_Type, &isdirectory, path))];
+  path = path [wherenot (array_map (Integer_Type, &_isdirectory, path))];
 
   ar = wherenot (array_map (Integer_Type, &access, path, X_OK));
 

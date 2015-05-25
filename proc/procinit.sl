@@ -9,6 +9,7 @@ typedef struct
   atexit,
   connect,
   loadfile,
+  loadcommand,
   } Proc_Type;
 
 typedef struct
@@ -25,38 +26,22 @@ typedef struct
 
 private define parse_flags (fd)
 {
-  variable
-    MODE_FLAGS = Assoc_Type[Integer_Type],
-    WR_FLAGS = Assoc_Type[Integer_Type];
-
-  WR_FLAGS[">"] = O_WRONLY|O_CREAT;
-  WR_FLAGS[">|"] = O_WRONLY|O_TRUNC|O_CREAT;
-  WR_FLAGS[">>"] = O_WRONLY|O_APPEND;
-
   ifnot (NULL == fd.wr_flags)
     {
-    ifnot (assoc_key_exists (WR_FLAGS, fd.wr_flags))
-      fd.wr_flags = WR_FLAGS[">"];
+    ifnot (assoc_key_exists (FILE_FLAGS, fd.wr_flags))
+      fd.wr_flags = FILE_FLAGS[">"];
     else
-      fd.wr_flags = WR_FLAGS[fd.wr_flags];
+      fd.wr_flags = FILE_FLAGS[fd.wr_flags];
     }
   else
     if (-1 == access (fd.file, F_OK))
-      fd.wr_flags = WR_FLAGS[">"];
+      fd.wr_flags = FILE_FLAGS[">"];
     else
-      fd.wr_flags = WR_FLAGS[">|"];
+      fd.wr_flags = FILE_FLAGS[">|"];
  
-  MODE_FLAGS["0600"] = S_IWUSR|S_IRUSR;
-
-  ifnot (NULL == (fd.mode))
-    {
-    ifnot (assoc_key_exists (MODE_FLAGS, fd.mode))
-      fd.mode = MODE_FLAGS["0600"];
-    else
-      fd.mode = MODE_FLAGS[fd.mode];
-    }
-  else if (fd.wr_flags & O_CREAT)
-    fd.mode = MODE_FLAGS["0600"];
+  if (fd.wr_flags & O_CREAT)
+    if (NULL == fd.mode)
+      fd.mode = PERM["_PRIVATE"];
 }
 
 private define open_file (fd, fp)
@@ -216,7 +201,12 @@ private define _execve (s, argv, env, fg)
 
 private define loadfile ()
 {
-  return path_dirname (__FILE__) + "/loadfile.sl"; 
+  return path_dirname (__FILE__) + "/loadfile.sl";
+}
+
+private define loadcommand ()
+{
+  return path_dirname (__FILE__) + "/loadcommand.sl";
 }
 
 define init (in, out, err)
@@ -235,7 +225,8 @@ define init (in, out, err)
 
   p.atexit = &atexit;
   p.connect = &connect_to_socket;
-  p.loadfile = loadfile;
+  p.loadfile = loadfile ();
+  p.loadcommand = loadcommand ();
   p.execve = &_execve;
   p.execv = &_execv;
 

@@ -1,0 +1,73 @@
+>!
+DOC = @ABT_TYPE;
+DOC.indent = 3;
+variable ENH = \"enhancement\", HPRRT = \"High Priority\", TKTID = \"Id:\";
+variable LPRRT = \"Low Priority\";
+variable NFXNG = \"Needs fixing\";
+variable BUG = \"Bug\";
+define getdir () {variable args = __pop_list (_NARGS); return strjoin (list_to_array (args), \"/\");}
+variable LINE = repeat (\"_\", COLUMNS);
+variable mydir = path_dirname (__FILE__);
+variable dir;
+<!
+
+# 0014
+
+_TICKETS
+
+=dir & getdir (STDDIR, \"app\", \"shell\");
+__[dir]
+  [TKTID]:0001>$mydir/0001.abt: [TP][ENH][HPRRT] [DSCR].
+___add ved [DONE]
+.
+  [TKTID]:0002>$mydir/0002.abt: [TP][ENH][HPRRT] [DSCR].
+---add ! for system
+.
+  [TKTID]:0009>$mydir/0009.abt: [TP][ENH][LPRRT] [DSCR].
+---add shell type to ved
+.
+  [TKTID]:0010>$mydir/0010.abt: [TP][ENH][LPRRT] [DSCR].
+---add scratch buffer
+.
+  [TKTID]:0011>$mydir/0011.abt: [TP][BUG][LPRRT] [DSCR].
+---if strlen (header) > COLUMNS
+.
+
+=dir & getdir (STDDIR, \"app\", \"ved\");
+__[dir]:file>$dir/functions/share/vedfuncs.sl:
+  [TKTID]:0003>$mydir/0003.abt: [TP][ENH][HPRRT] [DSCR].
+---add edit other [DONE]
+.
+  [TKTID]:0004>$mydir/0004.abt: [TP][ENH][HPRRT] [DSCR].
+---add CTRL_n, CTRL_x (completion mode)
+.
+  [TKTID]:0005>$mydir/0005.abt: [TP][NFXNG][HPRRT] [DSCR].
+--- autoindent in sl type
+.
+  [TKTID]:0008>$mydir/0008.abt: [TP][BUG][HPRRT] [DSCR].
+--- when on first line, O crashes [FIXED]
+.
+  [TKTID]:0012>$mydir/0012.abt: [TP][ENH][MPRRT] [DSCR].
+--- add marks
+.
+  [TKTID]:0013>$mydir/0013.abt: [TP][ENH][MPRRT] [DSCR].
+--- add ! for system calls
+.
+
+=dir & getdir (STDDIR, \"proc\", \"loadcommand\");
+---[dir]
+[TKTID]:0006>$mydir/0006.abt: [TP][NFXNG][HPRRT] [DSCR].
+---ask function
+.
+
+=dir & getdir (STDDIR, \"com\", \"mount\");
+---[dir]
+[TKTID]:0007>$mydir/0007.abt: [TP][ENH][LPRRT] [DSCR].
+---turn verbose on by default
+.
+
+=dir & getdir (STDDIR, \"rline\");
+__[dir]:file>$dir/rlineinit.sl:
+  [TKTID]:0014>$mydir/0014.abt: [TP][ENH][HPRRT] [DSCR].
+---add last component completion
+.

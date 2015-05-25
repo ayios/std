@@ -1,3 +1,6 @@
+
+% part of S-Lang DISTRIBUTION
+
 % Command-line option parsing.
 %
 % Examples:

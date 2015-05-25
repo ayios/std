@@ -1,0 +1,7 @@
+DESCRIPTION: making director[y|ies]
+VERSION    : 0.2
+AUTHOR     : Agathoklis D. Hatzimanikas
+MAINTAINER : Agathoklis D. Hatzimanikas
+EMAIL      : a dot hatzim at gmail dot com
+URL        :
+LICENSE    : GPL2
