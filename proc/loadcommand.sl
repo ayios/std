@@ -26,6 +26,7 @@ loadfrom ("input", "inputInit", NULL, &on_eval_err);
 loadfrom ("stdio", "readfile", NULL, &on_eval_err);
 loadfrom ("parse", "cmdopt", NULL, &on_eval_err);
 loadfrom ("sys", "which", NULL, &on_eval_err);
+loadfrom ("sock", "sockInit", NULL, &on_eval_err);
 
 variable
   LINES = atoi (getenv ("LINES")),
@@ -38,27 +39,40 @@ define verboseon ()
   loadfrom ("print", "tostdout", NULL, &on_eval_err);
 }
 
-define ask (questar, ar)
+define ask (questar, charar)
 {
-  array_map (&tostderr, questar);
-  variable len = COLUMNS - strlen (questar[-1]) - 1;
-  loop (len)
-    () = fprintf (stderr, "\b");
+%  variable pid = atoi (getenv ("PID"));
+%  variable fifofile = "/tmp/shellfifo";
+%  ifnot (access (fifofile, F_OK))
+%    () = remove (fifofile);
+%  () = mkfifo (fifofile, S_IWUSR|S_IRUSR|S_IXUSR|S_IWGRP|S_IRGRP|S_IXGRP|S_IWOTH|S_IXOTH|S_IROTH);
+%  variable fd = open (fifofile, O_RDWR);
+%  () = kill (pid, SIGALRM);
+% sleep (1);
+%  %sock->send_str (fd, "ask");
+%  () = write (fd, "ask");
+%  () = sock->get_bit (fd);
+%  sock->send_str_ar (fd, questar);
+%  () = sock->get_bit (fd);
+%  sock->send_int_ar (fd, charar);
+%  variable chr = sock->get_int (fd);
+%variable b;
+%variable s = read (fd, &b, 2);
+%  () = remove (fifofile);
+%return 'y';
+  
+variable chr;
 
-  variable chr;
- 
-  while (chr = getch (), 0 == any (ar == chr));
- 
-  input->reset_tty ();
-
-  () = fprintf (stderr, "\n");
- 
-  return chr;
+while (chr = getch (), 0 == any (chr == charar));
+input->reset_tty ();
+return chr;
+  %return chr;
 }
 
 define _usage ()
 {
   verboseon ();
+
   variable
     if_opt_err = _NARGS ? () : " ",
     helpfile = qualifier ("helpfile", sprintf ("%s/help.txt", COMDIR)),
@@ -89,6 +103,7 @@ define _usage ()
 define info ()
 {
   verboseon ();
+
   variable
     info_ref = NULL,
     infofile = qualifier ("infofile", sprintf ("%s/desc.txt", COMDIR)),

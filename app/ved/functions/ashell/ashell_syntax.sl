@@ -1,16 +1,11 @@
-private variable promptcolors = [
-  14,
-  11,
-];
+private variable promptcolors = [14, 11];
+private variable promptregexp =
+  pcre_compile ("^\[(\d*)\]\((.*)\)\$ "R, 0);
 
 private variable dircolor = 12;
-
-private variable promptregexp = pcre_compile (
-  "^\[(\d*)\]\((.*)\)\$ "R, 0);
-
 private variable dirregexp = [
-pcre_compile ("(?U)^\.*/*\w*(/)(?=[\s$])"R, 0),
-pcre_compile ("(?U)(?<=\s)\.*/*\w*(/)(?=[\s$])"R, 0)];
+  pcre_compile ("(?U)^[\./\w]*(/)(?=\s)"R, 0),
+  pcre_compile ("(?U)(?<=\s)[\./\w]*(/)(?=[\s$])"R, 0)];
 
 private variable match;
 private variable context;
@@ -29,7 +24,9 @@ private define _hldir_ (vline, index)
 private define _hldir (line, vline)
 {
   col = 0;
+  
   subs = pcre_exec (dirregexp[0], line, col);
+  
   if (subs)
     _hldir_ (vline, 0);
 

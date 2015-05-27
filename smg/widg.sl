@@ -1,13 +1,13 @@
 static define ask (questar, charar, pos)
 {
-  smg->aratrcaddnstrdr (questar, 7, PROMPTROW - length (questar), 0,
+  smg->aratrcaddnstrdr (questar, 7, [PROMPTROW - length (questar):PROMPTROW - 1], 0,
     PROMPTROW - 1, strlen (questar[-1]) + 1, COLUMNS);
  
   variable chr;
 
   while (chr = getch (), 0 == any (chr == charar));
  
-  smg->restore ([PROMPTROW - length (questar) - 1:PROMPTROW -1], pos, COLUMNS);
+  smg->restore ([PROMPTROW - length (questar) - 1:PROMPTROW - 1], pos, 1);
 
   return chr;
 }

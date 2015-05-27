@@ -180,7 +180,7 @@ static define set_img (lines)
   SMGIMG[0] = {strftime ("%c"), 3, 0, 0};
 }
 
-static define restorerows (r, ptr, refresh)
+static define restore (r, ptr, refresh)
 {
   variable len = length (r);
   variable ar = String_Type[0];
@@ -205,51 +205,4 @@ static define restorerows (r, ptr, refresh)
 
   ifnot (NULL == refresh)
     smg->refresh ();
-}
-
-static define restore (cmp_lnrs, pos, columns)
-{
-  variable
-    i,
-    ar = String_Type[0],
-    rows = Integer_Type[0],
-    clrs = Integer_Type[0],
-    cols = Integer_Type[0];
-
-  if (length (cmp_lnrs) == length (SMGIMG))
-    _for i (0, length (SMGIMG) - 1)
-      {
-      ar = [ar, SMGIMG[i][0]];
-      clrs = [clrs, SMGIMG[i][1]];
-      rows = [rows, SMGIMG[i][2]];
-      cols = [cols, SMGIMG[i][3]];
-      }
-  else if (length (cmp_lnrs) > length (SMGIMG))
-      {
-      _for i (0, length (SMGIMG) - 1)
-        {
-        ar = [ar, SMGIMG[i][0]];
-        clrs = [clrs, SMGIMG[i][1]];
-        rows = [rows, SMGIMG[i][2]];
-        cols = [cols, SMGIMG[i][3]];
-        }
-
-      _for i (i + 1, length (cmp_lnrs) - 1)
-        {
-        ar = [ar, repeat (" ", columns)];
-        clrs = [clrs, 0];
-        rows = [rows, rows[-1] + 1];
-        cols = [cols, 0];
-        }
-      }
-  else
-    _for i (length (SMGIMG) - length (cmp_lnrs), length (SMGIMG) - 1)
-      {
-      ar = [ar, SMGIMG[i][0]];
-      clrs = [clrs, SMGIMG[i][1]];
-      rows = [rows, SMGIMG[i][2]];
-      cols = [cols, SMGIMG[i][3]];
-      }
- 
-  aratrcaddnstrdr (ar, clrs, rows, cols, pos[0], pos[1], columns);
 }

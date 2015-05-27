@@ -24,14 +24,14 @@ define shell_post_header ()
 define getlines ();
 define draw (s)
 {
-  variable st = lstat_file (s._fname);
+  variable st = lstat_file (s._absfname);
 
   if (st.st_atime == s.st_.st_atime && st.st_size == s.st_.st_size)
     return;
 
   s.st_ = st;
  
-  s.lines = getlines (s, s._fname, s._indent, st);
+  s.lines = getlines (s, s._absfname, s._indent, st);
 
   s._len = length (s.lines) - 1;
  

@@ -85,83 +85,49 @@ private define _write_ (argv)
     }
 }
 
-private define _ved_ (argv)
+private define sigalrm_handler (sig)
 {
-  if (1 == length (argv))
-    return;
-
-  variable fname = argv[1];
-  
-  shell_pre_header (argv);
-
-  smg->suspend ();
- 
-  loadfrom ("app/ved", "vedInit", NULL, &on_eval_err);
-
-  variable ved = __get_reference ("ved");
-  (@ved) (fname);
-
-  smg->resume ();
-
-  shell_post_header ();
-  
-  draw (qualifier ("ved"));
-}
-
-private define _search_ (argv)
-{
-  variable fname = "/tmp/a.list";
-  variable issudo = qualifier ("issudo");
-  variable env = proc->getdefenv ();
-  variable p = proc->init (issudo, 1, 1);
- 
-  shell_pre_header (argv);
-
-  argv = [SLSH_BIN, p.loadcommand, argv];
-
-  if (issudo)
-    {
-    p.stdin.in = widg->getpasswd ();
-    argv = [qualifier ("sudobin"), "-S", "-E", "-p", "", argv];
-    }
-  
-  p.stdout.file = fname;
-  p.stdout.wr_flags = ">|";
-  p.stderr.file = STDOUT;
-  p.stderr.wr_flags = ">>";
-
-  variable status = p.execve (argv, env, NULL);
-
-  SHELLLASTEXITSTATUS = status.exit_status;
-  
-  ifnot (SHELLLASTEXITSTATUS)
-    { 
-    smg->suspend ();
- 
-    loadfrom ("app/ved", "vedInit", NULL, &on_eval_err);
-
-    variable ved = __get_reference ("ved");
-    (@ved) (fname);
-
-    smg->resume ();
-    }
-
-  shell_post_header ();
-
-  draw (qualifier ("ved"));
+  variable fifofile = "/tmp/shellfifo";
+  forever
+    ifnot (access (fifofile, F_OK))
+      break;
+%  
+  variable fd = open (fifofile, O_RDWR);
+%  %variable func = get_str (fd);
+%
+%  variable func;
+%  variable b;
+%   () = read (fd, &b, 3);
+%  tostderr ("s\nno?");
+%  tostderr ("s\n" + b);
+%
+%  %if (func == "ask")
+%  %  {
+%    send_int (fd, 1);
+%    variable ar =get_str_ar (fd);
+%    send_int (fd, 1);
+%    variable charar = get_int_ar (fd);
+variable ar = ["gui", "remove", "bbbbbbba"];
+variable charar = ['y', 'n'];
+    variable chr = widg->ask (ar, charar, NULL);
+    () = write (fd, "ok");
+%%    send_int (chr);
+   % }
 }
 
 private define execute (argv)
 {
   variable header = strlen (argv[0]) > 1;
   variable issudo = qualifier ("issudo");
-  variable env = proc->getdefenv ();
+  variable env = [proc->getdefenv (), "PID=" + string (getpid ())];
   variable p = proc->init (issudo, 1, 1);
   
   if  (header) 
     shell_pre_header (argv);
 
   argv = [SLSH_BIN, p.loadcommand, argv];
+  
+  signal (SIGALRM, &sigalrm_handler);
 
   if (issudo)
     {
@@ -189,34 +155,9 @@ private define _exit_ ()
   variable rl = qualifier ("rl");
 
   ifnot (NULL == rl)
-    rline->writehistory (rl.history[[1:]], rl.histfile);
+    rline->writehistory (rl.history, rl.histfile);
 
   exit_me (0);
-}
-
-private define _echo_ ()
-{
-  variable argv = ();
- 
-  shell_pre_header (argv);
-
-  argv = argv[[1:]];
-
-  variable len = length (argv);
-
-  ifnot (len)
-    return;
-
-  if (1 == len)
-    if ('$' == argv[0][0])
-      if ('?' == argv[0][1])
-        tostdout (string (SHELLLASTEXITSTATUS) + "\n");
-      else
-        tostdout (_$ (argv[0]) + "\n");
-
-  shell_post_header ();
-
-  draw (qualifier ("ved"));
 }
 
 private define init_commands ()
@@ -243,21 +184,35 @@ private define init_commands ()
  
   a["echo"] = @Argvlist_Type;
   a["echo"].func = &_echo_;
-  a["q"] = @Argvlist_Type;
-  a["q"].func = &_exit_;
+
   a["ved"] = @Argvlist_Type;
   a["ved"].func = &_ved_;
+  a["ved"].type = "Func_Type";
+  
   a["search"] = @Argvlist_Type;
   a["search"].func = &_search_;
+  a["search"].dir = STDDIR + "/com/search";
+
   a["cd"] = @Argvlist_Type;
   a["cd"].func = &_cd_;
-  a["search"].dir = STDDIR + "/com/search";
+
+  a["which"] = @Argvlist_Type;
+  a["which"].func = &_which_;
+  a["which"].type = "Func_Type";
+
+  a["q"] = @Argvlist_Type;
+  a["q"].func = &_exit_;
+
   a["@"] = @Argvlist_Type;
   a["@"].func = &edit;
+
   a["edit"] = @Argvlist_Type;
   a["edit"].func = &edit;
+
   a["w"] = @Argvlist_Type;
   a["w"].func = &_write_;
+
+  a["w!"] = @Argvlist_Type;
   a["w!"].func = &_write_;
   
   return a;

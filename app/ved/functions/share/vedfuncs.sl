@@ -69,7 +69,7 @@ define tail (s)
   return sprintf (
     "[%s] (row %d) (col %d) (linenr %d/%d %.0f%%) (strlen %d) chr (%d), undo (%d/%d)",
     path_basename (s._fname), s.ptr[0], s.ptr[1] - s._indent + 1, lnr,
-    s._len + 1, (100.0 / s._len) * lnr, v_linlen (s, '.'),
+    s._len + 1, (100.0 / s._len) * (lnr - 1), v_linlen (s, '.'),
     qualifier ("chr", decode (substr (line, s._index + 1, 1))[0]),
     s._undolevel, length (s.undo));
 }

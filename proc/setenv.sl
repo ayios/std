@@ -48,7 +48,7 @@ static define setdefenv ()
   SLSH_BIN = which ("slsh");
   PWD = getcwd ();
  
-  variable getsceendim = qualifier ("dimfunc", &getscreensizefromenv);
+  variable getscreendim = qualifier ("dimfunc", &getscreensizefromenv);
 
-  (LINES, COLUMNS) = (@getsceendim);;
+  (LINES, COLUMNS) = (@getscreendim);;
 }

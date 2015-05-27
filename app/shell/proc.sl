@@ -57,24 +57,29 @@ loadfrom ("wind", "shelltopline", NULL, &on_eval_err);
 loadfrom ("rline", "rlineInit", NULL, &on_eval_err);
 loadfile ("Init", NULL, &on_eval_err);
 
-define send_int (i)
+define send_int (fd, i)
 {
-  sock->send_int (SHELLPROC._fd, i);
+  sock->send_int (fd, i);
 }
 
-define get_int ()
+define get_int (fd)
 {
-  return sock->get_int (SHELLPROC._fd);
+  return sock->get_int (fd);
 }
 
-define get_int_ar ()
+define get_int_ar (fd)
 {
-  return sock->get_int_ar (SHELLPROC._fd);
+  return sock->get_int_ar (fd);
 }
 
-define get_str ()
+define get_str_ar (fd)
 {
-  return sock->get_str (SHELLPROC._fd);
+  return sock->get_str_ar (fd);
+}
+
+define get_str (fd)
+{
+  return sock->get_str (fd);
 }
 
 define exit_me (exit_code)
@@ -87,7 +92,7 @@ define exit_me (exit_code)
 
   smg->reset ();
 
-  send_int (GOTO_EXIT);
+  send_int (SHELLPROC._fd, GOTO_EXIT);
   exit (exit_code);
 }
 

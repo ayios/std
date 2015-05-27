@@ -1,8 +1,7 @@
 typedef struct
   {
+  _state,
   _prow,
-  _toplinestr,
-  _toplinepstr,
   _pchar,
   _pclr,
   _row,
@@ -19,6 +18,7 @@ typedef struct
   lnrs,
   argv,
   args,
+  starthook,
   tabhook,
   filtercommands,
   filterargs,
@@ -35,6 +35,7 @@ typedef struct
   args,
   func,
   dir,
+  type,
   } Argvlist_Type;
 
 importfrom ("std", "pcre", NULL, &on_eval_err);

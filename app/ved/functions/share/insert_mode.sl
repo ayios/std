@@ -608,7 +608,7 @@ private define linecompletion (s, line)
     ifnot (length (lines))
       if (length (lines))
         {
-        smg->restorerows (rows, s.ptr, 1);
+        smg->restore (rows, s.ptr, 1);
         return;
         }
 
@@ -627,19 +627,19 @@ private define linecompletion (s, line)
       {
       if (1 == strlen (item))
         {
-        smg->restorerows (rows, s.ptr, 1);
+        smg->restore (rows, s.ptr, 1);
         return;
         }
       else
         item = substr (item, 1, strlen (item) - 1);
       
-      smg->restorerows (rows, NULL, NULL);
+      smg->restore (rows, NULL, NULL);
       continue;
       }
 
     if (any ([' ', '\r'] == chr))
       {
-      smg->restorerows (rows, NULL, NULL);
+      smg->restore (rows, NULL, NULL);
       
       @line = lines[index - 1] + substr (@line, s._index + 1, -1);
       
@@ -681,14 +681,14 @@ private define linecompletion (s, line)
     ifnot (any ([iwchars, keys->CTRL_n, keys->DOWN, keys->CTRL_p, keys->UP,
       keys->rmap.backspace, '\r', ' '] == chr))
       {
-      smg->restorerows (rows, s.ptr, 1);
+      smg->restore (rows, s.ptr, 1);
       return;
       }
     else
       item += char (chr);
     
     ifnot (indexchanged) 
-      smg->restorerows (rows, NULL, NULL);
+      smg->restore (rows, NULL, NULL);
    
    % BUG HERE 
     if (indexchanged)
@@ -732,7 +732,7 @@ private define wordcompletion (is, s, line)
     ifnot (length (words))
       if (length (rows))
         {
-        smg->restorerows (rows, s.ptr, 1);
+        smg->restore (rows, s.ptr, 1);
         return;
         }
 
@@ -751,19 +751,19 @@ private define wordcompletion (is, s, line)
       {
       if (1 == strlen (word))
         {
-        smg->restorerows (rows, s.ptr, 1);
+        smg->restore (rows, s.ptr, 1);
         return;
         }
       else
         word = substr (word, 1, strlen (word) - 1);
       
-      smg->restorerows (rows, NULL, NULL);
+      smg->restore (rows, NULL, NULL);
       continue;
       }
 
     if (any ([' ', '\r'] == chr))
       {
-      smg->restorerows (rows, NULL, NULL);
+      smg->restore (rows, NULL, NULL);
       
       @line = substr (@line, 1, start) + words[index - 1] + substr (@line, s._index + 1, -1);
       
@@ -805,14 +805,14 @@ private define wordcompletion (is, s, line)
     ifnot (any ([iwchars, keys->CTRL_n, keys->DOWN, keys->CTRL_p, keys->UP,
       keys->rmap.backspace, '\r', ' '] == chr))
       {
-      smg->restorerows (rows, s.ptr, 1);
+      smg->restore (rows, s.ptr, 1);
       return;
       }
     else
       word += char (chr);
     
     ifnot (indexchanged) 
-      smg->restorerows (rows, NULL, NULL);
+      smg->restore (rows, NULL, NULL);
    
    % BUG HERE 
     if (indexchanged)

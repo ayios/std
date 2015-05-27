@@ -1,9 +1,9 @@
-private define debug (str, clr, ptr, hold)
-{
-  smg->atrcaddnstrdr (str, clr, MSGROW, 0,  ptr[0], ptr[1], COLUMNS);
+private variable msgwritten = 0;
 
-  if (hold)
-    () = getch (;disable_langchange);
+static define restore (cmp_lnrs, ptr, refresh, columns)
+{
+  ifnot (NULL == cmp_lnrs)
+    smg->restore (cmp_lnrs, ptr, refresh;columns = columns);
 }
 
 static define addlcmp (list, arg)
@@ -66,28 +66,46 @@ private define _execFunc_Type_ (func, argv)
   (@func) (__push_list (list);;struct {@__qualifiers (), argv0 = argv[0]});
 }
 
-private define _execline_ (s, clear, restore)
+private define _execline_ (s)
 {
-  (@clear) (s, s.ptr;dont_redraw);
- 
-  s.history = addhistory (s.history, s.argv);
-  addlcmp (s.lcmp, s.argv[-1]);
+  variable _addhistory = 1;
+  
+  if (1 < length (s.argv))
+    ifnot (strlen (s.argv[-1]))
+      s.argv = s.argv[[:-2]];
 
   if (NULL == s.argvlist[s.argv[0]].func)
     return;
- 
-  if (s.totype == "Proc_Type")
-    (@exec->proctype) (s.argvlist[s.argv[0]].func, s.argv;;
-      struct {@__qualifiers (), rl = s});
-  else if (s.totype == "Func_Type")
-    _execFunc_Type_ (s.argvlist[s.argv[0]].func, s.argv;;
-      struct {@__qualifiers (), rl = s});
- 
-  (@restore) (s, s.ptr);
+  
+  ifnot (NULL == s.argvlist[s.argv[0]].type)
+    if (s.argvlist[s.argv[0]].type == "Proc_Type")
+      (@exec->proctype) (s.argvlist[s.argv[0]].func, s.argv;;
+        struct {@__qualifiers (), rl = s});
+    else if (s.argvlist[s.argv[0]].type == "Func_Type")
+      _execFunc_Type_ (s.argvlist[s.argv[0]].func, s.argv;;
+        struct {@__qualifiers (), rl = s});
+    else
+      _addhistory = 0;
+  else
+    if (s.totype == "Proc_Type")
+      (@exec->proctype) (s.argvlist[s.argv[0]].func, s.argv;;
+        struct {@__qualifiers (), rl = s});
+    else if (s.totype == "Func_Type")
+      _execFunc_Type_ (s.argvlist[s.argv[0]].func, s.argv;;
+        struct {@__qualifiers (), rl = s});
+    else
+      _addhistory = 0;
+  
+  if (_addhistory)
+    {
+    s.history = addhistory (s.history, s.argv);
+    addlcmp (s.lcmp, s.argv[-1]);
+    }
 }
 
 static define set (s)
 {
+  s._state = 1;
   s._row = s._prow;
   s.ptr = [s._prow, 1];
   s._col = 1;
@@ -112,36 +130,65 @@ static define init (getcommands)
   rl.filtercommands = qualifier ("filtercommands");
   rl.filterargs = qualifier ("filterargs");
   rl.tabhook = qualifier ("tabhook");
+  rl.starthook = qualifier ("starthook"),
   rl.on_lang = qualifier ("on_lang", &_Null);
   rl.on_lang_args = qualifier ("on_lang_args", {});
   rl.histfile = qualifier ("histfile");
   rl.history = qualifier ("history", String_Type[0]);
   rl.lcmp = qualifier ("lcmp", {});
+  rl._lines = qualifier ("lines", LINES);
+  rl._columns = qualifier ("columns", COLUMNS);
  
   if (0 == length (rl.history) && NULL != rl.histfile)
     rl.history = readhistory (rl.histfile);
 
   rl.argvlist = (@getcommands);
   rl._row = rl._prow;
-  rl._lines = LINES;
-  rl._columns = COLUMNS;
 
   return rl;
 }
 
-private define restore (s, ptr)
+private define find_col (col, columns)
 {
-  smg->restore (s.cmp_lnrs, ptr, s._columns);
+  variable i = 0;
+  while ((i + 1) * columns <= col)
+    i++;
+
+  return i, col - (columns * i);
 }
 
-private define _prompt (s, line, col)
+static define prompt (s, line, col)
 {
-  smg->atrcaddnstrdr (line, s._pclr, s._prow, 0, s._row, col, s._columns);
-}
+  variable
+    i,
+    len = strlen (line),
+    state = (len / s._columns) + 1,
+    rows = Integer_Type[state],
+    ar = String_Type[state];
 
-private define prompt (s)
-{
-  smg->atrcaddnstrdr (s._lin, s._pclr, s._prow, 0, s._row, s._col, s._columns);
+  _for i (0, state - 1)
+    (ar[i], rows[i]) = substr (line, int (sum (strlen (ar))) + 1, s._columns),
+      s._prow - (state - i - 1);
+  
+  variable lcol;
+  
+  (i, lcol) = find_col (col, s._columns);
+
+  s._row = rows[i];;
+ 
+  if (state < s._state)
+    restore (s.lnrs[[:state -1]], NULL, NULL, s._columns);
+
+  s.lnrs = rows;
+  s._state = state;
+  
+  if (msgwritten)
+    {
+    smg->atrcaddnstr (" ", 0, MSGROW, 0, s._columns);
+    msgwritten = 0;
+    }
+
+  smg->aratrcaddnstrdr (ar, s._pclr, rows, 0, s._row, lcol, s._columns);
 }
 
 private define appendslash (file)
@@ -152,7 +199,7 @@ private define appendslash (file)
   return  "";
 }
 
-private define parse_args (s)
+static define parse_args (s)
 {
   variable
     i,
@@ -382,6 +429,8 @@ private define write_completion_routine (s, ar)
 {
   variable
     i,
+    _prow = qualifier ("_prow", s._prow),
+    _lin = qualifier ("_lin", s._lin),
     len = length (ar),
     clrs = Integer_Type[len],
     cols = Integer_Type[len];
@@ -391,7 +440,7 @@ private define write_completion_routine (s, ar)
   clrs[*] = 11;
   cols[*] = 0;
 
-  len = s._prow - 1 - (strlen (s._lin) / s._columns) - len + 1;
+  len = _prow - 1 - (strlen (_lin) / s._columns) - len + 1;
 
   _for i (0, length (ar) - 1)
     s.cmp_lnrs[i] = len + i;
@@ -413,33 +462,19 @@ private define printout (s, ar, col, len)
     lines = qualifier ("lines", s._lines),
     nar = @len < lines ? @ar : ar[[:lines - 1]];
  
-  write_completion_routine (s, nar);
+  write_completion_routine (s, nar;;__qualifiers ());
 
   ifnot (NULL == hlreg)
     smg->hlregion (hlreg[0], hlreg[1], hlreg[2], hlreg[3], hlreg[4]);
  
   @len = @len >= lines;
  
-  smg->setrcdr (s._row, s._col);
+  variable lcol;
+  (, lcol) = find_col (col, s._columns);
+
+  smg->setrcdr (s._row, lcol);
 
   return ar[[origlen >= lines ? lines - 1 : origlen:]];
-}
-
-private define clear (s, pos)
-{
-  variable
-    ar = String_Type[length (s.lnrs)],
-    clrs = Integer_Type[length (ar)],
-    cols = Integer_Type[length (ar)];
-
-  ar[*] =" ";
-  clrs[*] = 0;
-  cols[*] = 0;
- 
-  ifnot (qualifier_exists ("dont_redraw"))
-    smg->aratrcaddnstrdr (ar, clrs, s.lnrs, cols, pos[0], pos[1], s._columns);
-  else
-    smg->aratrcaddnstr  (ar, clrs, s.lnrs, cols, s._columns);
 }
 
 private define firstindices (str, ar, pat)
@@ -478,6 +513,7 @@ private define firstindices (str, ar, pat)
 private define append_dir_indicator (base, files)
 {
   variable ar = @files;
+
   ar[where (array_map (Char_Type, &_isdirectory,
     array_map (String_Type, &path_concat, base, files)))] += "/";
 
@@ -602,7 +638,7 @@ private define hlitem (s, ar, base, acol, item)
  
   ifnot (len || any (['\t', [keys->UP:keys->RIGHT], keys->PPAGE, keys->NPAGE] == chr))
     {
-    restore (s, [s._row, s._col]);
+    restore (s.cmp_lnrs, [s._row, s._col], 1, s._columns);
     return chr;
     }
  
@@ -641,7 +677,7 @@ private define hlitem (s, ar, base, acol, item)
       icol = 0;
  
       if (length (bar) < lines)
-        restore (s, [s._row, s._col]);
+        restore (s.cmp_lnrs, [s._row, s._col], 1, s._columns);
  
       frow = irow - 1;
 
@@ -691,7 +727,7 @@ private define hlitem (s, ar, base, acol, item)
         }
 
     if (keys->DOWN == chr)
-      if (irow + 1 > lines || index + items > length (ar) - 1)
+      if (irow > lines || index + items > length (ar) - 1)
         (irow, icol, index) =
           lrow - (length (car) > lines ? lines : length (car)),
           0,
@@ -789,7 +825,7 @@ private define hlitem (s, ar, base, acol, item)
           (page) * ((lines - 1) * items);
 
         if (length (car) < lines)
-          restore (s, [s._row, s._col]);
+          restore (s.cmp_lnrs, [s._row, s._col], 1, s._columns);
         }
       else
         {
@@ -818,7 +854,7 @@ private define hlitem (s, ar, base, acol, item)
 
     len = length (car);
  
-    restore (s, [s._row, s._col]);
+    restore (s.cmp_lnrs, [s._row, s._col], 1, s._columns);
 
     frow = irow - 1;
 
@@ -847,7 +883,7 @@ private define lcmpcompletion (s)
     chr,
     line,
     i = 0,
-    lcmp = strtrim (s.lcmp[i]),
+    lcmp = s.lcmp[i],
     len = strlen (lcmp),
     col = s._col;
 
@@ -857,31 +893,56 @@ private define lcmpcompletion (s)
       lcmp, s._ind == length (s.argv) ? "" :
       " " + strjoin (s.argv[[s._ind+1:]], " "));
 
-    _prompt (s, ":" + line, col + len);
+    prompt (s, ":" + line, col + len);
 
     chr = getch ();
 
-    if (any ([' ', '\r'] == chr))
+    if (any (keys->rmap.lastcmp == chr))
+      {
+      i = (i + 1) == length (s.lcmp) ? 0 : i + 1;
+      lcmp = s.lcmp[i];
+      len = strlen (lcmp);
+      continue;
+      }
+
+    if ('\r' == chr || 1 == (' ' <= chr <= '~'))
       {
       if (0 == strlen (s.argv[s._ind])
         || " " == s.argv[s._ind])
         s.argv[s._ind] = lcmp;
       else
         s.argv[s._ind] += lcmp;
-
+      
       parse_args (s);
 
       s._col += strlen (lcmp);
 
-      return '\r' == chr;
+      if ('\r' == chr)
+        return 1;
       }
 
-    if (any (keys->rmap.lastcmp == chr))
+    if (' ' == chr)
       {
-      i = (i + 1) == length (s.lcmp) ? 0 : i + 1;
-      lcmp = strtrim (s.lcmp[i]);
-      len = strlen (lcmp);
+      if (s._ind == length (s.argv) - 1)
+        (s.argv = [s.argv, ""], s._col++);
+      else if (strlen (strjoin (s.argv[[:s._ind]], " ")) == s._col - 1)
+        (s.argv = [s.argv[[:s._ind]], "", s.argv[[s._ind + 1:]]],
+        s._col++);
+
+      parse_args (s);
+
+      prompt (s, s._lin, s._col);
+
+      return 0;
       }
+    
+    insert_at (s;chr = chr);
+
+    parse_args (s);
+
+    prompt (s, s._lin, s._col);
+    
+    return 0;
     }
 }
 
@@ -906,7 +967,7 @@ private define fnamecmp (s, start)
       s.argv[s._ind] += tmp;
       s._col += strlen (tmp);
       parse_args (s);
-      prompt (s);
+      prompt (s, s._lin, s._col);
       }
     }
 
@@ -933,7 +994,8 @@ private define fnamecmp (s, start)
 
     if (-1 == retval || 0 == length (ar))
       {
-      restore (s, [s._row, s._col]);
+      restore (s.cmp_lnrs, [s._row, s._col], 1, s._columns);
+      prompt (s, s._lin, s._col);
       return 0;
       }
 
@@ -953,7 +1015,7 @@ private define fnamecmp (s, start)
         s._col = strlen (strjoin (s.argv[[:s._ind]], " ")) + 1;
 
         parse_args (s);
-        prompt (s);
+        prompt (s, s._lin, s._col);
         }
       }
 
@@ -962,9 +1024,8 @@ private define fnamecmp (s, start)
  
     if (033 == chr)
       {
-      restore (s, [s._row, s._col]);
-      s._col = strlen (strjoin (s.argv[[:s._ind]], " ")) + 1;
-      parse_args (s);
+      restore (s.cmp_lnrs, NULL, NULL, s._columns);
+      prompt (s, s._lin, s._col);
 
       return 0;
       }
@@ -987,8 +1048,7 @@ private define fnamecmp (s, start)
 
         if (isdir)
           {
-          restore (s, [s._row, s._col]);
-          prompt (s);
+          prompt (s, s._lin, s._col);
           continue;
           }
         }
@@ -998,7 +1058,8 @@ private define fnamecmp (s, start)
       {
       delete_at (s);
       parse_args (s);
-      restore (s, [s._row, s._col]);
+      restore (s.cmp_lnrs, [s._row, s._col], 1, s._columns);
+      prompt (s, s._lin, s._col);
       return 0;
       }
 
@@ -1018,13 +1079,17 @@ private define fnamecmp (s, start)
         }
       else
         {
-        restore (s, [s._row, s._col]);
+        restore (s.cmp_lnrs, [s._row, s._col], 1, s._columns);
+        prompt (s, s._lin, s._col);
         return 0;
         }
 
     if ('\r' == chr || 0 == chr || 0 == (' ' < chr <= '~'))
       {
-      restore (s, '\r' == chr ? s.ptr : [s._row, s._col]);
+      restore (s.cmp_lnrs, '\r' == chr ? s.ptr : [s._row, s._col], 1, s._columns);
+      ifnot ('\r' == chr)
+        prompt (s, s._lin, s._col);
+
       return '\r' == chr;
       }
 
@@ -1034,8 +1099,8 @@ private define fnamecmp (s, start)
       insert_at (s;chr = '/');
 
     parse_args (s);
-    prompt (s);
-    restore (s, [s._row, s._col]);
+    restore (s.cmp_lnrs, NULL, NULL, s._columns);
+    prompt (s, s._lin, s._col);
     }
 }
 
@@ -1068,17 +1133,17 @@ private define commandcmp (s, commands)
 
     ifnot (length (ar))
       {
-      restore (s, [s._row, s._col]);
+      restore (s.cmp_lnrs, [s._row, s._col], 1, s._columns);
       return 0;
       }
 
     if (1 == length (ar) && 0 == qualifier_exists ("accept_one_len"))
       {
-      restore (s, [s._row, s._col]);
+      restore (s.cmp_lnrs, NULL, NULL, s._columns);
       s.argv[0] = ar[0];
       s._col = strlen (ar[0]) + 1;
       parse_args (s);
-      prompt (s);
+      prompt (s, s._lin, s._col);
       return 0;
       }
 
@@ -1093,7 +1158,7 @@ private define commandcmp (s, commands)
       s.argv[0] = str;
       s._col = strlen (str) + 1;
       parse_args (s);
-      prompt (s);
+      prompt (s, s._lin, s._col);
       }
 
     bar = @ar;
@@ -1109,12 +1174,12 @@ private define commandcmp (s, commands)
 
     if (' ' == chr)
       {
-      restore (s, [s._row, s._col]);
+      restore (s.cmp_lnrs, NULL, NULL, s._columns);
 
       s.argv[s._ind] = strchop (tmp, ' ', 0)[0];
       s._col = strlen (s.argv[0]) + 1;
       parse_args (s);
-      prompt (s);
+      prompt (s, s._lin, s._col);
 
       return 0;
       }
@@ -1123,7 +1188,7 @@ private define commandcmp (s, commands)
       {
       delete_at (s);
       parse_args (s);
-      restore (s, [s._row, s._col]);
+      restore (s.cmp_lnrs, [s._row, s._col], 1, s._columns);
       return 0;
       }
  
@@ -1132,7 +1197,7 @@ private define commandcmp (s, commands)
 
     if (any ([' ', '\r'] == chr) || 0 == ('!' <= chr <= 'z'))
       {
-      restore (s, '\r' == chr ? s.ptr : [s._row, s._col]);
+      restore (s.cmp_lnrs, '\r' == chr ? s.ptr : [s._row, s._col], 1, s._columns);
       return, " ", '\r' == chr;
       }
 
@@ -1140,7 +1205,7 @@ private define commandcmp (s, commands)
 
     s._col = strlen (s.argv[0]) + 1;
     parse_args (s);
-    prompt (s);
+    prompt (s, s._lin, s._col);
     }
 }
 
@@ -1211,7 +1276,10 @@ private define fnamecmpToprow (s, fname)
     s.cmp_lnrs = [s.cmp_lnrs[0] - 1, s.cmp_lnrs];
 
     if (033 == chr)
+      {
+      restore (s.cmp_lnrs, NULL, NULL, s._columns);
       return 0;
+      }
 
     if (' ' == chr)
       {
@@ -1226,7 +1294,10 @@ private define fnamecmpToprow (s, fname)
           @fname = substr (@fname, 3, -1);
  
         if (isdir)
+          {
+          restore (s.cmp_lnrs, [s._row, s._col], 1, s._columns);
           continue;
+          }
         }
       }
  
@@ -1249,7 +1320,10 @@ private define fnamecmpToprow (s, fname)
         return 0;
 
     if ('\r' == chr || 0 == chr || 0 == (' ' < chr <= '~'))
+      {
+      restore (s.cmp_lnrs, [s._row, s._col], 1, s._columns);
       return '\r' == chr;
+      }
  
     @fname += char (chr);
     @fname += appendslash (@fname);
@@ -1278,12 +1352,12 @@ private define getpattern (s, pat)
   variable
     ar = readfile (STDDATADIR + "/Txt_Type/pcresyntax.txt"),
     len = length (ar),
-    lines = s._lines - (strlen (s._lin) / s._columns) - 4,
-    prow = s._prow - (strlen (s._lin) / s._columns) - (len > LINES - 3 ? LINES - 4 : len) - 1;
+    lines = s._lines - (strlen (s._lin) / s._columns) - 3,
+    prow = s._prow - (strlen (s._lin) / s._columns) - (len > lines ? lines : len) - 1;
 
   smg->atrcaddnstr  (strlen (@pat) ? @pat : " ", 7, prow, 0, rl._columns);
 
-  () = printout (rl, ar, strlen (rl.argv[0]), &len;lines = lines);
+  () = printout (rl, ar, strlen (rl.argv[0]), &len;lines = lines, _prow = s._prow, _lin = s._lin);
  
   smg->setrcdr (prow, strlen (rl.argv[0]));
 
@@ -1292,11 +1366,10 @@ private define getpattern (s, pat)
     rl._chr = getch (;on_lang = s.on_lang, on_lang_args = s.on_lang_args);
 
     if (1 == rl._col)
-      smg->atrcaddnstr (" ", 0, MSGROW, 0, COLUMNS);
+      smg->atrcaddnstr (" ", 0, MSGROW, 0, s._columns);
  
     if (any (['\r', 033] == rl._chr))
       {
- 
       @pat = '\r' == rl._chr ? rl.argv[0] : "";
       s.cmp_lnrs = rl.cmp_lnrs;
       return;
@@ -1308,10 +1381,10 @@ private define getpattern (s, pat)
     try (err)
       {
       pcrepat = pcre_compile (rl.argv[0], 0);
-      debug (" ", 0, [rl._prow, rl._col], 0);
+      smg->atrcaddnstr (" ", 0, MSGROW, 0, s._columns);
       }
     catch ParseError:
-      debug (err.descr, 1, [rl._prow, rl._col], 0);
+      smg->atrcaddnstr (err.descr, 1, MSGROW, 0, s._columns);
 
     smg->atrcaddnstrdr (rl.argv[0], 7, prow, 0, prow, rl._col - 1, rl._columns);
     }
@@ -1320,14 +1393,22 @@ private define getpattern (s, pat)
 private define parse_argtype (s, arg, type, baselen)
 {
   if ("void" == type)
+    {
+    prompt (s, s._lin, s._col);
     return;
+    }
+  
+  variable col;
 
   if ("--pat=" == arg || "pattern" == type)
     type = "pcrepattern";
 
   if (any (["int", "string"] == type))
     {
-    smg->atrcaddnstrdr ("arg type should be " + type, 1, MSGROW, 0, s._row, s._col, COLUMNS);
+    (, col) = find_col (s._col, s._columns);
+    prompt (s, s._lin, s._col);
+    smg->atrcaddnstrdr ("arg type should be " + type, 1, MSGROW, 0, s._row, col, s._columns);
+    msgwritten = 1;
     return;
     }
 
@@ -1342,9 +1423,10 @@ private define parse_argtype (s, arg, type, baselen)
 
   if ("pcrepattern" == type)
       {
-      prompt (s);
+      smg->atrcaddnstrdr ("arg type should be " + type, 1, MSGROW, 0, s._row, s._col, s._columns);
+
+      prompt (s, s._lin, s._col);
  
-      smg->atrcaddnstrdr ("arg type should be " + type, 1, MSGROW, 0, s._row, s._col, COLUMNS);
       getpattern (s, &pat;;__qualifiers ());
 
       if (strlen (pat))
@@ -1355,14 +1437,15 @@ private define parse_argtype (s, arg, type, baselen)
         }
  
       s.cmp_lnrs = [s.cmp_lnrs[0] - 1, s.cmp_lnrs];
-      restore (s, [s._row, s._col]);
+      restore (s.cmp_lnrs, NULL, NULL, s._columns);
+      prompt (s, s._lin, s._col);
 
       return;
       }
 
   if (any (["filename", "directory", "device", "mountpoint"] == type))
       {
-      prompt (s);
+      prompt (s, s._lin, s._col);
 
       if ("device" == type)
         tmp = strlen (pat) ? pat : "/dev/sd";
@@ -1381,7 +1464,7 @@ private define parse_argtype (s, arg, type, baselen)
       parse_args (s);
 
       s.cmp_lnrs = [s.cmp_lnrs[0] - 1, s.cmp_lnrs];
-      restore (s, [s._row, s._col]);
+      prompt (s, s._lin, s._col);
       }
 }
 
@@ -1459,7 +1542,10 @@ private define argcompletion (s)
     {
     ifnot (strlen (arg))
       ifnot (qualifier_exists ("accept_ws"))
+        {
+        prompt (s, s._lin, s._col);
         return 0;
+        }
 
     ar = where (array_map (Char_Type, &string_match, args, sprintf ("^%s", arg), 1));
 
@@ -1488,19 +1574,28 @@ private define argcompletion (s)
     s._col = baselen + strlen (arg) + 1;
     s.argv[s._ind] = arg;
     parse_args (s);
-    prompt (s);
+    prompt (s, s._lin, s._col);
 
     ar = array_map (String_Type, &sprintf, "%-17s %s", args[ar], desc[ar]);
 
     tmp = "";
     chr = hlitem (s, ar, arg, s._col, &tmp;dont_format);
  
+    if (033 == chr)
+      {
+      restore (s.cmp_lnrs, NULL, NULL, s._columns);
+      prompt (s, s._lin, s._col);
+
+      return 0;
+      }
+
     if (' ' == chr)
       {
       ar = strchop (tmp, ' ', 0);
       arg = ar[0];
       s.argv[s._ind] = arg;
       s._col = baselen + strlen (arg) + 1;
+      restore (s.cmp_lnrs, NULL, NULL, s._columns);
       parse_args (s);
  
       i = wherefirst (arg == args);
@@ -1516,7 +1611,7 @@ private define argcompletion (s)
       s.argv[s._ind] = arg;
       s._col = baselen + strlen (arg) + 1;
       parse_args (s);
-      prompt (s);
+      prompt (s, s._lin, s._col);
       continue;
       }
 
@@ -1530,14 +1625,12 @@ private define argcompletion (s)
           && strlen (arg) > 1)
         return 0;
 
-      prompt (s);
+      prompt (s, s._lin, s._col);
       continue;
       }
 
     if ('\r' == chr || 0 == (' ' < chr <= '~'))
-      {
       return '\r' == chr;
-      }
 
     if ("." == arg && qualifier_exists ("base"))
       arg = char (chr);
@@ -1546,8 +1639,10 @@ private define argcompletion (s)
 
     s.argv[s._ind] = arg;
     s._col = baselen + strlen (s.argv[s._ind]) + 1;
+
     parse_args (s);
-    prompt (s);
+    
+    prompt (s, s._lin, s._col);
     }
 }
 
@@ -1597,17 +1692,17 @@ private define historycompletion (s)
     len = 1;
 
     i = 0;
-    while ((i + 1) * COLUMNS <= s._col)
+    while ((i + 1) * s._columns <= s._col)
       i++;
 
-    col = s._col - (COLUMNS * i);
+    col = s._col - (s._columns * i);
 
     () = printout (s, [strjoin (strtok (ar[index], "||"), " ")], col, &len;
       lines = s._lines - (strlen (s._lin) / s._columns));
 
     index++;
 
-    prompt (s);
+    prompt (s, s._lin, s._col);
 
     chr = getch (;disable_langchange);
 
@@ -1624,7 +1719,8 @@ private define historycompletion (s)
       {
       delete_at (s);
       parse_args (s);
-      prompt (s);
+      restore (s.cmp_lnrs, NULL, NULL, s._columns);
+      prompt (s, s._lin, s._col);
       continue;
       }
 
@@ -1633,8 +1729,8 @@ private define historycompletion (s)
       s.argv = strtok (ar[index-1], "||");
       s._col = strlen (strjoin (s.argv, " ")) + 1;
       parse_args (s);
-      restore (s, [s._row, s._col]);
-      prompt (s);
+      restore (s.cmp_lnrs, NULL, NULL, s._columns);
+      prompt (s, s._lin, s._col);
       return  0;
       }
 
@@ -1646,23 +1742,28 @@ private define historycompletion (s)
  
     if (033 == chr)
       {
-      clear (s, s.ptr;dont_redraw);
-      restore (s, [s._row, s._col]);;
+      restore (s.cmp_lnrs, NULL, NULL, s._columns);
+      prompt (s, s._lin, s._col);
       return 0;
       }
 
     ifnot (' ' < chr <= '~')
+      {
+      restore (s.cmp_lnrs, NULL, NULL, s._columns);
       return 0;
+      }
  
     insert_at (s;chr = chr);
     parse_args (s);
-    prompt (s);
+    prompt (s, s._lin, s._col);
     }
 }
 
 static define readline (s)
 {
-  prompt (s);
+  variable retval;
+
+  prompt (s, s._lin, s._col);
 
   forever
     {
@@ -1670,21 +1771,20 @@ static define readline (s)
 
     if (033 == s._chr)
       {
-      clear (s, s.ptr;dont_redraw);
-      restore (s, s.ptr);
+      restore (s.cmp_lnrs, s.ptr, 1, s._columns);
       break;
       }
 
     if ('\r' == s._chr)
       {
-      s.execline (&clear, &restore;;__qualifiers ());
+      s.execline (;;__qualifiers ());
       return;
       }
  
     if (any (keys->rmap.histup == s._chr))
       if (1 == historycompletion (s))
         {
-        s.execline (&clear, &restore;;__qualifiers ());
+        s.execline (;;__qualifiers ());
         return;
         }
       else
@@ -1693,27 +1793,36 @@ static define readline (s)
     if (any (keys->rmap.lastcmp == s._chr))
       if (1 == lcmpcompletion (s))
         {
-        s.execline (&clear, &restore;;__qualifiers ());
+        s.execline (;;__qualifiers ());
         return;
         }
       else
         continue;
+    
+    ifnot (NULL == s.starthook)
+      {
+      retval = (@s.starthook) (s;;__qualifiers ());
+      ifnot (retval)
+        continue;
+      
+      if (retval == 1)
+        {
+        s.execline (;;__qualifiers ());
+        return;
+        }
+      }
 
     if ('\t' == s._chr)
       {
       ifnot (NULL == s.tabhook)
         {
-        variable retval = (@s.tabhook) (s);
+        retval = (@s.tabhook) (s;;__qualifiers ());
         ifnot (retval)
-          {
-          restore (s, s.ptr);
-          prompt (s);
           continue;
-          }
         
         if (retval == 1)
           {
-          s.execline (&clear, &restore;;__qualifiers ());
+          s.execline (;;__qualifiers ());
           return;
           }
         }
@@ -1723,14 +1832,10 @@ static define readline (s)
         if (strlen (s.argv[s._ind]) && '-' == s.argv[s._ind][0])
           {
           ifnot (argroutine (s))
-            {
-            restore (s, s.ptr);
-            prompt (s);
             continue;
-            }
           else
             {
-            s.execline (&clear, &restore;;__qualifiers ());
+            s.execline (;;__qualifiers ());
             return;
             }
           }
@@ -1739,18 +1844,17 @@ static define readline (s)
           variable start = 0 == strlen (s.argv[s._ind]) ? " " : s.argv[s._ind];
           if (fnamecmp (s, start) == 1)
             {
-            s.execline (&clear, &restore;;__qualifiers ());
+            s.execline (;;__qualifiers ());
             return;
             }
 
-          prompt (s);
           continue;
           }
         }
       else
         if (commandcmp (s, assoc_get_keys (s.argvlist)) == 1)
           {
-          s.execline (&clear, &restore);
+          s.execline (;;__qualifiers ());
           return;
           }
         else
@@ -1760,6 +1864,6 @@ static define readline (s)
     routine (s);
 
     parse_args (s);
-    prompt (s);
+    prompt (s, s._lin, s._col);
     }
 }
