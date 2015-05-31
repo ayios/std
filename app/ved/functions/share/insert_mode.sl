@@ -599,6 +599,9 @@ private define linecompletion (s, line)
     origlen = strlen (@line),
     col = s._index - 1,
     iwchars = [MAPS, ['0':'9'], '_'];
+  
+  ifnot (strlen (@line))
+    return;
 
   forever
     {
@@ -606,11 +609,12 @@ private define linecompletion (s, line)
       lines = pcre->find_unique_lines_in_lines (s.lines, @line, NULL);
           
     ifnot (length (lines))
+      {
       if (length (lines))
-        {
         smg->restore (rows, s.ptr, 1);
-        return;
-        }
+
+      return;
+      }
 
     indexchanged = 0;
 
@@ -724,17 +728,21 @@ private define wordcompletion (is, s, line)
 
   word = fpart_of_word (s, @line, col, &start);
 
+  ifnot (strlen (word))
+    return;
+
   forever
     {
     ifnot (indexchanged)
       words = pcre->find_unique_words_in_lines (s.lines, word, NULL);
           
     ifnot (length (words))
+      {
       if (length (rows))
-        {
         smg->restore (rows, s.ptr, 1);
-        return;
-        }
+      
+      return;
+      }
 
     indexchanged = 0;
 

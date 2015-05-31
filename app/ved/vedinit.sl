@@ -295,9 +295,6 @@ define ved ()
 {
   variable args = __pop_list (_NARGS);
   _ved_ (__push_list (args), 0;;__qualifiers ());
-
-%  if (qualifier_exists ("drawwind"))
-%    CW.drawwind ();
 }
 
 define vedsudo ()

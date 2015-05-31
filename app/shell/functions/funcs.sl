@@ -25,9 +25,10 @@ define getlines ();
 define draw (s)
 {
   variable st = lstat_file (s._absfname);
-
-  if (st.st_atime == s.st_.st_atime && st.st_size == s.st_.st_size)
-    return;
+  
+  if (s.st_.st_size)
+    if (st.st_atime == s.st_.st_atime && st.st_size == s.st_.st_size)
+      return;
 
   s.st_ = st;
  

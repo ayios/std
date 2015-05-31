@@ -90,6 +90,9 @@ define getlinestr (s, line, ind)
 
 define fpart_of_word (s, line, col, start)
 {
+  ifnot (strlen (line))
+    return "";
+
   variable origcol = col;
 
   ifnot (col - s._indent)

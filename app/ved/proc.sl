@@ -37,6 +37,10 @@ define tostderr (str)
   () = fprintf (stderr, "%s\n", str);
 }
 
+loadfrom ("proc", "setenv", 1, &on_eval_err);
+
+proc->setdefenv ();
+
 importfrom ("std", "socket",  NULL, &on_eval_err);
 
 ifnot (VEDPROC._inited)
@@ -48,10 +52,6 @@ ifnot (VEDPROC._inited)
   VEDPROC._fd = VED_SOCKET;
   VEDPROC._state = VEDPROC._state | CONNECTED;
   }
-
-loadfrom ("proc", "setenv", 1, &on_eval_err);
-
-proc->setdefenv ();
 
 loadfrom ("stdio", "readfile", NULL, &on_eval_err);
 loadfrom ("sys", "which", NULL, &on_eval_err);
@@ -154,10 +154,8 @@ define exit_me (exit_code)
 define on_eval_err (err, code)
 {
   variable fp = fopen ("/tmp/vederr", "w");
-  () = array_map (Integer_Type, &fprintf, fp,     "%s\n", err);
+  () = array_map (Integer_Type, &fprintf, fp, "%s\n", err);
   () = fflush (fp);
-%  () = array_map (Integer_Type, &fprintf, stderr, "%s\n", err);
-  exit_me (code);
 }
 
 VED_ROWS = [1:LINES - 3];

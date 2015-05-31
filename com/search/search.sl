@@ -1,5 +1,4 @@
 importfrom ("std", "pcre", NULL, &on_eval_err);
-
 loadfrom ("dir", "fswalk", NULL, &on_eval_err);
 
 private variable
@@ -122,7 +121,7 @@ private define grep (file, depth)
 
   if (-1 == access (file, F_OK|R_OK))
     {
-    tostderr (sprintf ("%s: %s", file, errno_string (errno));print_in_msg_line);
+    tostderr (sprintf ("%s: %s", file, errno_string (errno)));
     return 1;
     }
 
@@ -223,14 +222,14 @@ define main ()
   if (i == __argc && danglinglinks == NULL == findfiles)
     {
     tostderr (sprintf ("%s: it requires a filename", __argv[0]));
-    exit (1);
+    exit_me (1);
     }
 
   if (NULL == PAT && NULL == danglinglinks)
     {
     tostderr (sprintf (
       "%s: pattern was not given, I don't know what to look", __argv[0]));
-    exit (1);
+    exit_me (1);
     }
 
   ifnot (RECURSIVE)
@@ -238,9 +237,12 @@ define main ()
   else
     if (NULL == maxdepth)
       maxdepth = 1000;
- 
+   
   ifnot (NULL == PAT)
     {
+    ifnot (strlen (PAT))
+      exit_me (1);
+
     _for ia (1, strlen (PAT) - 1)
       if ('n' == PAT[ia] && '\\' == PAT[ia - 1])
         NEWLINES++;
@@ -252,7 +254,7 @@ define main ()
     catch ParseError:
       {
       tostderr (err.descr);
-      exit (1);
+      exit_me (1);
       }
     }
 
@@ -266,13 +268,13 @@ define main ()
     ifnot (length (LINENRS))
       {
       tostdout ("Nothing found");
-      exit (2);
+      exit_me (2);
       }
 
     _for i (0, length (LINENRS) - 1)
       tostdout (sprintf ("%s|%d col %d| %s", FNAMES[i], LINENRS[i], COLS[i], LINES[i]));
 
-    exit (0);
+    exit_me (0);
     }
  
   if (i == __argc)
@@ -292,12 +294,12 @@ define main ()
   ifnot (length (ar))
     {
     tostdout ("Nothing found");
-    exit (2);
+    exit_me (2);
     }
   else
     _for i (0, length (ar) - 1)
       array_map (Void_Type, &tostdout, array_map
           (String_Type, &sprintf, "%s|0 col 0| 1", ar[i]));
 
-  exit (0);
+  exit_me (0);
 }

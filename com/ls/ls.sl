@@ -64,7 +64,7 @@ define assign_filetype (type, filetype, code)
     if (NULL == index)
       {
       tostderr (ar[i] + ": Wrong file type, valid are: " + strjoin (st_mode, " - "));
-      exit (1);
+      exit_me (1);
       }
 
     if (code)
@@ -670,8 +670,8 @@ define main ()
     }
 
   ifnot (length (filelist))
-    exit (0);
+    exit_me (0);
 
  print_to_screen (list_to_array (filelist), opts);
- exit (0);
+ exit_me (0);
 }

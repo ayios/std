@@ -21,5 +21,5 @@ define ved (s, fname)
  
   toplinedr (" -- pager --");
   
-  s.vedloop (s);
+  s.vedloop ();
 }

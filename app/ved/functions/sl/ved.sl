@@ -1,6 +1,5 @@
 define ved (s, fname)
 {
-  tostderr ("sl in : " + string (_stkdepth ()));
   sl_settype (s, fname, VED_ROWS, NULL);
 
   setbuf (s._absfname);
@@ -9,7 +8,6 @@ define ved (s, fname)
 
   s.draw ();
 
-  tostderr ("sl a : " + string (_stkdepth ()));
   variable func = get_func ();
 
   if (func)

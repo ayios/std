@@ -22,7 +22,7 @@ define main ()
   if (NULL == umount)
     {
     tostderr ("umount couldn't be found in path");
-    exit (1);
+    exit_me (1);
     }
   
   c.add ("mountpoint", &mountpoint;type = "string");
@@ -35,13 +35,13 @@ define main ()
   if (mountpoint == NULL)
     {
     tostderr ("--mountpoint= arg is required");
-    exit (1);
+    exit_me (1);
     }
     
   if (-1 == access (mountpoint, F_OK))
     {
     tostderr (sprintf ("%s mountpoint doesn't exists", mountpoint));
-    exit (1);
+    exit_me (1);
     }
 
   if (VERBOSE)
@@ -53,5 +53,5 @@ define main ()
 
   status = p.execv (argv, NULL);
   
-  exit (status.exit_status);
+  exit_me (status.exit_status);
 }

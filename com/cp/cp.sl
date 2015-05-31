@@ -224,5 +224,5 @@ define main ()
       exit_code = 1;
     }
 
-   exit (exit_code);
+   exit_me (exit_code);
 }

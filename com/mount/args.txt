@@ -1,4 +1,5 @@
 --mountpoint= mountpoint MountPoint
 --device= device Device
---info void show information
---help void show help
+--verbose void Be verbose
+--info void Show information
+--help void Show help

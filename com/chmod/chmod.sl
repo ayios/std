@@ -75,13 +75,13 @@ define main ()
   if (i == __argc)
     {
     tostderr (sprintf ("%s: it requires a filename", __argv[0]));
-    exit (1);
+    exit_me (1);
     }
  
   if (NULL == mode)
     {
     tostderr (sprintf ("%s: --mode was not given", __argv[0]));
-    exit (1);
+    exit_me (1);
     }
 
   mode = mode_conversion (mode);
@@ -90,7 +90,7 @@ define main ()
     {
     variable err = ();
     tostderr (err);
-    exit (1);
+    exit_me (1);
     }
  
   files = __argv[[i:]];
@@ -128,5 +128,5 @@ define main ()
     chmod_it (files[i], mode);
     }
 
-  exit (EXIT_CODE);
+  exit_me (EXIT_CODE);
 }

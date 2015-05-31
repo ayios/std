@@ -113,7 +113,6 @@ private define drawfile (s)
   ifnot (frame)
     return;
  
-  tostderr ("draw init: " + string (_stkdepth ()));
   variable l = getitem (s);
 
   if (NULL == l)
@@ -134,16 +133,12 @@ private define drawfile (s)
     s._index = s.ptr[1];
     }
  
-  tostderr ("draw a: " + string (_stkdepth ()));
   s.draw ();
-  tostderr ("draw b: " + string (_stkdepth ()));
-  pop ();
   s.vedloop ();
 }
 
 private define chframe (s)
 {
-  tostderr ("chframe: a " + string (_stkdepth ()));
   if (1 == length (fnames))
     return;
 
@@ -151,9 +146,7 @@ private define chframe (s)
   togglecur ();
   s = set_cf (fn);
 
-  tostderr ("chframe: b " + string (_stkdepth ()));
   smg->setrcdr (s.ptr[0], s.ptr[1]);
-  pop ();
   s.vedloop ();
 }
 

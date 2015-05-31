@@ -104,7 +104,7 @@ define initbuf (s, fname, rows, lines, t)
 
   s.lines = NULL == lines ? getlines (s._fname, s._indent, s.st_) : lines;
   s._flags = 0;
-  s._is_wrapped_line;
+  s._is_wrapped_line = 0;
  
   s.ptr = Integer_Type[2];
 
@@ -123,7 +123,6 @@ define initbuf (s, fname, rows, lines, t)
   s.undoset = {};
 
   s._i = 0;
-
 
   addbuf (s);
 }

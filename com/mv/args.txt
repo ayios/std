@@ -3,5 +3,6 @@
 --backup      void   Make backups
 --suffix=     string Overrides the default backup suffix (~)
 --update      void   Move only if source file is newer than destination
+--verbose     void   Be verbose
 --help        void   Show help
 --info        void   Show information

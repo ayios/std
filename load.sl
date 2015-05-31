@@ -1,6 +1,7 @@
 private variable LOADED = Assoc_Type[Integer_Type, 0];
 
 public variable ROOTDIR = path_dirname (__FILE__) + "/..";
+public variable MACHINE;
 
 public variable ADIR = ROOTDIR;
 public variable STDDIR = ROOTDIR + "/std";
@@ -147,7 +148,7 @@ public define importfrom (ns, module, dons, errfunc)
 {
   variable exception;
   variable excar;
-  variable lns = MDLDIR + "/" + ns;
+  variable lns = MDLDIR + "/" + MACHINE + "/" + ns;
 
   if (-1 == access (lns, F_OK))
     throw OpenError, "(import) " + ns + " :no such namespace", 2;

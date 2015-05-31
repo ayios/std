@@ -69,13 +69,15 @@ private define _execFunc_Type_ (func, argv)
 private define _execline_ (s)
 {
   variable _addhistory = 1;
-  
+
   if (1 < length (s.argv))
     ifnot (strlen (s.argv[-1]))
       s.argv = s.argv[[:-2]];
 
   if (NULL == s.argvlist[s.argv[0]].func)
     return;
+  
+  variable origargv = @s.argv;
   
   ifnot (NULL == s.argvlist[s.argv[0]].type)
     if (s.argvlist[s.argv[0]].type == "Proc_Type")
@@ -98,8 +100,8 @@ private define _execline_ (s)
   
   if (_addhistory)
     {
-    s.history = addhistory (s.history, s.argv);
-    addlcmp (s.lcmp, s.argv[-1]);
+    s.history = addhistory (s.history, origargv);
+    addlcmp (s.lcmp, origargv[-1]);
     }
 }
 
@@ -448,6 +450,18 @@ private define write_completion_routine (s, ar)
   smg->aratrcaddnstr (ar, clrs, s.cmp_lnrs, cols, s._columns);
 }
 
+private define _printout (s, ar, col, len)
+{
+  variable lrow = s._prow - (strlen (s._lin) / s._columns);
+  variable lar = widg->printtoscreen (ar, lrow, len, &s.cmp_lnrs;;__qualifiers ());
+  variable lcol;
+  (, lcol) = find_col (col, s._columns);
+
+  smg->setrcdr (s._row, lcol);
+
+  return lar;
+}
+
 private define printout (s, ar, col, len)
 {
   ifnot (length (ar))
@@ -627,9 +641,12 @@ private define hlitem (s, ar, base, acol, item)
   ifnot (NULL == header)
     smg->aratrcaddnstr  (header, 6, frow, 0, s._columns);
 
-  bar = printout (s, bar, bcol, &len;lines = lines,
+  bar = _printout (s, bar, bcol, &len;lines = lines,
     row = s._prow - (strlen (s._lin) / s._columns) + i,
     hl_region = [colr, irow, icol * max_len, 1, max_len]);
+  %bar = printout (s, bar, bcol, &len;lines = lines,
+  %  row = s._prow - (strlen (s._lin) / s._columns) + i,
+  %  hl_region = [colr, irow, icol * max_len, 1, max_len]);
  
   ifnot (NULL == header)
     s.cmp_lnrs = [s.cmp_lnrs[0] - 1, s.cmp_lnrs];
@@ -684,9 +701,12 @@ private define hlitem (s, ar, base, acol, item)
       ifnot (NULL == header)
         smg->aratrcaddnstr  (header, 6, frow, 0, s._columns);
 
-      bar = printout (s, bar, bcol, &len;lines = lines,
+      bar = _printout (s, bar, bcol, &len;lines = lines,
         row = s._prow - (strlen (s._lin) / s._columns) + i,
         hl_region = [colr, irow, icol * max_len, 1, max_len]);
+      %bar = printout (s, bar, bcol, &len;lines = lines,
+      %  row = s._prow - (strlen (s._lin) / s._columns) + i,
+      %  hl_region = [colr, irow, icol * max_len, 1, max_len]);
  
       ifnot (NULL == header)
         s.cmp_lnrs = [s.cmp_lnrs[0] - 1, s.cmp_lnrs];
@@ -861,9 +881,12 @@ private define hlitem (s, ar, base, acol, item)
     ifnot (NULL == header)
       smg->aratrcaddnstr  (header, 6, frow, 0, s._columns);
 
-    () = printout (s, car, bcol, &len;lines = lines,
+    () = _printout (s, car, bcol, &len;lines = lines,
       row = s._prow - (strlen (s._lin) / s._columns) + i,
       hl_region = [colr, irow, icol * max_len, 1, max_len]);
+    %() = printout (s, car, bcol, &len;lines = lines,
+    %  row = s._prow - (strlen (s._lin) / s._columns) + i,
+    %  hl_region = [colr, irow, icol * max_len, 1, max_len]);
  
     ifnot (NULL == header)
       s.cmp_lnrs = [s.cmp_lnrs[0] - 1, s.cmp_lnrs];
@@ -1357,7 +1380,8 @@ private define getpattern (s, pat)
 
   smg->atrcaddnstr  (strlen (@pat) ? @pat : " ", 7, prow, 0, rl._columns);
 
-  () = printout (rl, ar, strlen (rl.argv[0]), &len;lines = lines, _prow = s._prow, _lin = s._lin);
+  () = _printout (rl, ar, strlen (rl.argv[0]), &len;lines = lines, _prow = s._prow, _lin = s._lin);
+  %() = printout (rl, ar, strlen (rl.argv[0]), &len;lines = lines, _prow = s._prow, _lin = s._lin);
  
   smg->setrcdr (prow, strlen (rl.argv[0]));
 
@@ -1697,8 +1721,10 @@ private define historycompletion (s)
 
     col = s._col - (s._columns * i);
 
-    () = printout (s, [strjoin (strtok (ar[index], "||"), " ")], col, &len;
+    () = _printout (s, [strjoin (strtok (ar[index], "||"), " ")], col, &len;
       lines = s._lines - (strlen (s._lin) / s._columns));
+    %() = printout (s, [strjoin (strtok (ar[index], "||"), " ")], col, &len;
+    %  lines = s._lines - (strlen (s._lin) / s._columns));
 
     index++;
 
@@ -1762,12 +1788,19 @@ private define historycompletion (s)
 static define readline (s)
 {
   variable retval;
+  variable initdone = 0;
 
   prompt (s, s._lin, s._col);
 
   forever
     {
     s._chr = getch (;on_lang = s.on_lang, on_lang_args = s.on_lang_args);
+    
+    ifnot (initdone)
+      {
+      send_msg_dr (" ", 0, s._prow, s._col);
+      initdone = 1;
+      }
 
     if (033 == s._chr)
       {

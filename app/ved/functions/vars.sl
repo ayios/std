@@ -40,19 +40,22 @@ public variable VED_SCRATCH_BUF = "/tmp/scratch.txt";
  
 private define _invalid ()
 {
-  return;
+  pop ();
 }
 
 public variable
   VED_CB,
   pagerf = Assoc_Type[Ref_Type, &_invalid],
   VEDCOUNT = 0,
+  RECORD = 0,
+  CRECORD,
+  RECORDS = Assoc_Type[List_Type],
   REG = Assoc_Type[String_Type];
 
-FTYPES["ashell"] = 0;
-FTYPES["txt"] = 0;
 FTYPES["sl"] = 0;
+FTYPES["txt"] = 0;
 FTYPES["list"] = 0;
+FTYPES["ashell"] = 0;
 
 define set_modified ();
 define writetofile ();

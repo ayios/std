@@ -26,7 +26,7 @@ static define getpasswd ()
       break;
     passwd += char (chr);
     }
-
+  
   send_msg_dr (" ", 0, NULL, NULL);
 
   return passwd + "\n";
@@ -84,4 +84,44 @@ static define pop_up (ar, row, col, ifocus)
   lrow++;
  
   return _pop_up_ (lar, lrow, col, ifocus;;__qualifiers ());
+}
+
+static define write_completion_routine (ar, startrow)
+{
+  variable
+    len = length (ar),
+    cmpl_lnrs = [startrow:startrow + len - 1],
+    columns = qualifier ("columns", COLUMNS),
+    clrs = Integer_Type[len],
+    cols = Integer_Type[len];
+
+  clrs[*] = qualifier ("clr", 11);
+  cols[*] = qualifier ("startcol", 0);
+
+  smg->aratrcaddnstr (ar, clrs, cmpl_lnrs, cols, columns);
+  return cmpl_lnrs;
+}
+
+static define printtoscreen (ar, lastrow, len, cmpl_lnrs)
+{
+  ifnot (length (ar))
+    {
+    @len = 0;
+    return @Array_Type[0];
+    }
+  
+  variable lines = qualifier ("lines", lastrow - 2);
+  variable origlen = @len;
+  variable hlreg = qualifier ("hl_region");
+  variable lar = @len < lines ? @ar : ar[[:lines - 1]];
+  variable startrow = lastrow - (length (lar) > lines ? lines : length (lar));
+
+  @cmpl_lnrs = write_completion_routine (lar, startrow;;__qualifiers ());
+
+  ifnot (NULL == hlreg)
+    smg->hlregion (hlreg[0], hlreg[1], hlreg[2], hlreg[3], hlreg[4]);
+ 
+  @len = @len >= lines;
+ 
+  return ar[[origlen >= lines ? lines - 1 : origlen:]];
 }

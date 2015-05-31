@@ -49,7 +49,7 @@ define main ()
   ifnot (i + 2  <= __argc)
     {
     tostderr (sprintf ("%s: additional argument is required", __argv[0]));
-    exit (1);
+    exit_me (1);
     }
 
   opts.ignoredir = NULL;
@@ -62,7 +62,7 @@ define main ()
     if (length (files) > 1)
       {
       tostderr (sprintf ("target `%s' is not a directory", dest));
-      exit (1);
+      exit_me (1);
       }
 
   _for i (0, length (files) - 1)
@@ -126,5 +126,5 @@ define main ()
       exit_code = 1;
     }
  
-  exit (exit_code);
+  exit_me (exit_code);
 }

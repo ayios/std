@@ -592,6 +592,24 @@ private define toggle_case (s)
     (@pagerf[string ('l')]) (s);
 }
 
+%private define record ()
+%{
+%  if (RECORD)
+%    {
+%    RECORD = 0;
+%    return;
+%    }
+%
+%  variable chr = getch ();
+%  
+%  ifnot ('a' < chr > 'z')
+%    return;
+%  
+%  RECORD = 1; 
+%  CRECORD = char (chr);
+%  RECORDS[CRECORD] = {};
+%}
+
 pagerf[string ('~')] = &toggle_case;
 pagerf[string ('P')] = &Put;
 pagerf[string ('p')] = &put;
@@ -613,4 +631,3 @@ pagerf[string ('r')] = &chang_chr;
 pagerf[string ('J')] = &join_line;
 pagerf[string ('>')] = &indent_out;
 pagerf[string ('<')] = &indent_in;
-

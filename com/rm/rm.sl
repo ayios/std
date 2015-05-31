@@ -74,7 +74,7 @@ define main ()
   if (i == __argc)
     {
     tostderr (sprintf ("%s: argument is required", __argv[0]));
-    exit (1);
+    exit_me (1);
     }
   else
     files = __argv[[i:]];
@@ -169,7 +169,7 @@ define main ()
   filelist = filelist[array_sort (filelist;dir=-1)];
 
   ifnot (length (filelist))
-    exit (0);
+    exit_me (0);
 
   if (NULL != interactive || (recursive != NULL && 1 < length (filelist)))
     {
@@ -179,7 +179,7 @@ define main ()
         {
         tostderr (sprintf
           ("%s: wrong interactive option. Valid are (always,once,never)", interactive));
-        exit (1);
+        exit_me (1);
         }
       }
     else interactive = "once";
@@ -207,7 +207,7 @@ define main ()
         {
         case 'q':
           tostdout ("Aborting ...");
-          return exit (0);
+          exit_me (0);
         }
 
         {
@@ -231,7 +231,7 @@ define main ()
             {
             case 'q':
               tostdout ("Aborting ...");
-              exit (0);
+              exit_me (0);
             }
 
         }
@@ -250,14 +250,14 @@ define main ()
       retval = rmfile (filelist[i], &interactive);
 
     if (-1 == retval)
-      exit_code = -1;
+      exit_code = 1;
 
     if ("exit" == interactive)
       {
       tostdout ("Quiting ...");
-      exit (exit_code);
+      exit_me (exit_code);
       }
     }
 
-  exit (exit_code);
+  exit_me (exit_code);
 }

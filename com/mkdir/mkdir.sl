@@ -26,7 +26,7 @@ define main ()
   if (__argc == i)
     {
     tostderr ("a directory name is required");
-    exit (1);
+    exit_me (1);
     }
 
   ifnot (NULL == mode)
@@ -36,7 +36,7 @@ define main ()
       {
       variable err = ();
       tostderr (err);
-      exit (1);
+      exit_me (1);
       }
     }
 
@@ -56,5 +56,5 @@ define main ()
     if (-1 == _makedir (path_arr[i], mode))
       exit_code = 1;
 
-  exit (exit_code);
+  exit_me (exit_code);
 }

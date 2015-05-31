@@ -1,4 +1,4 @@
 define getscreensizefromenv ()
 {
-  return getenv ("LINES"), getenv ("COLUMNS");
+  return atoi (getenv ("LINES")), atoi (getenv ("COLUMNS"));
 }

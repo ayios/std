@@ -7,6 +7,7 @@ define diff (lines, fname, retval)
   p.stdin.in = lines;
 
   status = p.execv ([which ("diff"), "-u", fname, "-"], NULL);
+
   if (NULL == status)
     {
     @retval = NULL;

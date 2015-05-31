@@ -4,6 +4,9 @@ variable ERRFD;
 variable OUTFD;
 variable SHELLLASTEXITSTATUS = 0;
 variable iarg;
+variable MSG;
+variable SCRATCH;
+variable SCRATCHFILE = "/tmp/shellscratch.ashell";
 
 loadfrom ("sys", "checkpermissions", NULL, &on_eval_err);
 loadfrom ("sys", "setpermissions", NULL, &on_eval_err);
@@ -12,8 +15,9 @@ loadfrom ("smg", "widg", "widg", &on_eval_err);
 
 loadfrom ("app/ved/functions", "vedlib", NULL, &on_eval_err);
 
+loadfrom ("parse", "is_arg", NULL, &on_eval_err);
 loadfile ("funcs", NULL, &on_eval_err);
-loadfile ("builtin", NULL, &on_eval_err);
+loadfile ("initrline", NULL, &on_eval_err);
 
 VED_INFOCLRFG = 4;
 VED_INFOCLRBG = 5;
@@ -24,9 +28,9 @@ private define init_stream (fname)
   variable fd;
 
   if (-1 == access (fname, F_OK))
-    fd = open (fname, FILE_FLAGS[">"], PERM["_PRIVATE"]);
+    fd = open (fname, FILE_FLAGS["<>"], PERM["_PRIVATE"]);
   else
-    fd = open (fname, FILE_FLAGS[">|"], PERM["_PRIVATE"]);
+    fd = open (fname, FILE_FLAGS["<>|"], PERM["_PRIVATE"]);
 
   if (NULL == fd)
     {
@@ -46,7 +50,12 @@ define shell ();
 
 define init_shell ()
 {
-  variable v = init_ftype ("ashell");
+  MSG = init_ftype ("ashell");
+  SCRATCH = init_ftype ("ashell");
+
+  variable vd = init_ftype ("ashell");
+
+  variable rl = rlineinit ();
 
   OUTFD = init_stream (STDOUT);
   ERRFD = init_stream (STDERR);
@@ -55,5 +64,5 @@ define init_shell ()
 
   loadfile (path_dirname (__FILE__) + "/shell", NULL, &on_eval_err);
 
-  shell (v);
+  shell (vd, rl);
 }

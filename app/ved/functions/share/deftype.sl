@@ -74,7 +74,7 @@ private define _vedloop_ (s)
   pop ();
 }
 
-private define _vedloopcallback_ ()
+private define _vedloopcallback_ (s)
 {
   pop ();
 }

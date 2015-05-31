@@ -28,7 +28,7 @@ define main ()
   if (NULL == mount)
     {
     tostderr ("mount couldn't be found in PATH");
-    exit (1);
+    exit_me (1);
     }
  
   c.add ("mountpoint", &mountpoint;type = "string");
@@ -45,25 +45,25 @@ define main ()
  
     status = p.execv ([mount], NULL);
  
-    exit (status.exit_status);
+    exit_me (status.exit_status);
     }
 
   if (NULL == mountpoint || NULL == device)
     {
     tostderr ("--mountpoint= && --device= args are required");
-    exit (1);
+    exit_me (1);
     }
 
   if (-1 == access (mountpoint, F_OK))
     {
     tostderr (sprintf ("%s mountpoint doesn't exists", mountpoint));
-    exit (1);
+    exit_me (1);
     }
 
   ifnot (istype (stat_file (device), "blk"))
     {
     tostderr (sprintf ("%s is not a block device", device));
-    exit (1);
+    exit_me (1);
     }
  
   if (VERBOSE)
@@ -75,5 +75,5 @@ define main ()
 
   status = p.execv (argv, NULL);
  
-  exit (status.exit_status);
+  exit_me (status.exit_status);
 }
