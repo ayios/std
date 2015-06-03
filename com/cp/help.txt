@@ -24,7 +24,7 @@
   --ignore          Ignore files that match pcre pattern
   --match           Copy only files that match pcre pattern
   --nothidden       Do not copy hidden files (yes by default)
-  --verbose         Be verbose
+  -v,--verbose      Be verbose
   --help            Show help
  
   NOTES

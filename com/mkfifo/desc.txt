@@ -1,0 +1,7 @@
+DESCRIPTION: Create fifos (named pipes)
+VERSION    : 0.9
+AUTHOR     : Agathoklis D. Hatzimanikas
+MAINTAINER : Agathoklis D. Hatzimanikas
+EMAIL      : a dot hatzim at gmail dot com
+URL        :
+LICENSE    : GPL2

@@ -18,12 +18,12 @@ define removedir (dir, interactive)
       case 'y':
         if (-1 == rmdir (dir))
           {
-          tostderr (sprintf ("%s: %s", dir, errno_string (errno));print_in_msg_line);
+          tostderr (sprintf ("%s: %s", dir, errno_string (errno)));
           return -1;
           }
         else
           {
-          tostdout (sprintf ("%s: removed directory", dir);print_in_msg_line);
+          tostdout (sprintf ("%s: removed directory", dir));
           return 0;
           }
       }

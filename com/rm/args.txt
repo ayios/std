@@ -5,4 +5,4 @@
 --interactive      void         Prompt before, options (always, once, never), default always
 --verbose          void      Be verbose
 --help             void      Show help
---info             void Show information
+--info             void      Show information

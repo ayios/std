@@ -14,5 +14,6 @@
   --atime       Change the access time
   --mtime       Change only the modification time
   --no-create   Do not create any files
+  -v,--verbose  Be verbose
   --help        Show help
   --info        Show information

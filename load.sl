@@ -1,6 +1,7 @@
 private variable LOADED = Assoc_Type[Integer_Type, 0];
 
 public variable ROOTDIR = path_dirname (__FILE__) + "/..";
+
 public variable MACHINE;
 
 public variable ADIR = ROOTDIR;
@@ -12,6 +13,10 @@ public variable MDLDIR = ROOTDIR + "/modules";
 public variable STDDATADIR = STDDIR + "/share/data";
 public variable USRDATADIR = USRDIR + "/share/data";
 public variable LCLDATADIR = LCLDIR + "/share/data";
+
+% for now
+public variable SOURCEDIR = ROOTDIR;
+public variable TEMPDIR = ROOTDIR + "/tmp";
 
 set_slang_load_path ("");
 set_import_module_path ("");
@@ -70,7 +75,7 @@ private define _load_ ()
   return __get_reference (ns + "->" + fun);
 }
 
-private define _findns_ (ns, lns)
+private define _findns_ (ns, lns, lib)
 {
   variable found = NULL;
   variable i;
@@ -79,11 +84,14 @@ private define _findns_ (ns, lns)
   _for i (0, length (nss) - 1)
     {
     @lns =  nss[i]+ "/" + ns;
+
     ifnot (access (@lns, F_OK))
-      {
-      found = 1;
-      break;
-      }
+      if (0 == access (@lns + "/" + lib + ".sl", F_OK)
+        ||0 == access (@lns + "/" + lib + ".slc", F_OK))
+        {
+        found = 1;
+        break;
+        }
     }
  
   if (NULL == found)
@@ -94,7 +102,7 @@ private define _loadfrom_ (ns, lib, dons)
 {
   variable lns;
  
-  _findns_ (ns, &lns);
+  _findns_ (ns, &lns, lib);
  
   ns = NULL == dons
     ? NULL
@@ -191,7 +199,7 @@ public define getreffrom (ns, lib, dons, errfunc)
         : NULL;
   try
     {
-    _findns_ (ns, &lns);
+    _findns_ (ns, &lns, lib);
     return _load_ (lns + "/" + lib, ns;fun = fun);
     }
   catch AnyError:

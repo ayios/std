@@ -1,6 +1,6 @@
-private variable promptcolors = [14, 11];
+private variable promptcolors = [0, 11, 2, 1];
 private variable promptregexp =
-  pcre_compile ("^\[(\d*)\]\((.*)\)\$ "R, 0);
+  pcre_compile ("^\[(\d*)\]\((.*)\)\[(\d*)\]\$ "R, 0);
 
 private variable dircolor = 12;
 private variable dirregexp = [
@@ -36,6 +36,7 @@ private define _hldir (line, vline)
 
 private define _hlprompt (line, vline)
 {
+  variable exitstr;
   if (pcre_exec (promptregexp, line, 0))
     {
     match = pcre_nth_match (promptregexp, 1);
@@ -46,6 +47,11 @@ private define _hlprompt (line, vline)
     col = match[0];
     context = match[1] - col;
     smg->hlregion (promptcolors[1], vline, col, 1, context);
+    match = pcre_nth_match (promptregexp, 3);
+    col = match[0];
+    context = match[1] - col;
+    exitstr = substr (line, match[0] + 1, context);
+    smg->hlregion ("0" == exitstr ? promptcolors[2] : promptcolors[-1], vline, col, 1, context);
     }
 }
 

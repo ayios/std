@@ -1,16 +1,5 @@
-static define ask (questar, charar, pos)
-{
-  smg->aratrcaddnstrdr (questar, 7, [PROMPTROW - length (questar):PROMPTROW - 1], 0,
-    PROMPTROW - 1, strlen (questar[-1]) + 1, COLUMNS);
- 
-  variable chr;
-
-  while (chr = getch (), 0 == any (chr == charar));
- 
-  smg->restore ([PROMPTROW - length (questar) - 1:PROMPTROW - 1], pos, 1);
-
-  return chr;
-}
+private variable defclr = 11;
+private variable headerclr = 5;
 
 static define getpasswd ()
 {
@@ -89,13 +78,15 @@ static define pop_up (ar, row, col, ifocus)
 static define write_completion_routine (ar, startrow)
 {
   variable
+    headerclr = qualifier ("headerclr", qualifier ("clr", defclr)),
     len = length (ar),
     cmpl_lnrs = [startrow:startrow + len - 1],
     columns = qualifier ("columns", COLUMNS),
     clrs = Integer_Type[len],
     cols = Integer_Type[len];
 
-  clrs[*] = qualifier ("clr", 11);
+  clrs[*] = qualifier ("clr", defclr);
+  clrs[0] = headerclr;
   cols[*] = qualifier ("startcol", 0);
 
   smg->aratrcaddnstr (ar, clrs, cmpl_lnrs, cols, columns);
@@ -115,13 +106,78 @@ static define printtoscreen (ar, lastrow, len, cmpl_lnrs)
   variable hlreg = qualifier ("hl_region");
   variable lar = @len < lines ? @ar : ar[[:lines - 1]];
   variable startrow = lastrow - (length (lar) > lines ? lines : length (lar));
+  variable header = qualifier ("header", " ");
 
-  @cmpl_lnrs = write_completion_routine (lar, startrow;;__qualifiers ());
+  @cmpl_lnrs = write_completion_routine ([header, lar], startrow - 1;;__qualifiers ());
 
   ifnot (NULL == hlreg)
     smg->hlregion (hlreg[0], hlreg[1], hlreg[2], hlreg[3], hlreg[4]);
  
   @len = @len >= lines;
- 
+  
+  if (qualifier_exists ("refresh"))
+    smg->setrcdr (lastrow - 1, strlen (lar)[-1] + 1);
+
   return ar[[origlen >= lines ? lines - 1 : origlen:]];
 }
+
+static define printstrar (ar, lastrow, len, cmpl_lnrs)
+{
+  variable
+    orig = ar,
+    chr;
+
+  ar = printtoscreen (ar, lastrow, len, cmpl_lnrs;;struct {@__qualifiers (), refresh});
+
+  if (@len)
+    {
+    send_msg_dr ("Press any key except tab to exit, press tab to scroll", 2, NULL, NULL);
+
+    chr = getch (;disable_langchange);
+    
+    while ('\t' == chr)
+      {
+      smg->restore (@cmpl_lnrs, NULL, NULL);
+      
+      @len = length (ar);
+
+      ar = printtoscreen (ar, lastrow, len, cmpl_lnrs;;struct {@__qualifiers (), refresh});
+
+      ifnot (@len)
+        ar = orig;
+
+      chr = getch (;disable_langchange);
+      }
+    }
+  
+  return ar;
+}
+
+static define askprintstr (str, charar, cmp_lnrs)
+{
+  variable header = " ";
+  variable headclr = headerclr;
+  variable chr = NULL;
+  variable ar = strchop (strtrim_end (str), '\n', 0);
+  variable len = length (ar);
+
+  if ('@' == ar[0][0])
+    {
+    header = substr (ar[0], 2, -1);
+    ar = ar[[1:]];
+    len--;
+    headclr = qualifier ("headerclr", headerclr);
+    }
+  
+  ar = printstrar (ar,  PROMPTROW - 1, &len, cmp_lnrs;header = header, headerclr = headclr);
+
+  ifnot (NULL == charar)
+    {
+    while (chr = getch (), 0 == any (chr == charar));
+   
+    smg->restore (@cmp_lnrs, NULL, 1);
+    }
+
+  return chr;
+}
+

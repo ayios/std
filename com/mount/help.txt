@@ -11,6 +11,9 @@
 	
   --mountpoint=  MountPoint
   --device=      Device
+  -v,--verbose   Be verbose
+  --info         Show info
+  --help         Show help
 
   NOTES
 

@@ -25,7 +25,7 @@ private define shell_exit ()
 
 private define addflags (p)
 {
-  p.stderr.file = "/tmp/err";
+  p.stderr.file = TEMPDIR + "/" + string (PID) + "ServerShellErr";
   p.stderr.wr_flags = ">|";
 }
 

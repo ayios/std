@@ -14,5 +14,6 @@
   --match            Remove only files that match pcre pattern
   -R,--recursive     Remove directories recursively
   -i,--interactive   Prompt before removing, choices are (always, once, never) (default always)
+  -v,--verbose       Be verbose
   --help             Show help
   --info             Show information

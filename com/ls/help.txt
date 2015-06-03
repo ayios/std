@@ -23,6 +23,8 @@
   --classify           *DONT* append indicator when listing [@,/,*] (on by default)
   --long               Print output in long format
   --find               Print in screen one file per line (in short format)
+  -v,--verbose         Be verbose
+  --info               Show info
   --help               Show this message
  
   By default the sort method is ascending alphabetical filename order

@@ -1,4 +1,5 @@
 private variable msgwritten = 0;
+private variable holdedcommand = NULL;
 
 static define restore (cmp_lnrs, ptr, refresh, columns)
 {
@@ -928,7 +929,7 @@ private define lcmpcompletion (s)
       continue;
       }
 
-    if ('\r' == chr || 1 == (' ' <= chr <= '~'))
+    if ('\r' == chr || 1 == (' ' <= chr <= '~') || any (keys->rmap.backspace == chr))
       {
       if (0 == strlen (s.argv[s._ind])
         || " " == s.argv[s._ind])
@@ -959,6 +960,14 @@ private define lcmpcompletion (s)
       return 0;
       }
     
+    if (any (keys->rmap.backspace == chr))
+      {
+      delete_at (s);
+      parse_args (s);
+      prompt (s, s._lin, s._col);
+      return 0;
+      }
+
     insert_at (s;chr = chr);
 
     parse_args (s);
@@ -1142,6 +1151,8 @@ private define commandcmp (s, commands)
     help,
     indices,
     orighelp = qualifier ("help");
+  
+  commands = commands[array_sort (commands)];
 
   forever
     {
@@ -1785,10 +1796,23 @@ private define historycompletion (s)
     }
 }
 
+private define _holdcommand_ (s)
+{
+  holdedcommand = @s;
+  set (s); 
+  prompt (s, s._lin, s._col);
+}
+
 static define readline (s)
 {
   variable retval;
   variable initdone = 0;
+  
+  ifnot (NULL == holdedcommand)
+    {
+    s = holdedcommand;
+    holdedcommand = NULL;
+    }
 
   prompt (s, s._lin, s._col);
 
@@ -1813,7 +1837,13 @@ static define readline (s)
       s.execline (;;__qualifiers ());
       return;
       }
- 
+    
+    if (any (keys->rmap.lastcur == s._chr))
+      {
+      _holdcommand_ (s);
+      continue;
+      }
+
     if (any (keys->rmap.histup == s._chr))
       if (1 == historycompletion (s))
         {

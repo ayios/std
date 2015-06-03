@@ -1,4 +1,4 @@
-loadfrom ("stdio", "copyfile", NULL, &on_eval_err);
+loadfrom ("file", "copyfile", NULL, &on_eval_err);
 
 define mvfile (source, dest, opts)
 {
@@ -20,6 +20,27 @@ define mvfile (source, dest, opts)
       }
 
     backuptext = sprintf (" (backup: %s)", backup);
+    }
+  
+  if (NULL != st_dest && opts.interactive)
+    {
+    retval = ask ([
+      sprintf ("overwrite %s ?", dest),
+      "y[es overwrite]",
+      "n[o do not overwrite]",
+      ],
+      ['y',  'n']);
+    
+    switch (retval)
+      {
+      case 'q':
+        return 0;
+      }
+
+      {
+      case 'n':
+        return 0;
+      }
     }
 
   retval = rename (source, dest);

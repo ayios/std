@@ -8,6 +8,7 @@ loadfrom ("dir", "evaldir", NULL, &on_eval_err);
 verboseon ();
 
 variable
+  EXIT_CODE = 0,
   MAXDEPTH = 1,
   st_mode = ["dir", "reg", "lnk", "chr", "blk", "fifo", "sock"];
 
@@ -58,7 +59,7 @@ define assign_filetype (type, filetype, code)
 
   ar = ar[unique (ar)];
 
-  _for i(0,length (ar)-1)
+  _for i (0, length (ar) - 1)
     {
     index = wherefirst (ar[i] == st_mode);
     if (NULL == index)
@@ -283,37 +284,37 @@ define print_to_screen (files, opts)
   % but the function will grow up significantly
   variable
     i,
-    st = struct {mode = Integer_Type[length(files)]};
+    st = struct {mode = Integer_Type[length (files)]};
 
   if (opts.fmt)
     {
     st = struct
       {
       @st,
-      nlink = Integer_Type[length(files)],
-      uid = UInteger_Type[length(files)],
-      gid = UInteger_Type[length(files)],
-      size = ULLong_Type[length(files)],
-      mtime = UInteger_Type[length(files)]
+      nlink = Integer_Type[length (files)],
+      uid = UInteger_Type[length (files)],
+      gid = UInteger_Type[length (files)],
+      size = ULLong_Type[length (files)],
+      mtime = UInteger_Type[length (files)]
       };
     }
 
   if ("_size" == opts.sort_func_string && 0 == opts.fmt)
-    st = struct {@st, size = ULLong_Type[length(files)]};
+    st = struct {@st, size = ULLong_Type[length (files)]};
 
   if ("_ctime" == opts.sort_func_string)
-    st = struct {@st, ctime = UInteger_Type[length(files)]};
+    st = struct {@st, ctime = UInteger_Type[length (files)]};
 
   if ("_atime" == opts.sort_func_string)
-    st = struct {@st, atime = UInteger_Type[length(files)]};
+    st = struct {@st, atime = UInteger_Type[length (files)]};
 
   if ("_mtime" == opts.sort_func_string && 0 == opts.fmt)
-    st = struct {@st, mtime = UInteger_Type[length(files)]};
+    st = struct {@st, mtime = UInteger_Type[length (files)]};
 
   if (opts.fmt)
     if (NULL == opts.sort_func_string || "_size" == opts.sort_func_string ||
         "_mtime" == opts.sort_func_string)
-      _for i (0, length(files) - 1)
+      _for i (0, length (files) - 1)
         ( , , st.mtime[i], , st.size[i], , st.gid[i], st.uid[i], st.nlink[i],
           st.mode[i], , , ) =
           _push_struct_field_values (lstat_file (files[i]));
@@ -359,7 +360,7 @@ define print_to_screen (files, opts)
     {
     indices = filter_filetype (type, opts.filetype);
     files = files[indices];
-    _for i (0,length(fields)-1)
+    _for i (0, length (fields) - 1)
       {
       field = get_struct_field (st, fields[i]);
       set_struct_field (st, fields[i], field[indices]);
@@ -397,7 +398,7 @@ define print_to_screen (files, opts)
   files = files[indices];
   type = type[indices];
 
-  _for i (0,length(fields)-1)
+  _for i (0, length (fields) - 1)
     {
     field = get_struct_field (st, fields[i]);
     set_struct_field (st, fields[i], field[indices]);
@@ -442,7 +443,7 @@ define print_to_screen (files, opts)
   if (NULL != opts.head && opts.head > 0 && opts.head - 1 < length (files))
     {
     files = files[[0:opts.head - 1]];
-    _for i (0,length(fields)-1)
+    _for i (0, length (fields) - 1)
       {
       field = get_struct_field (st, fields[i]);
       set_struct_field (st, fields[i], field[[0:opts.head - 1]]);
@@ -455,7 +456,7 @@ define print_to_screen (files, opts)
     if (opts.tail <= len)
       {
       files = files[[len - opts.tail:]];
-      _for i (0,length(fields)-1)
+      _for i (0, length (fields) - 1)
         {
         field = get_struct_field (st, fields[i]);
         set_struct_field (st, fields[i], field[[len - opts.tail:]]);
@@ -598,7 +599,7 @@ define main ()
     dir = __argv[[i:]];
     dir = dir[where (strncmp (dir, "--", 2))];
     }
-
+  
  % dir = i == __argc ? ["."] : __argv[where (strncmp (__argv[[i:__argv[[i:]];
 
   _for i (0, length (dir) - 1)
@@ -623,6 +624,7 @@ define main ()
     if (access (dir[i], R_OK))
       {
       tostdout (dir[i] + ": " + errno_string (errno));
+      EXIT_CODE = 1;
       continue;
       }
 
@@ -670,8 +672,8 @@ define main ()
     }
 
   ifnot (length (filelist))
-    exit_me (0);
+    exit_me (EXIT_CODE);
 
- print_to_screen (list_to_array (filelist), opts);
- exit_me (0);
+  print_to_screen (list_to_array (filelist), opts);
+  exit_me (EXIT_CODE);
 }

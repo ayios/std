@@ -1,4 +1,4 @@
-loadfrom ("stdio", "copyfile", NULL, &on_eval_err);
+loadfrom ("file", "copyfile", NULL, &on_eval_err);
 loadfrom ("sys", "modetoint", NULL, &on_eval_err);
 loadfrom ("dir", "istype", NULL, &on_eval_err);
 

@@ -22,6 +22,7 @@ typedef struct
   read,
   write,
   wr_flags,
+  append_flags,
   } Descr_Type;
 
 private define parse_flags (fd)
@@ -38,7 +39,10 @@ private define parse_flags (fd)
       fd.wr_flags = FILE_FLAGS[">"];
     else
       fd.wr_flags = FILE_FLAGS[">|"];
- 
+  
+  ifnot (NULL == fd.append_flags)
+    fd.wr_flags = fd.wr_flags | fd.append_flags;
+
   if (fd.wr_flags & O_CREAT)
     if (NULL == fd.mode)
       fd.mode = PERM["_PRIVATE"];

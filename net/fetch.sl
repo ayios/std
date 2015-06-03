@@ -1,4 +1,4 @@
-ineedmdl ("curl", NULL;err_func = &on_eval_err);
+importfrom ("std", "curl", NULL, &on_eval_err);
 
 private define write_to_var_callback (out, str)
 {
@@ -28,7 +28,7 @@ private define fetch (s, url)
 
     if (NULL == fp)
       {
-      () = fprintf (stderr, "%s: can't open, ERRNO: %s\n", file, errno_string (errno));
+      tostderr (sprintf ("%s: can't open, ERRNO: %s", file, errno_string (errno)));
       return -1;
       }
     }
@@ -68,7 +68,7 @@ private define fetch (s, url)
   catch CurlError:
     {
     ifnot (qualifier_exists ("dont_print"))
-      () = array_map (Void_Type, &fprintf, stderr, "%s\n", exception_to_array ());
+      array_map (Void_Type, &tostderr, exception_to_array ());
 
     ifnot (write_to_var)
       {
@@ -85,10 +85,10 @@ private define fetch (s, url)
     {
     if (-1 == fclose (fp))
       {
-      () = fprintf (stderr, "Unable to close file `%s'\n", file);
+      tostderr (sprintf ("Unable to close file `%s'", file));
       if (-1 == remove (file))
-        () = fprintf (stderr, "Unable to remove file `%s', ERRNO: %s\n", file,
-          errno_string (errno));
+        tostderr (sprintf ("Unable to remove file `%s', ERRNO: %s", file,
+          errno_string (errno)));
 
       return -1;
       }
@@ -96,16 +96,16 @@ private define fetch (s, url)
     fp = fopen (file, "rb");
     if (-1 == fread (&buf, String_Type, 100, fp))
       {
-      () = fprintf (stderr, "Unable to read file `%s'\n", file);
+      tostderr (sprintf ("Unable to read file `%s'", file));
       return -1;
       }
 
     if (-1 == fclose (fp))
       {
-      () = fprintf (stderr, "Unable to close file `%s'\n", file);
+      tostderr (sprintf ("Unable to close file `%s'", file));
       if (-1 == remove (file))
-        () = fprintf ("Unable to remove file `%s', ERRNO: %s\n", file,
-          errno_string (errno));
+        tostderr (sprintf ("Unable to remove file `%s', ERRNO: %s", file,
+          errno_string (errno)));
 
       return -1;
       }
@@ -115,8 +115,8 @@ private define fetch (s, url)
 
   if (string_match (buf, "404 Not Found", 1))
     {
-    () = fprintf (stderr, "remote file `%s' didn't retrieved (404 Not Found)\n",
-       path_basename (url));
+    tostderr (sprintf ("remote file `%s' didn't retrieved (404 Not Found)",
+       path_basename (url)));
       return -1;
     }
 

@@ -10,7 +10,7 @@ define checktmfmt (tim)
 
   ifnot (1 <= tim.tm_mday <= m_ar[tim.tm_mon - 1])
     return sprintf ("%d: is not a valid day", tim.tm_mday), NULL;
-
+  
   if ((tim.tm_hour > 23 || tim.tm_min > 59 || tim.tm_sec > 59) ||
        (tim.tm_hour < 0  || tim.tm_min < 0  || tim.tm_sec < 0 ))
     return "Not a valid hour/minutes/second format", NULL;

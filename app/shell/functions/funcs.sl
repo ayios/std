@@ -18,7 +18,7 @@ define shell_pre_header (argv)
 
 define shell_post_header ()
 {
-  tostdout ("[" + string (iarg) + "](" + getcwd + ")$ ");
+  tostdout ("[" + string (iarg) + "](" + getcwd + ")[" + string (SHELLLASTEXITSTATUS) + "]$ ");
 }
 
 define getlines ();
@@ -36,18 +36,19 @@ define draw (s)
 
   s._len = length (s.lines) - 1;
  
-  s.ptr[1] = 0;
+  variable _i = qualifier ("_i");
+  variable pos = qualifier ("pos");
+  variable len = length (s.rows) - 1;
 
-  if (s._len + 1 <= length (s.rows) - 1)
-    {
-    s._i = 0;
-    s.ptr[0] = s._len + 1;
-    }
+  ifnot (NULL == pos)
+    (s.ptr[0] = pos[0], s.ptr[1] = pos[1]);
   else
-    {
-    s._i = s._len + 1 - length (s.rows) + 1;
-    s.ptr[0] = s.rows[-2];
-    }
+    (s.ptr[1] = 0, s.ptr[0] = s._len + 1 <= len ? s._len + 1 : s.rows[-2]);
+  
+  ifnot (NULL == _i)
+    s._i = _i;
+  else  
+    s._i = s._len + 1 <= len ? 0 : s._len + 1 - len;
 
   s.draw ();
 }

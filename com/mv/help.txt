@@ -14,5 +14,6 @@
   --update          Move only if source file is newer than destination
   --backup          Make backups
   --suffix          Overrides the default backup suffix (~)
+  -v,--verbose      Be verbose
   --help            Show help
   --info            Show information

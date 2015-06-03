@@ -1,11 +1,11 @@
-ineed ("copyfile");
-ineed ("fswalk");
-ineed ("makedir");
-ineed ("modetoint");
-ineed ("fileis");
+loadfrom ("file", "copyfile", NULL, &on_eval_err);
+loadfrom ("dir", "fswalk", NULL, &on_eval_err);
+loadfrom ("dir", "makedir", NULL, &on_eval_err);
+loadfrom ("sys", "modetoint", NULL, &on_eval_err);
+loadfrom ("file", "fileis", NULL, &on_eval_err);
 
-variable Accept_All_As_Yes = 0;
-variable Accept_All_As_No = 0;
+private variable Accept_All_As_Yes = 0;
+private variable Accept_All_As_No = 0;
 
 private define rm_dir (dir)
 {
@@ -17,13 +17,15 @@ private define rm_dir (dir)
   ifnot (Accept_All_As_Yes) {
   % coding style violence
  
-  retval = (@ask) ([dir, "remove extra directory?",
+  retval = ask ([dir, "remove extra directory?",
      "y[es]/Y[es to all]/n[no]/N[o to all] escape to abort (same as 'n')"],
-    ['y',  'Y',  'n',  'N'];header = "sync question");
+    ['y',  'Y',  'n',  'N']);
  
   if ('n' == retval || 'N' == retval || 033 == retval)
     {
-    () = fprintf (stderr, "extra directory %s hasn't been removed: Not confirmed\n", dir);
+    tostdout (sprintf (
+      "extra directory %s hasn't been removed: Not confirmed", dir));
+
     Accept_All_As_No = 'N' == retval;
     return 0;
     }
@@ -33,12 +35,12 @@ private define rm_dir (dir)
 
   if (-1 == rmdir (dir))
     {
-    () = fprintf (stderr, "%s: extra directory hasn't been removed\n", dir);
-    () = fprintf (stderr, "Error: %s\n", errno_string (errno));
+    tostderr (sprintf ("%s: extra directory hasn't been removed", dir));
+    tostderr (sprintf ("Error: %s", errno_string (errno)));
     return -1;
     }
   else
-    () = fprintf (stdout, "%s: extra directory has been removed\n", dir);
+    tostdout (sprintf ("%s: extra directory has been removed", dir));
 
   return 0;
 }
@@ -52,13 +54,14 @@ private define rmfile (file)
 
   ifnot (Accept_All_As_Yes) {
  
-  retval = (@ask) ([file, "remove extra file?",
+  retval = ask ([file, "remove extra file?",
      "y[es]/Y[es to all]/n[no]/N[o to all] escape to abort (same as 'n')"],
-    ['y',  'Y', 'n',  'N'];header = "sync question");
+    ['y',  'Y', 'n',  'N']);
 
   if ('n' == retval || 'N' == retval || 033 == retval)
     {
-    () = fprintf (stdout, "extra file %s hasn't been removed: Not confirmed\n", file);
+    tostdout (sprintf (
+      "extra file %s hasn't been removed: Not confirmed", file));
 
     Accept_All_As_No = 'N' == retval;
     return 1;
@@ -69,12 +72,12 @@ private define rmfile (file)
 
   if (-1 == remove (file))
     {
-    () = fprintf (stderr, "%s: extra file hasn't been removed\n", file);
-    () = fprintf (stderr,  "Error: %s\n", errno_string (errno));
+    tostderr (sprintf ("%s: extra file hasn't been removed", file));
+    tostderr (sprintf ("Error: %s", errno_string (errno)));
     return -1;
     }
   else
-    () = fprintf (stderr, "%s: extra file has been removed\n", file);
+    tostdout (sprintf ("%s: extra file has been removed", file));
 
   return 1;
 }
@@ -189,13 +192,13 @@ private define _copy (s, source, dest, st_source, st_dest)
   ifnot (Accept_All_As_Yes)
     if (s.interactive_copy)
       {
-      retval = (@ask) ([sprintf ("update `%s'", dest),
+      retval = ask ([sprintf ("update `%s'", dest),
         "y[es]/Y[es to all]/n[no]/N[o to all] escape to abort (same as 'n')"],
           ['y',  'Y',  'n',  'N']);
 
       if ('n' == retval || 'N' == retval || 033 == retval)
         {
-        () = fprintf (stdout, "%s aborting ...\n", source);
+        tostdout (sprintf ("%s aborting ...", source));
 
         Accept_All_As_No = 'N' == retval;
         return 0;
@@ -215,7 +218,7 @@ private define _copy (s, source, dest, st_source, st_dest)
 
       if (-1 == copyfile (dest, backup))
         {
-        () = fprintf (stderr, "cannot backup, %s\n", dest);
+        tostderr (sprintf ("cannot backup, %s", dest));
         return -1;
         }
 
@@ -229,7 +232,7 @@ private define _copy (s, source, dest, st_source, st_dest)
     ifnot (st_dest.st_mode & S_IWUSR)
       if (NULL == s.force)
         {
-        () = fprintf (stderr, "%s: is not writable, try --force\n", dest);
+        tostderr (sprintf ("%s: is not writable, try --force", dest));
         return -1;
         }
       else
@@ -242,7 +245,7 @@ private define _copy (s, source, dest, st_source, st_dest)
 
             if (-1 == copyfile (dest, backup))
               {
-              () = fprintf (stderr, "cannot backup, %s\n", dest);
+              tostderr (sprintf ("cannot backup, %s", dest));
               return -1;
               }
 
@@ -252,7 +255,7 @@ private define _copy (s, source, dest, st_source, st_dest)
 
           if (-1 == remove (dest))
             {
-            () = fprintf (stderr, "%s: couldn't be removed\n", dest);
+            tostderr (sprintf ("%s: couldn't be removed", dest));
             return -1;
             }
 
@@ -265,8 +268,8 @@ private define _copy (s, source, dest, st_source, st_dest)
 
     if (NULL == stat_file (source))
       {
-      () = fprintf (stderr, "source `%s' points to the non existing file `%s', aborting ...\n",
-        source, link);
+      tostderr (sprintf
+        ("source `%s' points to the non existing file `%s', aborting ...", source, link));
  
       clean (force, s.backup, backup, dest);
 
@@ -285,7 +288,8 @@ private define _copy (s, source, dest, st_source, st_dest)
   else if (any ([isfifo (source;st = st_source), issock (source;st = st_source),
         ischr (source;st = st_source), isblock (source;st = st_source)]))
     {
-    () = fprintf (stderr, "cannot copy special file `%s': Operation not permitted\n", source);
+    tostdout (sprintf
+      ("cannot copy special file `%s': Operation not permitted", source));
 
     clean (force, s.backup, backup, dest);
 
@@ -308,20 +312,20 @@ private define _copy (s, source, dest, st_source, st_dest)
 
   if (-1 == chmod (dest, mode))
     {
-    () = fprintf (stderr, "%s: cannot change mode\n", dest);
-    () = fprintf (stderr, "ERRNO: %s\n", errno_string (errno));
+    tostderr (sprintf ("%s: cannot change mode", dest));
+    tostderr (sprintf ("ERRNO: %s", errno_string (errno)));
     return -1;
     }
  
   if (s.preserve_time)
     if (-1 == utime (dest, st_source.st_atime, st_source.st_mtime))
       {
-      () = fprintf (stderr, "%s: cannot change modification time\n", dest);
-      () = fprintf (stderr, "ERRNO: %s\n", errno_string (errno));
+      tostderr (sprintf ("%s: cannot change modification time", dest));
+      tostderr (sprintf ("ERRNO: %s", errno_string (errno)));
       return -1;
       }
 
-  () = fprintf (stdout, "`%s' -> `%s' %s\n", source, path_basename (dest), backuptext);
+  tostdout (sprintf ("`%s' -> `%s' %s", source, path_basename (dest), backuptext));
 
   return 1;
 }
@@ -381,7 +385,7 @@ private define dir_callback (dir, st, s, source, dest, exit_code)
     variable ldir = strtok (dir, "/");
     if (any (ldir[-1] == s.ignoredir))
       {
-      () = fprintf (stdout, "ignored dir: %s\n", dir);
+      tostdout (sprintf ("ignored dir: %s", dir));
       return 0;
       }
     }
@@ -398,8 +402,8 @@ private define dir_callback (dir, st, s, source, dest, exit_code)
   if (s.preserve_time)
     if (-1 == utime (dest, st.st_atime, st.st_mtime))
       {
-      () = fprintf (stderr, "%s: cannot change modification time\n", dest);
-      () = fprintf (stderr, "ERRNO: %s\n", errno_string (errno));
+      tostderr (sprintf ("%s: cannot change modification time", dest));
+      tostderr (sprintf ("ERRNO: %s", errno_string (errno)));
       @exit_code = 1;
       return -1;
       }
@@ -413,28 +417,28 @@ private define _sync (s, source, dest)
 
   ifnot (3 == _NARGS)
     {
-    () = fprintf (stderr, "sync: needs two arguments (directories)\n");
+    tostderr ("sync: needs two arguments (directories)");
     return -1;
     }
 
-  ifnot (isdirectory (source))
+  ifnot (_isdirectory (source))
     {
     if (-1 == access (source, F_OK))
       {
-      () = fprintf (stderr, "sync: %s source doesn't exists\n", source);
+      tostderr (sprintf ("sync: %s source doesn't exists", source));
       return -1;
       }
 
     if (-1 == access (source, R_OK))
       {
-      () = fprintf (stderr, "sync: %s source is not readable\n", source);
+      tostderr (sprintf ("sync: %s source is not readable", source));
       return -1;
       }
  
     ifnot (access (dest, F_OK))
       if (-1 == access (dest, W_OK))
         {
-        () = fprintf (stderr, "sync: %s is not writable\n", dest);
+        tostderr (sprintf ("sync: %s is not writable", dest));
         return -1;
         }
  
@@ -456,7 +460,7 @@ private define _sync (s, source, dest)
   return exit_code;
 }
 
-define sync_new ()
+static define sync_new ()
 {
   variable
     i,
@@ -483,7 +487,7 @@ define sync_new ()
 
   if (Array_Type != typeof (methods) || String_Type != _typeof (methods))
     {
-    () = fprintf (stderr, "sync: qualifier method should be of String_Type[]\n");
+    tostderr ("sync: qualifier method should be of String_Type[]", -1);
     return NULL;
     }
  
@@ -492,7 +496,7 @@ define sync_new ()
   _for i (0, length (methods) - 1)
     ifnot (assoc_key_exists (refs, methods[i]))
       {
-      () = fprintf (stderr, "%s: method is not valid\n", methods[i]);
+      tostderr (sprintf ("%s: method is not valid", methods[i]), -1);
       return NULL;
       }
     else

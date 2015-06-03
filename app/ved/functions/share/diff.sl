@@ -6,6 +6,7 @@ define diff (lines, fname, retval)
 
   p.stdin.in = lines;
 
+  % if 65536 < size error
   status = p.execv ([which ("diff"), "-u", fname, "-"], NULL);
 
   if (NULL == status)

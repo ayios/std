@@ -1,26 +1,9 @@
-loadfrom ("dir", "are_same_files", NULL, &on_eval_err);
-
-variable RDFIFO = "/tmp/SRV_FIFO.fifo";
-variable WRFIFO = "/tmp/CLNT_FIFO.fifo";
-
-() = mkfifo (RDFIFO, 0644);
-() = mkfifo (WRFIFO, 0644);
-
-variable RDFD;
-variable WRFD;
-
-private define _ask_ (lines, cmp_lnrs)
-{
-  variable len = length (lines);
-  variable ar = strchop (strtrim_end (lines), '\n', 0);
-  () = widg->printtoscreen (ar,  PROMPTROW - 1, &len, cmp_lnrs);
-  smg->setrcdr (PROMPTROW - 2, strlen (ar[-1]) + 1);
-}
-
-private define _waitpid_ (p, ved)
+private define _waitpid_ (p)
 {
   variable buf = "";
+  variable str;
   variable status;
+  variable cmp_lnrs;
 
   WRFD = open (WRFIFO, O_WRONLY);
   RDFD = open (RDFIFO, O_RDONLY);
@@ -38,6 +21,23 @@ private define _waitpid_ (p, ved)
       SHELLLASTEXITSTATUS = status.exit_status;
       return;
       }
+    
+    if ("msgdr" == buf)
+      {
+      () = dup2_fd (p.stdout.keep, 1);
+
+      sock->send_bit (WRFD, 1);
+      
+      str = sock->get_str (RDFD);
+
+      send_msg_dr (str, 0, NULL, NULL); 
+
+      () = dup2_fd (p.stdout.write, 1);
+
+      sock->send_bit (WRFD, 1);
+
+      continue;
+      }
 
     if ("ask" == buf)
       {
@@ -45,11 +45,9 @@ private define _waitpid_ (p, ved)
 
       sock->send_bit (WRFD, 1);
       
-      variable str = sock->get_str (RDFD);
+      str = sock->get_str (RDFD);
 
-      variable cmp_lnrs;
-
-      _ask_ (str, &cmp_lnrs);
+      () = widg->askprintstr (str, NULL, &cmp_lnrs);
       
       sock->send_bit (WRFD, 1);
 
@@ -120,15 +118,18 @@ private define on_lang_change (args)
   toplinedr (args[1];row =  args[0][0], col = args[0][1]);
 }
 
-private define _viewfile_ (s, type)
+private define _viewfile_ (s, type, pos, _i)
 {
   variable f = __get_reference ("setbuf");
   (@f) (s._absfname);
   
   topline (" -- pager -- (" + type + " BUF) --";row =  s.ptr[0], col = s.ptr[1]);
   
-  draw (s);
+  ifnot (NULL == pos)
+    (s.ptr[0] = pos[0], s.ptr[1] = pos[1]);
 
+  draw (s;pos = pos, _i = _i);
+  
   forever
     {
     VEDCOUNT = -1;
@@ -156,7 +157,7 @@ private define _viewfile_ (s, type)
 
 private define _scratch_ (ved)
 {
-  _viewfile_ (SCRATCH, "SCRATCH");
+  _viewfile_ (SCRATCH, "SCRATCH", [1, 0], 0);
 
   variable f = __get_reference ("setbuf");
 
@@ -166,7 +167,7 @@ private define _scratch_ (ved)
 
 private define _messages_ ()
 {
-  _viewfile_ (MSG, "MSG");
+  _viewfile_ (MSG, "MSG", NULL, NULL);
   
   variable f = __get_reference ("setbuf");
 
@@ -318,7 +319,7 @@ private define _preexec_ (argv, header, issudo, env)
 {
   @header = strlen (argv[0]) > 1;
   @issudo = qualifier ("issudo");
-  @env = [proc->getdefenv ()];
+  @env = [proc->getdefenv (), "PPID=" + string (MYPID)];
 
   variable p = proc->init (@issudo, 1, 1);
 
@@ -349,11 +350,11 @@ private define _preexec_ (argv, header, issudo, env)
 private define _fork_ (p, argv, env, ved)
 {
   variable errfd = @FD_Type (_fileno (ERRFD));
-
+  
   () = p.execve (argv, env, 1);
 
-  _waitpid_ (p, ved);
-
+  _waitpid_ (p);
+  
   variable err = read_fd (errfd;pos = MSG.st_.st_size);
 
   ifnot (NULL == err)
@@ -382,9 +383,7 @@ private define _search_ (argv)
 
   argv = ();
 
-  variable fname = "/tmp/a.list";
-
-  p.stdout.file = fname;
+  p.stdout.file = GREPILE;
   p.stdout.wr_flags = ">|";
   p.stderr.file = STDERR;
   p.stderr.wr_flags = ">>|";
@@ -399,7 +398,7 @@ private define _search_ (argv)
 
     variable ved = __get_reference ("ved");
 
-    (@ved) (fname);
+    (@ved) (GREPILE);
 
     smg->resume ();
     }
@@ -419,7 +418,6 @@ private define execute (argv)
   argv = ();
 
   variable isscratch = is_arg ("--pager", argv);
-
   
   ifnot (NULL == isscratch)
     {
@@ -434,16 +432,27 @@ private define execute (argv)
     p.stdout.wr_flags = ">>|";
     }
 
+  %%% CARE FOR CHANGES        argv-index
+  if (NULL == isscratch && any (argv[2] == ["man"]))
+    {
+    p.stdout.file = SCRATCHFILE;
+    p.stdout.wr_flags = ">|";
+    isscratch = 1;
+    }
+
   p.stderr.file = STDERR;
   p.stderr.wr_flags = ">>|";
   
   _fork_ (p, argv, env, qualifier ("ved"));
 
   ifnot (NULL == isscratch)
-    _scratch_ (qualifier ("ved"));
+    ifnot (SHELLLASTEXITSTATUS)
+      _scratch_ (qualifier ("ved"));
 
   _postexec_ (header, qualifier ("ved"));
 }
+
+private define _rehash_ ();
 
 private define init_commands ()
 {
@@ -503,6 +512,9 @@ private define init_commands ()
   a["messages"] = @Argvlist_Type;
   a["messages"].func = &_messages_;
   
+  a["rehash"] = @Argvlist_Type;
+  a["rehash"].func = &_rehash_;
+  
   return a;
 }
 
@@ -530,4 +542,9 @@ define rlineinit ()
   iarg = length (rl.history);
 
   return rl;
+}
+
+private define _rehash_ ()
+{
+  qualifier ("rl").argvlist = init_commands ();
 }

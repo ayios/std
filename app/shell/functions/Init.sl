@@ -1,12 +1,18 @@
-variable STDOUT = "/tmp/stdout.ashell";
-variable STDERR = "/tmp/stderr.ashell";
-variable ERRFD;
-variable OUTFD;
 variable SHELLLASTEXITSTATUS = 0;
 variable iarg;
 variable MSG;
 variable SCRATCH;
-variable SCRATCHFILE = "/tmp/shellscratch.ashell";
+variable MYPID = getpid ();
+variable SCRATCHFILE = TEMPDIR + "/" + string (MYPID) + "scratch.ashell";
+variable GREPILE =     TEMPDIR + "/" + string (MYPID) + "grep.list";
+variable STDOUT =      TEMPDIR + "/" + string (MYPID) + "stdout.ashell";
+variable STDERR =      TEMPDIR + "/" + string (MYPID) + "stderr.ashell";
+variable RDFIFO =      TEMPDIR + "/" + string (MYPID) + "SRV_FIFO.fifo";
+variable WRFIFO =      TEMPDIR + "/" + string (MYPID) + "CLNT_FIFO.fifo";
+variable ERRFD;
+variable OUTFD;
+variable RDFD;
+variable WRFD;
 
 loadfrom ("sys", "checkpermissions", NULL, &on_eval_err);
 loadfrom ("sys", "setpermissions", NULL, &on_eval_err);
@@ -16,6 +22,7 @@ loadfrom ("smg", "widg", "widg", &on_eval_err);
 loadfrom ("app/ved/functions", "vedlib", NULL, &on_eval_err);
 
 loadfrom ("parse", "is_arg", NULL, &on_eval_err);
+loadfrom ("dir", "are_same_files", NULL, &on_eval_err);
 loadfile ("funcs", NULL, &on_eval_err);
 loadfile ("initrline", NULL, &on_eval_err);
 
@@ -51,6 +58,7 @@ define shell ();
 define init_shell ()
 {
   MSG = init_ftype ("ashell");
+
   SCRATCH = init_ftype ("ashell");
 
   variable vd = init_ftype ("ashell");
@@ -60,6 +68,15 @@ define init_shell ()
   OUTFD = init_stream (STDOUT);
   ERRFD = init_stream (STDERR);
  
+  ifnot (access (RDFIFO, F_OK))
+    () = remove (RDFIFO);
+
+  ifnot (access (WRFIFO, F_OK))
+    () = remove (WRFIFO);
+
+  () = mkfifo (RDFIFO, 0644);
+  () = mkfifo (WRFIFO, 0644);
+
   SHELLPROC._inited = 1;
 
   loadfile (path_dirname (__FILE__) + "/shell", NULL, &on_eval_err);

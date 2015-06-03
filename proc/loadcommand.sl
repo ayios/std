@@ -25,28 +25,20 @@ define on_eval_err (ar, err)
   exit (err);
 }
 
-loadfrom ("proc", "setenv", 1, &on_eval_err);
-
-proc->setdefenv ();
-
-loadfrom ("input", "inputInit", NULL, &on_eval_err);
-loadfrom ("stdio", "readfile", NULL, &on_eval_err);
-loadfrom ("parse", "cmdopt", NULL, &on_eval_err);
-loadfrom ("sys", "which", NULL, &on_eval_err);
-loadfrom ("sock", "sockInit", NULL, &on_eval_err);
-
 variable COMDIR;
+variable PPID = getenv ("PPID");
 
-variable WRFIFO = "/tmp/SRV_FIFO.fifo";
-variable RDFIFO = "/tmp/CLNT_FIFO.fifo";
+variable WRFIFO =  TEMPDIR + "/" + string (PPID) + "SRV_FIFO.fifo";
+variable RDFIFO =  TEMPDIR + "/" + string (PPID) + "CLNT_FIFO.fifo";
 
 variable RDFD = open (RDFIFO, O_RDONLY);
 variable WRFD = open (WRFIFO, O_WRONLY);
 
-define verboseon ()
-{
-  loadfrom ("print", "tostdout", NULL, &on_eval_err);
-}
+loadfrom ("proc", "setenv", 1, &on_eval_err);
+
+proc->setdefenv ();
+
+loadfrom ("sock", "sockInit", NULL, &on_eval_err);
 
 define exit_me (x)
 {
@@ -55,8 +47,59 @@ define exit_me (x)
   exit (x);
 }
 
+define on_eval_err (ar, err)
+{
+  array_map (&tostderr, ar);
+  exit_me (err);
+}
+
+loadfrom ("input", "inputInit", NULL, &on_eval_err);
+loadfrom ("stdio", "readfile", NULL, &on_eval_err);
+loadfrom ("parse", "cmdopt", NULL, &on_eval_err);
+loadfrom ("sys", "which", NULL, &on_eval_err);
+
+sigprocmask (SIG_UNBLOCK, [SIGINT]);
+
+define sigint_handler (sig)
+{
+  tostderr ("process interrupted by the user");
+  exit_me (130);
+}
+
+signal (SIGINT, &sigint_handler);
+
+define sigint_handler_null ();
+define sigint_handler_null (sig)
+{
+  signal (sig, &sigint_handler_null);
+}
+
+define verboseon ()
+{
+  loadfrom ("print", "tostdout", NULL, &on_eval_err);
+}
+
+define verboseoff ()
+{
+  loadfrom ("print", "null_tostdout", NULL, &on_eval_err);
+}
+
+define send_msg_dr (msg)
+{
+  sock->send_str (WRFD, "msgdr");
+
+  () = sock->get_bit (RDFD);
+  
+  sock->send_str (WRFD, msg);
+  
+  () = sock->get_bit (RDFD);
+}
+
 define ask (questar, charar)
 {
+  signal (SIGINT, &sigint_handler_null);
+  sigprocmask (SIG_BLOCK, [SIGINT]);
+
   sock->send_str (WRFD, "ask");
 
   () = sock->get_bit (RDFD);
@@ -75,6 +118,9 @@ define ask (questar, charar)
 
   () = sock->get_bit (RDFD);
   
+  sigprocmask (SIG_UNBLOCK, [SIGINT]);
+  signal (SIGINT, &sigint_handler);
+
   return chr;
 }
 
@@ -92,7 +138,7 @@ define _usage ()
     tostderr ("No Help file available for " + com);
 
     ifnot (length (ar))
-      exit (1);
+      exit_me (1);
     }
 
   ifnot (access (helpfile, F_OK))
@@ -101,12 +147,12 @@ define _usage ()
   ifnot (length (ar))
     {
     tostdout ("No Help file available for " + com);
-    exit (1);
+    exit_me (1);
     }
 
   array_map (&tostdout, ar);
 
-  exit (_NARGS);
+  exit_me (_NARGS);
 }
 
 define info ()
@@ -122,13 +168,13 @@ define info ()
     {
     tostdout ("No Info file available for " + com);
  
-    exit (0);
+    exit_me (0);
     }
 
   ar = readfile (infofile);
   array_map (&tostdout, ar);
  
-  exit (0);
+  exit_me (0);
 }
 
 loadfrom ("com/" + com, "comInit", NULL, &on_eval_err);

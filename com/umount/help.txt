@@ -10,6 +10,7 @@
  OPTIONS
 	
   --mountpoint=  MountPoint
+  -v,--verbose   Be verbose
 
   NOTES
 
