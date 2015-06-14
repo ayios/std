@@ -141,6 +141,16 @@ static define getmapname ()
   return alias[string (maps[curlang])];
 }
 
+static define getlang ()
+{
+  return maps[curlang];
+}
+
+static define setlang (lang)
+{
+  getchar_lang = lang;
+}
+
 static define at_exit ()
 {
   if (TTY_INITED)

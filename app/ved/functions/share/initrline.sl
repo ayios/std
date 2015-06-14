@@ -30,10 +30,15 @@ define rlineinit ()
 
   if (VED_EDITOTHER)
     rl = rline->init (&init_commands;
+      histfile = LCLDATADIR + "/." + string (getuid ()) + "vedhistory",
+      historyaddforce = 1,
       tabhook = &tabhook,
       totype = "Func_Type");
   else
-    rl = rline->init (&init_commands;totype = "Func_Type");
+    rl = rline->init (&init_commands;
+      histfile = "$HOME/.vedhistory"$,
+      historyaddforce = 1,
+      totype = "Func_Type");
 
   return rl;
 }

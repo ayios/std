@@ -2,6 +2,10 @@ loadfrom ("dir", "istype", NULL, &on_eval_err);
 
 private define quit ()
 {
+  variable rl = qualifier ("rl");
+
+  rline->writehistory (rl.history, rl.histfile);
+
   variable s = qualifier ("ved");
 
   if (s._flags & VED_RDONLY || 0 == s._flags & VED_MODIFIED ||
@@ -13,7 +17,7 @@ private define quit ()
   variable chr = getch ();
   while (0 == any (chr == ['y', 'n']))
     chr = getch ();
-
+  
   s.quit (chr == 'y');
 }
 
@@ -112,6 +116,53 @@ private define write_quit ()
   s.quit (1, __push_list (args));
 }
 
+private define messages ()
+{
+  variable keep = VED_CB;
+  variable s = MSG;
+  VED_ISONLYPAGER = 1;
+  setbuf (s._absfname);
+  
+  topline (" -- pager -- ( MESSAGES BUF) --";row =  s.ptr[0], col = s.ptr[1]);
+  
+  variable st = lstat_file (s._absfname);
+  
+  if (s.st_.st_size)
+    if (st.st_atime == s.st_.st_atime && st.st_size == s.st_.st_size)
+      {
+      s._i = s._ii;
+      s.draw ();
+      return;
+      }
+
+  s.st_ = st;
+ 
+  s.lines = getlines (s._absfname, s._indent, st);
+
+  s._len = length (s.lines) - 1;
+ 
+  variable len = length (s.rows) - 1;
+
+  (s.ptr[1] = 0, s.ptr[0] = s._len + 1 <= len ? s._len + 1 : s.rows[-2]);
+  
+  s._i = s._len + 1 <= len ? 0 : s._len + 1 - len;
+
+  s.draw ();
+  s.vedloop ();
+
+  VED_ISONLYPAGER = 0;
+
+  setbuf (keep._absfname);
+  
+  topline (" -- pager --");
+  
+  keep._i = keep._ii;
+
+  keep.draw (); 
+  
+  keep.vedloop ();
+}
+
 clinef["w"] = &write_file;
 clinef["W"] = &write_file;
 clinef["w!"] = &write_file;
@@ -121,4 +172,4 @@ clinef["q!"] = &quit;
 clinef["wq"] = &write_quit;
 clinef["Wq"] = &write_quit;
 clinef["r"] = &_read;
-
+clinef["messages"] = &messages;

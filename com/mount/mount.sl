@@ -41,7 +41,10 @@ define main ()
  
   if (mountpoint == NULL == device)
     {
-    p = proc->init (0, 0, 0);
+    p = proc->init (0, openstdout, 0);
+    
+    if (openstdout)
+      initproc (p);
  
     status = p.execv ([mount], NULL);
  
@@ -71,8 +74,11 @@ define main ()
   else
     argv = [mount, device, mountpoint];
 
-  p = proc->init (0, 0, 0);
-
+  p = proc->init (0, openstdout, 0);
+  
+  if (openstdout)
+    initproc (p);
+ 
   status = p.execv (argv, NULL);
  
   exit_me (status.exit_status);

@@ -55,5 +55,3 @@ define main ()
 
   exit_me (exit_code);
 }
-
-

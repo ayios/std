@@ -3,6 +3,7 @@ loadfrom ("wind", "topline", NULL, &on_eval_err);
 
 define topline (str)
 {
+  str += "(" + string (_stkdepth ()) + ")";
   str += sprintf (" ftype (%s) LANG (%s) ", VED_CB._type,
     input->getmapname ());
 
@@ -12,6 +13,7 @@ define topline (str)
 
 define toplinedr (str)
 {
+  str += "(" + string (_stkdepth ()) + ")";
   str += sprintf (" ftype (%s) LANG (%s) ", VED_CB._type,
     input->getmapname ());
 

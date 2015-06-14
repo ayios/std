@@ -126,4 +126,3 @@ define initbuf (s, fname, rows, lines, t)
 
   addbuf (s);
 }
-

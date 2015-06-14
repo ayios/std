@@ -21,10 +21,8 @@ private variable
   VED_SOCKET,
   VED_SOCKADDR = getenv ("VED_SOCKADDR");
 
-set_slang_load_path (sprintf (
-  "%s/functions/share%c%s", MYPATH,
-  path_get_delimiter (),
-  get_slang_load_path ()));
+set_slang_load_path (sprintf ("%s/functions/share%c%s", MYPATH,
+  path_get_delimiter (), get_slang_load_path ()));
 
 define on_eval_err (err, code)
 {
@@ -41,6 +39,8 @@ loadfrom ("proc", "setenv", 1, &on_eval_err);
 
 proc->setdefenv ();
 
+loadfrom ("sock", "sockInit", 1, &on_eval_err);
+
 importfrom ("std", "socket",  NULL, &on_eval_err);
 
 ifnot (VEDPROC._inited)
@@ -52,18 +52,6 @@ ifnot (VEDPROC._inited)
   VEDPROC._fd = VED_SOCKET;
   VEDPROC._state = VEDPROC._state | CONNECTED;
   }
-
-loadfrom ("stdio", "readfile", NULL, &on_eval_err);
-loadfrom ("sys", "which", NULL, &on_eval_err);
-
-loadfile (MYPATH + "/functions/types", NULL, &on_eval_err);
-loadfile (MYPATH + "/functions/vars", NULL, &on_eval_err);
-
-loadfrom ("sock", "sockInit", 1, &on_eval_err);
-loadfrom ("keys", "keysInit", 1, &on_eval_err);
-loadfrom ("smg", "smgInit", NULL, &on_eval_err);
-
-loadfile (MYPATH + "/functions/Init", NULL, &on_eval_err);
 
 define send_int (i)
 {
@@ -84,6 +72,77 @@ define get_str ()
 {
   return sock->get_str (VED_SOCKET);
 }
+
+define exit_me (exit_code)
+{
+  send_int (GOTO_EXIT);
+  exit (exit_code);
+}
+
+define on_eval_err (err, code)
+{
+  variable msg;
+
+  if (Array_Type == typeof (err))
+    {
+    msg = substr (err[0], 1, COLUMNS);
+    err = strjoin (err, "\n");
+    }
+  else
+    msg = substr (err, 1, COLUMNS);
+
+  tostderr (err);
+
+  exit_me (code);
+}
+
+loadfrom ("stdio", "readfile", NULL, &on_eval_err);
+loadfrom ("sys", "which", NULL, &on_eval_err);
+
+loadfile (MYPATH + "/functions/types", NULL, &on_eval_err);
+loadfile (MYPATH + "/functions/vars", NULL, &on_eval_err);
+
+loadfrom ("keys", "keysInit", 1, &on_eval_err);
+loadfrom ("smg", "smgInit", NULL, &on_eval_err);
+
+define exit_me (exit_code)
+{
+  if (any ("input" == _get_namespaces ()))
+    {
+    variable f = __get_reference ("input->at_exit");
+    (@f);
+    }
+
+  smg->reset ();
+
+  send_int (GOTO_EXIT);
+  exit (exit_code);
+}
+
+define on_eval_err (err, code)
+{
+  variable msg;
+
+  if (Array_Type == typeof (err))
+    {
+    msg = substr (err[0], 1, COLUMNS);
+    err = strjoin (err, "\n");
+    }
+  else
+    msg = substr (err, 1, COLUMNS);
+
+  tostderr (err);
+
+  if (__is_initialized (&VED_CB))
+    {
+    send_msg_dr (msg, 1, NULL, NULL);
+    VED_CB.vedloop ();
+    }
+  else
+    exit_me (code);
+}
+
+loadfile (MYPATH + "/functions/Init", NULL, &on_eval_err);
 
 define get_tmpdir ()
 {
@@ -137,6 +196,12 @@ define get_count ()
   return get_int ();
 }
 
+define tostderr (str)
+{
+  () = lseek (VED_STDERRFD, 0, SEEK_END);
+  () = write (VED_STDERRFD, str);
+}
+
 define exit_me (exit_code)
 {
   if (any ("input" == _get_namespaces ()))
@@ -153,9 +218,25 @@ define exit_me (exit_code)
 
 define on_eval_err (err, code)
 {
-  variable fp = fopen ("/tmp/vederr", "w");
-  () = array_map (Integer_Type, &fprintf, fp, "%s\n", err);
-  () = fflush (fp);
+  variable msg;
+
+  if (Array_Type == typeof (err))
+    {
+    msg = substr (err[0], 1, COLUMNS);
+    err = strjoin (err, "\n");
+    }
+  else
+    msg = substr (err, 1, COLUMNS);
+
+  tostderr (err);
+
+  if (__is_initialized (&VED_CB))
+    {
+    send_msg_dr (msg, 1, NULL, NULL);
+    VED_CB.vedloop ();
+    }
+  else
+    exit_me (code);
 }
 
 VED_ROWS = [1:LINES - 3];
@@ -166,7 +247,8 @@ VED_INFOCLRFG = get_infoclrfg ();
 VED_INFOCLRBG = get_infoclrbg ();
 VED_PROMPTCLR = get_promptcolor ();
 
-variable TEMPDIR = get_tmpdir ();
+MSG = init_ftype ("txt");
+txt_settype (MSG, VED_STDERR, VED_ROWS, NULL);
 
 private variable s_ = init_ftype (get_ftype (__argv[-1]));
 

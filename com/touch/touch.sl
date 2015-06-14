@@ -47,8 +47,6 @@ define main ()
       exit_me (1);
       }
 
-    % we use atoi, because
-    % integer ("08") returns "8 or 9 are not permitted in binary or octal numbers"
     tok = array_map (Integer_Type, &atoi, tok);
     set_struct_fields (tim, tok[0], tok[1], tok[2], tok[3], tok[4] - 1, tok[5] - 1900);
  
@@ -134,8 +132,7 @@ define main ()
       exit_code = 1;
       }
     else
-      tostdout (sprintf (
-        "`%s': access and modification times have been changed", files[i]));
+      tostdout (files[i] + ": access and modification times have been changed");
     }
 
   exit_me (exit_code);

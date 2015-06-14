@@ -1,3 +1,5 @@
+loadfrom ("time", "isleap", NULL, &on_eval_err);
+
 define checktmfmt (tim)
 {
   ifnot (tim.tm_year)

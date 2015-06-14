@@ -1,3 +1,9 @@
+define isreg (file)
+{
+  variable st = qualifier ("st", stat_file (file));
+  return NULL != st && stat_is ("reg", st.st_mode);
+}
+
 define isblock (file)
 {
   variable st = qualifier ("st", stat_file (file));

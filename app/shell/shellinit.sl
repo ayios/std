@@ -94,7 +94,7 @@ private define init_shell ()
 
 private define init_sockaddr ()
 {
-  return sprintf ("/tmp/shell_%d.sock", _time);
+  return sprintf (TEMPDIR + "/" + string (PID) + "shell.sock");
 }
 
 private define _shell_ ()

@@ -1,6 +1,8 @@
 loadfrom ("pcre", "find_unique_words_in_lines", 1, &on_eval_err);
 loadfrom ("pcre", "find_unique_lines_in_lines", 1, &on_eval_err);
 
+private variable lang = input->getlang ();
+
 variable insfuncs = struct
   {
   cr,
@@ -318,6 +320,7 @@ private define right (is, s, line)
 {
   variable len = strlen (@line);
 
+  send_msg_dr (string (len) + " " + string (s._index), 1, s.ptr[0], s.ptr[1]);
   if (s._index + 1 > len || 0 == len)
     return;
 
@@ -413,7 +416,7 @@ private define down (is, s, line)
     s.ptr[0]++;
     draw_tail (s;chr = strlen (@line)
       ? s._index > s._indent
-        ? decode (substr (@line, s._index, 1))[0]
+        ? decode (substr (@line, s._index + 1, 1))[0]
         : decode (substr (@line, s._indent + 1, 1))[0]
       : ' ');
 
@@ -430,9 +433,10 @@ private define down (is, s, line)
 
   variable chr = strlen (@line)
     ? s._index > s._indent
-      ? decode (substr (@line, s._index, 1))[0]
+      ? decode (substr (@line, s._index + 1, 1))[0]
       : decode (substr (@line, s._indent + 1, 1))[0]
     : ' ';
+
   s.draw (;chr = chr);
 }
 
@@ -451,6 +455,7 @@ private define up (is, s, line)
   is.lnr--;
 
   is.next_l = @line;
+
   if (-1 == is.lnr - 1)
     is.prev_l = "";
   else
@@ -482,7 +487,7 @@ private define up (is, s, line)
     s.ptr[0]--;
     draw_tail (s;chr = strlen (@line)
       ? s._index > s._indent
-        ? decode (substr (@line, s._index, 1))[0]
+        ? decode (substr (@line, s._index + 1, 1))[0]
         : decode (substr (@line, s._indent + 1, 1))[0]
       : ' ');
     return;
@@ -492,7 +497,7 @@ private define up (is, s, line)
  
   variable chr = strlen (@line)
     ? s._index > s._indent
-      ? decode (substr (@line, s._index, 1))[0]
+      ? decode (substr (@line, s._index + 1, 1))[0]
       : decode (substr (@line, s._indent + 1, 1))[0]
     : ' ';
 
@@ -511,6 +516,8 @@ private define cr (is, s, line)
   if (strlen (@line) == s._index)
     {
     s.lines[is.lnr] = @line;
+
+    lang = input->getlang ();
 
     s._chr = 'o';
  
@@ -556,6 +563,8 @@ private define cr (is, s, line)
 
     s._index = s._indent;
     s._findex = s._indent;
+
+    lang = input->getlang ();
 
     insert (s, line, is.lnr + 1, prev_l, next_l;modified, dont_draw_tail);
     }
@@ -951,10 +960,11 @@ private define getline (is, s, line)
 
 define insert (s, line, lnr, prev_l, next_l)
 {
+  input->setlang (lang);
+
   topline (" -- insert --");
 
-  variable
-    self = @Insert_Type;
+  variable self = @Insert_Type;
 
   self.lnr = lnr;
   self.modified = qualifier_exists ("modified");
@@ -965,4 +975,8 @@ define insert (s, line, lnr, prev_l, next_l)
     draw_tail (s);
 
   getline (self, s, line);
+
+  lang = input->getlang ();
+
+  input->setlang (input->get_en_lang ());
 }

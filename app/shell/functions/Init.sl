@@ -1,18 +1,19 @@
-variable SHELLLASTEXITSTATUS = 0;
 variable iarg;
+variable icom = 0;
+variable MYPID = getpid ();
+variable SHELLLASTEXITSTATUS = 0;
+variable SCRATCHFILE = TEMPDIR + "/" + string (MYPID) + "scratch.ashell";
+variable GREPILE     = TEMPDIR + "/" + string (MYPID) + "grep.list";
+variable STDOUT      = TEMPDIR + "/" + string (MYPID) + "stdout.ashell";
+variable STDERR      = TEMPDIR + "/" + string (MYPID) + "stderr.ashell";
+variable RDFIFO      = TEMPDIR + "/" + string (MYPID) + "SRV_FIFO.fifo";
+variable WRFIFO      = TEMPDIR + "/" + string (MYPID) + "CLNT_FIFO.fifo";
 variable MSG;
 variable SCRATCH;
-variable MYPID = getpid ();
-variable SCRATCHFILE = TEMPDIR + "/" + string (MYPID) + "scratch.ashell";
-variable GREPILE =     TEMPDIR + "/" + string (MYPID) + "grep.list";
-variable STDOUT =      TEMPDIR + "/" + string (MYPID) + "stdout.ashell";
-variable STDERR =      TEMPDIR + "/" + string (MYPID) + "stderr.ashell";
-variable RDFIFO =      TEMPDIR + "/" + string (MYPID) + "SRV_FIFO.fifo";
-variable WRFIFO =      TEMPDIR + "/" + string (MYPID) + "CLNT_FIFO.fifo";
 variable ERRFD;
+variable STACK;
+variable STACKFILE = LCLDATADIR + "/.stack";
 variable OUTFD;
-variable RDFD;
-variable WRFD;
 
 loadfrom ("sys", "checkpermissions", NULL, &on_eval_err);
 loadfrom ("sys", "setpermissions", NULL, &on_eval_err);
@@ -23,7 +24,11 @@ loadfrom ("app/ved/functions", "vedlib", NULL, &on_eval_err);
 
 loadfrom ("parse", "is_arg", NULL, &on_eval_err);
 loadfrom ("dir", "are_same_files", NULL, &on_eval_err);
+loadfrom ("file", "fileis",  NULL, &on_eval_err);
+loadfrom ("stdio", "appendstr", NULL, &on_eval_err);
 loadfile ("funcs", NULL, &on_eval_err);
+loadfile ("srv", NULL, &on_eval_err);
+loadfrom ("com/intro", "intro", NULL, &on_eval_err);
 loadfile ("initrline", NULL, &on_eval_err);
 
 VED_INFOCLRFG = 4;

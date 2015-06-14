@@ -107,8 +107,6 @@ VED_ROWS = [1:LINES - 3];
 
 smg->init ();
 
-variable TEMPDIR = "/tmp";
-
 init_shell ();
 
 exit_me (0);

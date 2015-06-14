@@ -14,6 +14,7 @@ typedef struct
   lcmp,
   history,
   histfile,
+  historyaddforce,
   ptr,
   lnrs,
   argv,

@@ -9,12 +9,13 @@ typedef struct
   _count,
   _drawonly,
   _issudo,
+  _passwd,
+  _sudobin,
   _tmpdir,
   _slshbin,
   p_,
   } Ved_Type;
 
-private variable ved_;
 private variable funcs = Assoc_Type[Ref_Type];
 
 private variable
@@ -30,128 +31,121 @@ private variable
   SEND_PROMPTCOLOR = 0x03E8,
   SEND_FUNC = 0x04b0;
 
-private define ved_exit ()
+private define ved_exit (v)
 {
-  variable status = waitpid (ved_.p_.pid, 0);
-  ved_.p_.atexit ();
+  variable status = waitpid (v.p_.pid, 0);
+  v.p_.atexit ();
 
-  () = close (ved_._fd);
-  __uninitialize (&ved_);
+  () = close (v._fd);
 }
 
-private define send_tmpdir (sock)
+private define send_tmpdir (sock, v)
 {
-  sock->send_str (sock, ved_._tmpdir);
+  sock->send_str (sock, v._tmpdir);
 }
 
-private define send_func (sock)
+private define send_func (sock, v)
 {
-  sock->send_int (sock, NULL == ved_._func ? 0 : ved_._func);
+  sock->send_int (sock, NULL == v._func ? 0 : v._func);
 
-  ifnot (NULL == ved_._func)
+  ifnot (NULL == v._func)
     {
     () = sock->get_int (sock);
-    sock->send_int (sock, NULL == ved_._count ? 0 : 1);
+    sock->send_int (sock, NULL == v._count ? 0 : 1);
 
-    ifnot (NULL == ved_._count)
+    ifnot (NULL == v._count)
       {
       () = sock->get_int (sock);
-      sock->send_int (sock, ved_._count);
+      sock->send_int (sock, v._count);
       }
     }
 }
 
-private define just_draw (sock)
+private define just_draw (sock, v)
 {
-  sock->send_int (sock, ved_._drawonly);
+  sock->send_int (sock, v._drawonly);
 }
 
-private define send_rows (sock)
+private define send_rows (sock, v)
 {
   sock->send_int_ar (sock, [[1:LINES-3]]);
 }
 
-private define send_file (sock)
+private define send_file (sock, v)
 {
-  sock->send_str (sock, ved_._fname);
+  sock->send_str (sock, v._fname);
 }
 
-private define send_infoclrfg (sock)
+private define send_infoclrfg (sock, v)
 {
   sock->send_int (sock, 4);
 }
 
-private define send_infoclrbg (sock)
+private define send_infoclrbg (sock, v)
 {
   sock->send_int (sock, 5);
 }
 
-private define send_promptcolor (sock)
+private define send_promptcolor (sock, v)
 {
   sock->send_int (sock, 3);
 }
 
 private define addflags (p)
 {
-  p.stderr.file = "/tmp/err";
+  p.stderr.file = TEMPDIR + "/" + string (getpid) + "SRVvederr.txt";
   p.stderr.wr_flags = ">|";
 }
 
-private define broken_sudoproc_broken ()
+private define broken_sudoproc_broken (v)
 {
-%  variable passwd = root.lib.getpasswd ();
-%
-%  ifnot (strlen (passwd))
-%    {
-%    srv->send_msg ("Password is an empty string. Aborting ...", -1);
-%    return NULL;
-%    }
-%
-%  variable retval = root.lib.validate_passwd (passwd);
-%
-%  if (NULL == retval)
-%    {
-%    srv->send_msg ("This is not a valid password", -1);
-%    return NULL;
-%    }
-%
-%  variable p = proc->init (1, 1, 1);
-%
-%  p.stdin.in = passwd;
-%  return p;
+  variable p = proc->init (1, 0, 1);
+
+  p.stdin.in = v._passwd;
+
+  if (NULL == p.stdin.in)
+    return NULL;
+  
+  if (NULL == v._sudobin)
+    return NULL;
+
+  return p;
 }
 
-private define getargvenv (p)
+private define getargvenv (p, v)
 {
   variable
-    argv = [SLSH_BIN, p.loadfile, path_dirname (__FILE__) + "/proc", ved_._fname],
-    env = [proc->getdefenv (), sprintf ("VED_SOCKADDR=%s", ved_._sockaddr)];
+    argv = [SLSH_BIN, p.loadfile, path_dirname (__FILE__) + "/proc", v._fname],
+    env = [proc->getdefenv (), sprintf ("VED_SOCKADDR=%s", v._sockaddr)];
 
   ifnot (NULL == DISPLAY)
     env = [env, "DISPLAY=" + DISPLAY];
 
   ifnot (NULL == XAUTHORITY)
     env = [env, "XAUTHORITY=" + XAUTHORITY];
+  
+  if (v._issudo)
+    argv = [v._sudobin, "-S", "-E", "-p", "", argv];
 
   return argv, env;
 }
 
-private define doproc ()
+private define doproc (v)
 {
   variable p, argv, env;
 
-  ifnot (ved_._issudo)
+  ifnot (v._issudo)
     {
     if (p = proc->init (0, 0, 1), p == NULL)
       return NULL;
     }
   else
-    if (p = broken_sudoproc_broken (), p == NULL)
+    if (p = broken_sudoproc_broken (v), p == NULL)
       return NULL;
 
   addflags (p);
 
-  (argv, env) = getargvenv (p);
+  (argv, env) = getargvenv (p, v);
 
   if (NULL == p.execve (argv, env, 1))
     return NULL;
@@ -202,10 +196,7 @@ private define parse_args ()
   variable issudo = ();
   variable fname = ();
 
- % ifnot (_NARGS - 2)
- %   @fname = CW.buffers[CW.cur.frame].fname;
- % else
-    @fname = ();
+  @fname = ();
  
   variable exists = check_file (@fname, issudo);
 
@@ -215,54 +206,61 @@ private define parse_args ()
   return exists;
 }
 
-private define connect_to_child ()
+private define connect_to_child (v)
 {
-  ved_._fd = ved_.p_.connect (ved_._sockaddr);
-
-  if (NULL == ved_._fd)
+  v._fd = v.p_.connect (v._sockaddr);
+  
+  if (NULL == v._fd)
     {
-    ved_.p_.atexit ();
-    () = kill (ved_.p_.pid, SIGKILL);
-    return;
+    () = kill (v.p_.pid, SIGALRM);
+    variable status = waitpid (v.p_.pid, 0);
+    v.p_.atexit ();
+    return -1;
     }
  
-  ved_._state = ved_._state | CONNECTED;
+  v._state = v._state | CONNECTED;
 
   variable retval;
 
   forever
     {
-    retval = sock->get_int (ved_._fd);
+    retval = sock->get_int (v._fd);
  
     ifnot (Integer_Type == typeof (retval))
       break;
 
     if (retval == GOTO_EXIT)
       {
-      ved_._state = ved_._state & ~CONNECTED;
+      v._state = v._state & ~CONNECTED;
       break;
       }
  
-    (@funcs[string (retval)]) (ved_._fd);
+    (@funcs[string (retval)]) (v._fd, v);
     }
+
+  return 0;
 }
 
 private define init_ved (fn, exists)
 {
-  ved_ = @Ved_Type;
-  ved_._fname = fn;
-  ved_._state = 0;
-  ved_._exists = exists;
-  ved_._count = qualifier ("count");
-  ved_._func = qualifier ("func");
-  ved_._tmpdir = qualifier ("tmpdir", "/tmp");
-  ved_._drawonly = qualifier_exists ("drawonly");
+  variable v;
+  v = @Ved_Type;
+  v._fname = fn;
+  v._state = 0;
+  v._exists = exists;
+  v._count = qualifier ("count");
+  v._func = qualifier ("func");
+  v._tmpdir = qualifier ("tmpdir", TEMPDIR);
+  v._drawonly = qualifier_exists ("drawonly");
+  v._passwd = qualifier ("passwd");
+  v._sudobin = qualifier ("sudobin");
+  return v;
 }
 
 private define init_sockaddr (fn)
 {
-  return sprintf ("/tmp/ved_%s_%d.sock",
-    path_basename_sans_extname (fn), _time);
+  return sprintf (TEMPDIR + "/" + string (getpid ()) + "ved_%s.sock",
+    path_basename_sans_extname (fn));
 }
 
 private define _ved_ ()
@@ -275,20 +273,21 @@ private define _ved_ ()
   if (-1 == exists)
     return;
 
-  init_ved (file, exists;;__qualifiers ());
+  variable v = init_ved (file, exists;;__qualifiers ());
 
-  ved_._issudo = issudo;
+  v._issudo = issudo;
  
-  ved_._sockaddr = init_sockaddr (file);
+  v._sockaddr = init_sockaddr (file);
 
-  ved_.p_ = doproc ();
+  v.p_ = doproc (v);
  
-  if (NULL == ved_.p_)
+  if (NULL == v.p_)
+    return;
+  
+  if (-1 == connect_to_child (v))
     return;
 
-  connect_to_child ();
-
-  ved_exit ();
+  ved_exit (v);
 }
 
 define ved ()

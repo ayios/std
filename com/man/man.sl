@@ -12,6 +12,29 @@ private variable
   DATA_DIR = sprintf ("%s/man", LCLDATADIR),
   MYMANDIR = sprintf ("%s/manhier", DATA_DIR);
 
+private variable
+  gzip = which ("gzip"),
+  groff = which ("groff"),
+  col = which ("col");
+
+if (NULL == gzip)
+  {
+  tostderr ("gzip hasn't been found in PATH");
+  exit_me (1);
+  }
+
+if (NULL == groff)
+  {
+  tostderr ("groff hasn't been found in PATH");
+  exit_me (1);
+  }
+
+if (NULL == col)
+  {
+  tostderr ("col hasn't been found in PATH");
+  exit_me (1);
+  }
+
 define getpage (page)
 {
   variable
@@ -19,7 +42,6 @@ define getpage (page)
     p,
     ar,
     st,
-    pid,
     match,
     matchfn,
     status,
@@ -27,9 +49,6 @@ define getpage (page)
     fname = sprintf ("%s/Man_Page_Fname.txt", MYMANDIR),
     errfn = sprintf ("%s/Man_Page_Fname_ERRORS.txt", MYMANDIR),
     colfn = sprintf ("%s/Man_Page_Fname_col.txt", MYMANDIR),
-    gzip = which ("gzip"),
-    groff = which ("groff"),
-    col = which ("col"),
     manpages = String_Type[0],
     matches = String_Type[0];
  
@@ -57,8 +76,10 @@ define getpage (page)
     }
 
   ar = readfile (errfn);
- 
-  errfn = "/tmp/manerrs";
+  
+  () = remove (errfn);
+
+  errfn = TEMPDIR + "/" + string (getpid) + substr (string (_time), 7, -1)  + "manerrs";
 
   if (length (ar))
     {
@@ -110,10 +131,16 @@ define getpage (page)
       }
     }
  
-  p = proc->init (1, 0, 0);
+  p = proc->init (1, openstdout, 0);
+
+  if (openstdout)
+    initproc (p);
+
   p.stdin.file = outfn;
  
   status = p.execv ([col, "-b"], NULL);
+  
+  () = remove (outfn);
 
   return 0;
 }
@@ -142,20 +169,18 @@ define main ()
     c = cmdopt_new (&_usage);
 
   if (-1 == access (DATA_DIR, F_OK))
-    {
     if (-1 == mkdir (DATA_DIR))
       {
       tostderr (sprintf ("cannot create %s", DATA_DIR));
-      return 1;
+      exit_me (1);
       }
 
-    }
   if (-1 == access (MYMANDIR, F_OK))
     {
     if (-1 == mkdir (MYMANDIR))
       {
       tostderr (sprintf ("cannot create %s", MYMANDIR));
-      return 1;
+      exit_me (1);
       }
 
     () = array_map (Integer_Type, &mkdir, array_map (String_Type, &sprintf,
@@ -199,6 +224,7 @@ define main ()
       }
 
     list = list[wherenot (_isnull (list))];
+
     ifnot (length (list))
       {
       tostderr ("no man page found");
@@ -251,11 +277,9 @@ define main ()
       array_map (String_Type, &path_basename_sans_extname, man_page), ar);
 
     retval = ask ([
-      sprintf ("There %d man pages that match", length (man_page)),
-      " ",
-      array_map (String_Type, &sprintf, "%d: %s", [1:length (man_page)], ar),
-      "escape, quit question and abort the operation"
-      ], NULL;get_ascii_input, prompt = "Which page? (integer) ");
+      sprintf ("@There %d man pages that match", length (man_page)),
+      array_map (String_Type, &sprintf, "%d: %s", [1:length (man_page)], ar)
+      ], NULL;get_int);
 
     if (NULL == retval || 0 == strlen (retval))
       {
@@ -270,12 +294,17 @@ define main ()
       exit_me (1);
       }
 
+    if (0 == retval || retval > length (man_page))
+      {
+      tostderr ("selection is out of range");
+      exit_me (1);
+      }
+
     retval--;
 
     man_page = man_page[retval];
 
-    (ar, retval) = getpage (man_page);
-    array_map (Void_Type, &tostdout, ar);
+    retval = getpage (man_page);
     exit_me (retval);
     }
 
@@ -289,8 +318,7 @@ define main ()
 
   ifnot (access (page, F_OK))
     {
-    (ar, retval) = getpage (page);
-    array_map (Void_Type, &tostdout, ar);
+    retval = getpage (page);
     exit_me (retval);
     }
   else
@@ -324,4 +352,3 @@ define main ()
     exit_me (retval);
     }
 }
-

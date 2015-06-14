@@ -96,9 +96,19 @@ private define file_callback_a (file, st, cur, other, exit_code)
   return 1;
 }
 
-private define dir_callback_a (dir, st, dirs, cur, other)
+private define dir_callback_a (dir, st, s, dirs, cur, other)
 {
   variable newdir = strreplace (dir, other, cur);
+
+  ifnot (NULL == s.ignoredironremove)
+    {
+    variable ldir = strtok (newdir, "/");
+    if (any (ldir[-1] == s.ignoredironremove))
+      {
+      tostdout (sprintf ("ignored dir: %s", dir));
+      return 0;
+      }
+    }
 
   if (-1 == access (newdir, F_OK) && 0 == access (dir, F_OK))
     list_append (dirs, dir);
@@ -112,7 +122,7 @@ private define rm_extra (s, cur, other)
     exit_code = 0,
     dirs = {},
     fs = fswalk_new (&dir_callback_a, &file_callback_a;
-      dargs = {dirs, cur, other}, fargs = {cur, other, &exit_code});
+      dargs = {s, dirs, cur, other}, fargs = {cur, other, &exit_code});
  
   if (s.interactive_remove)
     Accept_All_As_Yes = 0;
@@ -335,6 +345,16 @@ private define file_callback (file, st, s, source, dest, exit_code)
   if (Accept_All_As_No)
     return -1;
 
+  ifnot (NULL == s.ignorefile)
+    {
+    variable lfile = strtok (file, "/");
+    if (any (lfile[-1] == s.ignorefile))
+      {
+      tostdout (sprintf ("ignored file: %s", file));
+      return 1;
+      }
+    }
+
   (dest, ) = strreplace (file, source, dest, 1);
  
   variable
@@ -476,6 +496,8 @@ static define sync_new ()
       interactive_copy,
       interactive_remove,
       ignoredir,
+      ignoredironremove,
+      ignorefile,
       rmextra = 1,
       methods
       },

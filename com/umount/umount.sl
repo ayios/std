@@ -49,8 +49,11 @@ define main ()
   else
     argv = [umount, mountpoint];
 
-  p = proc->init (0, 0, 0);
+  p = proc->init (0, openstdout, 0);
 
+  if (openstdout)
+    initproc (p);
+ 
   status = p.execv (argv, NULL);
   
   exit_me (status.exit_status);

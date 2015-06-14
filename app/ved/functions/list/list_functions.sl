@@ -150,9 +150,10 @@ private define chframe (s)
   s.vedloop ();
 }
 
-private define myquit (s)
+private define myquit ()
 {
   variable
+    s,
     fn,
     chr,
     fns = assoc_get_keys (fnames);
@@ -193,7 +194,6 @@ clinef["q!"] = &myquit;
 
 list_pagerf[string ('\r')] = &drawfile;
 list_pagerf[string (keys->CTRL_w)] = &chframe;
-
 
 define list_set (s, mys)
 {

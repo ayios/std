@@ -54,13 +54,13 @@ private define _load_ ()
  
   if (LOADED[lib] && 0 == qualifier_exists ("force"))
     return __get_reference (ns + "->" + fun);
-
+  
   try
     {
     () = evalfile (file, ns);
     }
   catch OpenError:
-    throw OpenError, sprintf ("%s: couldn't be found", file), 2;
+    throw OpenError, __get_exception_info.message, 2;
   catch ParseError:
     throw ParseError, sprintf ("file %s: %s func: %s lnr: %d", path_basename (file),
       __get_exception_info ().message, __get_exception_info ().function,

@@ -474,7 +474,7 @@ private define newline (s)
     if (lnr == s._len)
       next_l = "";
     else
-      next_l = v_lin (s, s.ptr[0] + 1);
+      next_l = s.lines[lnr+1];
  
   s._len++;
 

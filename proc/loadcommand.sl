@@ -1,4 +1,5 @@
 public variable com = __argv[1];
+public variable openstdout = 1;
 
 __set_argc_argv (__argv[[1:]]);
 
@@ -28,8 +29,8 @@ define on_eval_err (ar, err)
 variable COMDIR;
 variable PPID = getenv ("PPID");
 
-variable WRFIFO =  TEMPDIR + "/" + string (PPID) + "SRV_FIFO.fifo";
-variable RDFIFO =  TEMPDIR + "/" + string (PPID) + "CLNT_FIFO.fifo";
+variable WRFIFO = TEMPDIR + "/" + string (PPID) + "SRV_FIFO.fifo";
+variable RDFIFO = TEMPDIR + "/" + string (PPID) + "CLNT_FIFO.fifo";
 
 variable RDFD = open (RDFIFO, O_RDONLY);
 variable WRFD = open (WRFIFO, O_WRONLY);
@@ -53,10 +54,30 @@ define on_eval_err (ar, err)
   exit_me (err);
 }
 
+loadfrom ("posix", "fileflags", NULL, &on_eval_err);
+loadfrom ("sys", "permissions", NULL, &on_eval_err);    
 loadfrom ("input", "inputInit", NULL, &on_eval_err);
 loadfrom ("stdio", "readfile", NULL, &on_eval_err);
 loadfrom ("parse", "cmdopt", NULL, &on_eval_err);
 loadfrom ("sys", "which", NULL, &on_eval_err);
+
+variable stdoutfile = getenv ("stdoutfile");
+variable stdoutflags = getenv ("stdoutflags");
+variable stdoutfd;
+
+ifnot (access (stdoutfile, F_OK))
+  stdoutfd = open (stdoutfile, FILE_FLAGS[stdoutflags]);
+else
+  stdoutfd = open (stdoutfile, FILE_FLAGS[stdoutflags], PERM["__PUBLIC"]);
+
+if (NULL == stdoutfd)
+  on_eval_err (errno_string (errno), 1);
+
+define initproc (p)
+{
+  p.stdout.file = stdoutfile;
+  p.stdout.wr_flags = stdoutflags;
+}
 
 sigprocmask (SIG_UNBLOCK, [SIGINT]);
 
@@ -76,7 +97,7 @@ define sigint_handler_null (sig)
 
 define verboseon ()
 {
-  loadfrom ("print", "tostdout", NULL, &on_eval_err);
+  loadfrom ("print", "comtostdout", NULL, &on_eval_err);
 }
 
 define verboseoff ()
@@ -84,9 +105,23 @@ define verboseoff ()
   loadfrom ("print", "null_tostdout", NULL, &on_eval_err);
 }
 
+define close_smg ()
+{
+  sock->send_str (WRFD, "close_smg");
+
+  () = sock->get_bit (RDFD);
+}
+
+define restore_smg ()
+{
+  sock->send_str (WRFD, "restore_smg");
+
+  () = sock->get_bit (RDFD);
+}
+
 define send_msg_dr (msg)
 {
-  sock->send_str (WRFD, "msgdr");
+  sock->send_str (WRFD, "send_msg_dr");
 
   () = sock->get_bit (RDFD);
   
@@ -98,6 +133,7 @@ define send_msg_dr (msg)
 define ask (questar, charar)
 {
   signal (SIGINT, &sigint_handler_null);
+
   sigprocmask (SIG_BLOCK, [SIGINT]);
 
   sock->send_str (WRFD, "ask");
@@ -109,16 +145,46 @@ define ask (questar, charar)
   () = sock->get_bit (RDFD);
   
   variable chr;
+  
+  if (qualifier_exists ("get_int"))
+    {
+    variable
+      len,
+      retval = "";
+    
+    send_msg_dr ("integer: ");
 
-  while (chr = getch (), 0 == any (chr == charar));
+    chr = getch ();
+
+    while ('\r' != chr)
+      {
+      if  ('0' <= chr <= '9')
+        retval += char (chr);
+
+      if (any ([0x110, 0x8, 0x07F] == chr))
+        retval = retval[[:-2]];
+ 
+      send_msg_dr ("integer: " + retval);
+
+      chr = (@getch);
+      }
+
+    chr = retval;
+    }
+  else
+    {
+    send_msg_dr (strjoin (array_map (String_Type, &char, charar), "/") + " ");
+    while (chr = getch (), 0 == any (chr == charar));
+    }
   
   input->reset_tty ();
   
-  sock->send_bit (WRFD, 1);
+  sock->send_str (WRFD, "restorestate");
 
   () = sock->get_bit (RDFD);
   
   sigprocmask (SIG_UNBLOCK, [SIGINT]);
+
   signal (SIGINT, &sigint_handler);
 
   return chr;
@@ -167,11 +233,11 @@ define info ()
   if (NULL == infofile || -1 == access (infofile, F_OK))
     {
     tostdout ("No Info file available for " + com);
- 
     exit_me (0);
     }
 
   ar = readfile (infofile);
+
   array_map (&tostdout, ar);
  
   exit_me (0);

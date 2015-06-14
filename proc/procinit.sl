@@ -135,7 +135,7 @@ private define connect_to_socket (s, sockaddr)
   variable
     i = -1,
     sock = socket (PF_UNIX, SOCK_STREAM, 0);
-
+  
   forever
     {
     i++;

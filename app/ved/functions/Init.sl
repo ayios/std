@@ -1,6 +1,7 @@
 define getch ();
 
 variable clinef = Assoc_Type[Ref_Type];
+variable MSG;
 
 private define quit (t)
 {

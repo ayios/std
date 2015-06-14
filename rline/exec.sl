@@ -93,7 +93,7 @@ private define _execProc_Type_ (func, argv)
     }
  
   argv = _glob_ (argv);
-
+  
   (@func) (argv;;struct {@__qualifiers (), sudobin = SUDO_BIN, issudo = issudo, passwd = passwd});
 }
 

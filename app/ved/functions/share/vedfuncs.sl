@@ -13,13 +13,6 @@ define getlines (fname, indent, st)
   return array_map (String_Type, &sprintf, "%s%s", indent, readfile (fname));
 }
 
-define debug (s, str, get)
-{
-  send_msg_dr (str, 1, s.ptr[0], s.ptr[1]);
-  ifnot (NULL == get)
-    () = getch ();
-}
-
 define clear (s, frow, lrow)
 {
   variable
@@ -145,4 +138,39 @@ define find_Word (s, line, col, start, end)
   @end = col - 1;
  
   return substr (line, @start + 1, @end - @start + 1);
+}
+
+
+define drawfile (s)
+{
+  variable st = lstat_file (s._absfname);
+  
+  if (s.st_.st_size)
+    if (st.st_atime == s.st_.st_atime && st.st_size == s.st_.st_size)
+      {
+      s.draw ();
+      return;
+      }
+
+  s.st_ = st;
+ 
+  s.lines = getlines (s, s._absfname, s._indent, st);
+
+  s._len = length (s.lines) - 1;
+ 
+  variable _i = qualifier ("_i");
+  variable pos = qualifier ("pos");
+  variable len = length (s.rows) - 1;
+
+  ifnot (NULL == pos)
+    (s.ptr[0] = pos[0], s.ptr[1] = pos[1]);
+  else
+    (s.ptr[1] = 0, s.ptr[0] = s._len + 1 <= len ? s._len + 1 : s.rows[-2]);
+  
+  ifnot (NULL == _i)
+    s._i = _i;
+  else  
+    s._i = s._len + 1 <= len ? 0 : s._len + 1 - len;
+
+  s.draw ();
 }

@@ -1,5 +1,6 @@
 private variable msgwritten = 0;
 private variable holdedcommand = NULL;
+private variable historyseparator = repeat (char (166), 2);
 
 static define restore (cmp_lnrs, ptr, refresh, columns)
 {
@@ -15,12 +16,13 @@ static define addlcmp (list, arg)
     list = list[[:9]];
 }
 
-static define addhistory (hist, argv)
+static define addhistory (hist, argv, force)
 {
-  argv = strjoin (argv, "||");
+  argv = strjoin (argv, historyseparator);
  
   if (2 > strlen (argv))
-    return hist;
+    if (NULL == force)
+      return hist;
 
   variable list = hist[wherenot (hist == argv)];
 
@@ -101,7 +103,7 @@ private define _execline_ (s)
   
   if (_addhistory)
     {
-    s.history = addhistory (s.history, origargv);
+    s.history = addhistory (s.history, origargv, s.historyaddforce);
     addlcmp (s.lcmp, origargv[-1]);
     }
 }
@@ -138,6 +140,7 @@ static define init (getcommands)
   rl.on_lang_args = qualifier ("on_lang_args", {});
   rl.histfile = qualifier ("histfile");
   rl.history = qualifier ("history", String_Type[0]);
+  rl.historyaddforce = qualifier ("historyaddforce");
   rl.lcmp = qualifier ("lcmp", {});
   rl._lines = qualifier ("lines", LINES);
   rl._columns = qualifier ("columns", COLUMNS);
@@ -451,7 +454,7 @@ private define write_completion_routine (s, ar)
   smg->aratrcaddnstr (ar, clrs, s.cmp_lnrs, cols, s._columns);
 }
 
-private define _printout (s, ar, col, len)
+private define printout (s, ar, col, len)
 {
   variable lrow = s._prow - (strlen (s._lin) / s._columns);
   variable lar = widg->printtoscreen (ar, lrow, len, &s.cmp_lnrs;;__qualifiers ());
@@ -461,35 +464,6 @@ private define _printout (s, ar, col, len)
   smg->setrcdr (s._row, lcol);
 
   return lar;
-}
-
-private define printout (s, ar, col, len)
-{
-  ifnot (length (ar))
-    {
-    @len = 0;
-    return @Array_Type[0];
-    }
-
-  variable
-    origlen = @len,
-    hlreg = qualifier ("hl_region"),
-    lines = qualifier ("lines", s._lines),
-    nar = @len < lines ? @ar : ar[[:lines - 1]];
- 
-  write_completion_routine (s, nar;;__qualifiers ());
-
-  ifnot (NULL == hlreg)
-    smg->hlregion (hlreg[0], hlreg[1], hlreg[2], hlreg[3], hlreg[4]);
- 
-  @len = @len >= lines;
- 
-  variable lcol;
-  (, lcol) = find_col (col, s._columns);
-
-  smg->setrcdr (s._row, lcol);
-
-  return ar[[origlen >= lines ? lines - 1 : origlen:]];
 }
 
 private define firstindices (str, ar, pat)
@@ -642,12 +616,9 @@ private define hlitem (s, ar, base, acol, item)
   ifnot (NULL == header)
     smg->aratrcaddnstr  (header, 6, frow, 0, s._columns);
 
-  bar = _printout (s, bar, bcol, &len;lines = lines,
+  bar = printout (s, bar, bcol, &len;lines = lines,
     row = s._prow - (strlen (s._lin) / s._columns) + i,
     hl_region = [colr, irow, icol * max_len, 1, max_len]);
-  %bar = printout (s, bar, bcol, &len;lines = lines,
-  %  row = s._prow - (strlen (s._lin) / s._columns) + i,
-  %  hl_region = [colr, irow, icol * max_len, 1, max_len]);
  
   ifnot (NULL == header)
     s.cmp_lnrs = [s.cmp_lnrs[0] - 1, s.cmp_lnrs];
@@ -702,12 +673,9 @@ private define hlitem (s, ar, base, acol, item)
       ifnot (NULL == header)
         smg->aratrcaddnstr  (header, 6, frow, 0, s._columns);
 
-      bar = _printout (s, bar, bcol, &len;lines = lines,
+      bar = printout (s, bar, bcol, &len;lines = lines,
         row = s._prow - (strlen (s._lin) / s._columns) + i,
         hl_region = [colr, irow, icol * max_len, 1, max_len]);
-      %bar = printout (s, bar, bcol, &len;lines = lines,
-      %  row = s._prow - (strlen (s._lin) / s._columns) + i,
-      %  hl_region = [colr, irow, icol * max_len, 1, max_len]);
  
       ifnot (NULL == header)
         s.cmp_lnrs = [s.cmp_lnrs[0] - 1, s.cmp_lnrs];
@@ -882,12 +850,9 @@ private define hlitem (s, ar, base, acol, item)
     ifnot (NULL == header)
       smg->aratrcaddnstr  (header, 6, frow, 0, s._columns);
 
-    () = _printout (s, car, bcol, &len;lines = lines,
+    () = printout (s, car, bcol, &len;lines = lines,
       row = s._prow - (strlen (s._lin) / s._columns) + i,
       hl_region = [colr, irow, icol * max_len, 1, max_len]);
-    %() = printout (s, car, bcol, &len;lines = lines,
-    %  row = s._prow - (strlen (s._lin) / s._columns) + i,
-    %  hl_region = [colr, irow, icol * max_len, 1, max_len]);
  
     ifnot (NULL == header)
       s.cmp_lnrs = [s.cmp_lnrs[0] - 1, s.cmp_lnrs];
@@ -1391,8 +1356,7 @@ private define getpattern (s, pat)
 
   smg->atrcaddnstr  (strlen (@pat) ? @pat : " ", 7, prow, 0, rl._columns);
 
-  () = _printout (rl, ar, strlen (rl.argv[0]), &len;lines = lines, _prow = s._prow, _lin = s._lin);
-  %() = printout (rl, ar, strlen (rl.argv[0]), &len;lines = lines, _prow = s._prow, _lin = s._lin);
+  () = printout (rl, ar, strlen (rl.argv[0]), &len;lines = lines, _prow = s._prow, _lin = s._lin);
  
   smg->setrcdr (prow, strlen (rl.argv[0]));
 
@@ -1712,7 +1676,7 @@ private define historycompletion (s)
     {
     ar = strlen (s._lin)
       ? s.history[where (array_map (Char_Type, &string_match,
-          s.history, strjoin (s.argv, "||"), 1))]
+          s.history, strjoin (s.argv, historyseparator), 1))]
       : s.history;
 
     ifnot (length (ar))
@@ -1732,10 +1696,8 @@ private define historycompletion (s)
 
     col = s._col - (s._columns * i);
 
-    () = _printout (s, [strjoin (strtok (ar[index], "||"), " ")], col, &len;
+    () = printout (s, [strjoin (strtok (ar[index], historyseparator), " ")], col, &len;
       lines = s._lines - (strlen (s._lin) / s._columns));
-    %() = printout (s, [strjoin (strtok (ar[index], "||"), " ")], col, &len;
-    %  lines = s._lines - (strlen (s._lin) / s._columns));
 
     index++;
 
@@ -1763,7 +1725,7 @@ private define historycompletion (s)
 
     if (' ' == chr)
       {
-      s.argv = strtok (ar[index-1], "||");
+      s.argv = strtok (ar[index-1], historyseparator);
       s._col = strlen (strjoin (s.argv, " ")) + 1;
       parse_args (s);
       restore (s.cmp_lnrs, NULL, NULL, s._columns);
@@ -1773,7 +1735,7 @@ private define historycompletion (s)
 
     if ('\r' == chr)
       {
-      s.argv = strtok (ar[index-1], "||");
+      s.argv = strtok (ar[index-1], historyseparator);
       return 1;
       }
  

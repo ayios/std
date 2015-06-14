@@ -34,10 +34,11 @@ public variable
   MAPS = [EL_MAP, EN_MAP],
   WCHARS = array_map (String_Type, &char, [['0':'9'], EN_MAP, EL_MAP, '_']);
 
-public variable VED_TEMPDIR;
+public variable VED_TEMPDIR = TEMPDIR;
+public variable VED_SCRATCH_BUF = VED_TEMPDIR + "/" + string (getpid ()) + "scratch.txt";
+public variable VED_STDERR = VED_TEMPDIR + "/" + string (getpid ()) + "vedstderr.txt";
+public variable VED_STDERRFD = open (VED_STDERR, O_RDWR|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR);
 
-public variable VED_SCRATCH_BUF = "/tmp/scratch.txt";
- 
 private define _invalid ()
 {
   pop ();

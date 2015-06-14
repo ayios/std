@@ -72,13 +72,13 @@ define main ()
   ifnot (i + 2  <= __argc)
     {
     tostderr (sprintf ("%s: additional argument is required", __argv[0]));
-    return 1;
+    exit_me (1);
     }
 
   if (opts.noclobber && opts.backup)
     {
     tostderr ("Options: `--backup' and `--no-clobber' are mutually exclusive");
-    return 1;
+    exit_me (1);
     }
 
   if (opts.maxdepth)
@@ -104,7 +104,7 @@ define main ()
     && 1 < length (files))
     {
     tostderr (sprintf ("target %s is not a directory", dest));
-    return 1;
+    exit_me (1);
     }
 
   _for i (0, length (files) -1)

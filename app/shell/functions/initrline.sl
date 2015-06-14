@@ -1,65 +1,119 @@
-private define _waitpid_ (p)
+private variable redirexists = NULL;
+private variable licom = 0;
+
+if (-1 == access (STACKFILE, F_OK))
+  writestring (STACKFILE, "STACK = {}");
+
+private define _precom_ ()
 {
-  variable buf = "";
-  variable str;
-  variable status;
-  variable cmp_lnrs;
+  icom++;
+  MSG.st_.st_size = stat_file (STDERR).st_size;;
+}
 
-  WRFD = open (WRFIFO, O_WRONLY);
-  RDFD = open (RDFIFO, O_RDONLY);
-
-  forever
-    {
-    buf = sock->get_str (RDFD);
-    buf = strtrim_end (buf);
-
-    if ("exit" == buf)
-      {
-      sock->send_bit (WRFD, 1);
-      status = waitpid (p.pid, 0);
-      p.atexit ();
-      SHELLLASTEXITSTATUS = status.exit_status;
-      return;
-      }
-    
-    if ("msgdr" == buf)
-      {
-      () = dup2_fd (p.stdout.keep, 1);
-
-      sock->send_bit (WRFD, 1);
-      
-      str = sock->get_str (RDFD);
-
-      send_msg_dr (str, 0, NULL, NULL); 
-
-      () = dup2_fd (p.stdout.write, 1);
-
-      sock->send_bit (WRFD, 1);
-
-      continue;
-      }
-
-    if ("ask" == buf)
-      {
-      () = dup2_fd (p.stdout.keep, 1);
-
-      sock->send_bit (WRFD, 1);
-      
-      str = sock->get_str (RDFD);
-
-      () = widg->askprintstr (str, NULL, &cmp_lnrs);
-      
-      sock->send_bit (WRFD, 1);
-
-      () = sock->get_bit (RDFD);
-
-      smg->restore (cmp_lnrs, NULL, 1);
+private define parse_redir (lastarg, file, flags)
+{
+  variable index = 0;
+  variable chr = lastarg[index];
+  variable redir = chr == '>';
   
-      () = dup2_fd (p.stdout.write, 1);
+  ifnot (redir)
+    return 0;
+  
+  variable lfile;
+  variable lflags = ">";
+  variable len = strlen (lastarg);
 
-      sock->send_bit (WRFD, 1);
+  index++; 
+
+  if (len == index)
+    return -1;
+  
+  chr = lastarg[index];
+
+  if (chr == '>' || chr == '|')
+    {
+    lflags += char (chr);
+    index++;
+    
+    if (len == index)
+      return -1; 
+    }
+
+  chr = lastarg[index];
+
+  if (chr == '|')
+    {
+    lflags += char (chr);
+    index++;
+    
+    if (len == index)
+      return -1; 
+    }
+    
+  lfile = substr (lastarg, index + 1, -1);
+  
+  ifnot (access (lfile, F_OK))
+    {
+    ifnot ('|' == lflags[-1])
+      if (NULL == redirexists || (NULL != redirexists && licom + 1 != icom))
+        {
+        if (">" == lflags)
+          {
+          licom = icom;
+          redirexists = 1;
+          tostderr (lfile + ": file exists, use >|");
+          return -1;
+          }
+        }
+      else
+        if (">" == lflags)
+          {
+          redirexists = NULL;
+          licom = 0;
+          lflags = ">|";
+          }
+  
+    if (-1 == access (lfile, W_OK))
+      {
+      tostderr (lfile + ": is not writable");
+      return -1;
+      }
+
+    ifnot (isreg (lfile))
+      {
+      tostderr (lfile + ": is not a regular file");
+      return -1;
       }
     }
+  
+  @flags = lflags;
+  @file = lfile;
+  return 1;
+}
+
+private define parse_argv (argv)
+{
+  variable flags = ">>|";
+  variable file = STDOUT;
+  variable retval = parse_redir (argv[-1], &file, &flags);
+  
+  return file, flags, retval;
+}
+
+private define _waitpid_ (p)
+{
+  variable wrfd = open (WRFIFO, O_WRONLY);
+  variable rdfd = open (RDFIFO, O_RDONLY);
+  
+  waitfunc (p, wrfd, rdfd);
+
+  sock->send_bit (wrfd, 1);
+  
+  variable status = waitpid (p.pid, 0);
+  
+  p.atexit ();
+  
+  SHELLLASTEXITSTATUS = status.exit_status;
 }
 
 private define write_file (s, overwrite, ptr, argv)
@@ -113,97 +167,13 @@ private define _write_ (argv)
     }
 }
 
-private define on_lang_change (args)
-{
-  toplinedr (args[1];row =  args[0][0], col = args[0][1]);
-}
-
-private define _viewfile_ (s, type, pos, _i)
-{
-  variable f = __get_reference ("setbuf");
-  (@f) (s._absfname);
-  
-  topline (" -- pager -- (" + type + " BUF) --";row =  s.ptr[0], col = s.ptr[1]);
-  
-  ifnot (NULL == pos)
-    (s.ptr[0] = pos[0], s.ptr[1] = pos[1]);
-
-  draw (s;pos = pos, _i = _i);
-  
-  forever
-    {
-    VEDCOUNT = -1;
-    s._chr = getch (;on_lang = &on_lang_change, on_lang_args = {s.ptr, "--pager -- (MSG BUF) --"});
-
-    if ('1' <= s._chr <= '9')
-      {
-      VEDCOUNT = "";
- 
-      while ('0' <= s._chr <= '9')
-        {
-        VEDCOUNT += char (s._chr);
-        s._chr = getch (;on_lang = &on_lang_change, on_lang_args = {s.ptr, "--pager -- (MSG BUF) --"});
-        }
-
-      VEDCOUNT = integer (VEDCOUNT);
-      }
- 
-    (@pagerf[string (s._chr)]) (s);
- 
-    if (':' == s._chr || 'q' == s._chr)
-      break;
-    }
-}
-
-private define _scratch_ (ved)
-{
-  _viewfile_ (SCRATCH, "SCRATCH", [1, 0], 0);
-
-  variable f = __get_reference ("setbuf");
-
-  (@f) (ved._absfname);
-  ved.draw ();
-}
-
-private define _messages_ ()
-{
-  _viewfile_ (MSG, "MSG", NULL, NULL);
-  
-  variable f = __get_reference ("setbuf");
-
-  (@f) (qualifier ("ved")._absfname);
-  qualifier ("ved").draw ();
-}
-
 private define edit ()
 {
+  _precom_ ();
+
   variable s = qualifier ("ved");
 
-  toplinedr (" -- pager --";row =  s.ptr[0], col = s.ptr[1]);
-
-  forever
-    {
-    VEDCOUNT = -1;
-    s._chr = getch (;on_lang = &on_lang_change, on_lang_args = {s.ptr, "--pager --"});
-
-    if ('1' <= s._chr <= '9')
-      {
-      VEDCOUNT = "";
- 
-      while ('0' <= s._chr <= '9')
-        {
-        VEDCOUNT += char (s._chr);
-        s._chr = getch (;on_lang = &on_lang_change, on_lang_args = {s.ptr, "--pager --"});
-        }
-
-      VEDCOUNT = integer (VEDCOUNT);
-      }
- 
-    (@pagerf[string (s._chr)]) (s);
- 
-    if (':' == s._chr || 'q' == s._chr)
-      return;
-    }
+  viewfile (s, "STDOUT", s.ptr, s._ii);
 }
 
 private define _exit_ ()
@@ -216,74 +186,23 @@ private define _exit_ ()
   exit_me (0);
 }
 
-
-private define _echo_ (argv)
+private define _ved_ (argv)
 {
-  shell_pre_header (argv);
-
-  argv = argv[[1:]];
-
-  variable len = length (argv);
-
-  ifnot (len)
-    return;
-
-  if (1 == len)
-    if ('$' == argv[0][0])
-      if ('?' == argv[0][1])
-        tostdout (string (SHELLLASTEXITSTATUS) + "\n");
-      else
-        tostdout (_$ (argv[0]) + "\n");
-
-  shell_post_header ();
-
-  draw (qualifier ("ved"));
-}
-
-private define _cd_ (argv)
-{
-  if (1 == length (argv))
-    {
-    if (getcwd () == "$HOME/"$)
-      return;
-
-    () = chdir ("$HOME"$);
-    
-    SHELLLASTEXITSTATUS = 0;
-    }
-  else
-    if (are_same_files (getcwd (), argv[1]))
-      return; 
-    else
-      if (-1 == chdir (argv[1]))
-        {
-        tostdout (errno_string (errno) + "\n");
-        SHELLLASTEXITSTATUS = 1;
-        }
-
-  shell_pre_header (argv);
-
-  shell_post_header ();
-
-  draw (qualifier ("ved"));
-}
-
-private define _ved_ ()
-{
-  ifnot (_NARGS)
-    return;
-
-  variable fname = ();
+  _precom_ ();
+  
+  variable fname = 1 == length (argv) ? SCRATCHFILE : argv[1];
   
   shell_pre_header ("ved " + fname);
 
   smg->suspend ();
  
+  variable issudo = qualifier ("issudo");
+
   loadfrom ("app/ved", "vedInit", NULL, &on_eval_err);
 
-  variable ved = __get_reference ("ved");
+  variable ved = issudo ? __get_reference ("vedsudo") : __get_reference ("ved");
 
-  (@ved) (fname);
+  (@ved) (fname;;__qualifiers ());
 
   smg->resume ();
 
@@ -292,36 +211,15 @@ private define _ved_ ()
   draw (qualifier ("ved"));
 }
 
-private define _which_ ()
-{
-  ifnot (_NARGS)
-    return;
-
-  variable com = ();
-
-  shell_pre_header ("which " + com);
-
-  variable path = which (com);
-
-  ifnot (NULL == path)
-    tostdout (path + "\n");
-  else
-    tostdout (com + " hasn't been found in PATH\n");
-
-  shell_post_header ();
-
-  SHELLLASTEXITSTATUS = NULL == path;
-
-  draw (qualifier ("ved"));
-}
-
 private define _preexec_ (argv, header, issudo, env)
 {
-  @header = strlen (argv[0]) > 1;
+  _precom_ ();
+
+  @header = strlen (argv[0]) > 1 && 0 == qualifier_exists ("no_header");
   @issudo = qualifier ("issudo");
   @env = [proc->getdefenv (), "PPID=" + string (MYPID)];
 
-  variable p = proc->init (@issudo, 1, 1);
+  variable p = proc->init (@issudo, 0, 1);
 
   if (@header) 
     shell_pre_header (argv);
@@ -358,10 +256,7 @@ private define _fork_ (p, argv, env, ved)
   variable err = read_fd (errfd;pos = MSG.st_.st_size);
 
   ifnot (NULL == err)
-    {
     tostdout (err);
-    MSG.st_.st_size += strbytelen (err);
-    }
 }
 
 private define _postexec_ (header, ved)
@@ -374,7 +269,9 @@ private define _postexec_ (header, ved)
 
 private define _search_ (argv)
 {
-  variable header, issudo, env;
+  _precom_ ();
+
+  variable header, issudo, env, stdoutfile, stdoutflags;
 
   variable p = _preexec_ (argv, &header, &issudo, &env;;__qualifiers ());
 
@@ -383,15 +280,17 @@ private define _search_ (argv)
 
   argv = ();
 
-  p.stdout.file = GREPILE;
-  p.stdout.wr_flags = ">|";
+  stdoutfile = GREPILE;
+  stdoutflags = ">|";
   p.stderr.file = STDERR;
   p.stderr.wr_flags = ">>|";
   
+  env = [env, "stdoutfile=" + stdoutfile, "stdoutflags=" + stdoutflags];
+
   _fork_ (p, argv, env, qualifier ("ved"));
 
   ifnot (SHELLLASTEXITSTATUS)
-    { 
+    {
     smg->suspend ();
  
     loadfrom ("app/ved", "vedInit", NULL, &on_eval_err);
@@ -408,7 +307,7 @@ private define _search_ (argv)
 
 private define execute (argv)
 {
-  variable header, issudo, env;
+  variable header, issudo, env, stdoutfile, stdoutflags;
 
   variable p = _preexec_ (argv, &header, &issudo, &env;;__qualifiers ());
 
@@ -423,33 +322,205 @@ private define execute (argv)
     {
     argv[isscratch] = NULL;
     argv = argv[wherenot (_isnull (argv))];
-    p.stdout.file = SCRATCHFILE;
-    p.stdout.wr_flags = ">|";
+    stdoutfile = SCRATCHFILE;
+    stdoutflags = ">|";
     }
   else
     {
-    p.stdout.file = STDOUT;
-    p.stdout.wr_flags = ">>|";
+    variable file, flags, retval;
+    (file, flags, retval) = parse_argv (argv);
+
+    if (-1 == retval)
+      {
+      variable err = read_fd (ERRFD;pos = MSG.st_.st_size);
+    
+      tostdout (err + "\n");
+      MSG.st_.st_size += strbytelen (err) + 1;
+      SHELLLASTEXITSTATUS = 1;
+      _postexec_ (header, qualifier ("ved"));
+      return;
+      }
+    
+    if (1 == retval)
+      {
+      argv[-1] = NULL;
+      argv = argv[wherenot (_isnull (argv))];
+      }
+
+    stdoutfile = file;
+    stdoutflags = flags;
     }
 
   %%% CARE FOR CHANGES        argv-index
   if (NULL == isscratch && any (argv[2] == ["man"]))
     {
-    p.stdout.file = SCRATCHFILE;
-    p.stdout.wr_flags = ">|";
+    stdoutfile = SCRATCHFILE;
+    stdoutflags = ">|";
     isscratch = 1;
     }
 
   p.stderr.file = STDERR;
   p.stderr.wr_flags = ">>|";
-  
+ 
+  env = [env, "stdoutfile=" + stdoutfile, "stdoutflags=" + stdoutflags];
+
   _fork_ (p, argv, env, qualifier ("ved"));
 
   ifnot (NULL == isscratch)
     ifnot (SHELLLASTEXITSTATUS)
-      _scratch_ (qualifier ("ved"));
+      scratch (qualifier ("ved"));
 
   _postexec_ (header, qualifier ("ved"));
+}
+
+private define _builtinpre_ (argv)
+{
+  _precom_ ();
+  shell_pre_header (argv);
+}
+
+private define _builtinpost_ (vd)
+{
+  variable err = read_fd (ERRFD;pos = MSG.st_.st_size);
+
+  ifnot (NULL == err)
+    tostdout (err + "\n");
+
+  shell_post_header ();
+
+  draw (vd);
+}
+
+private define _echo_ (argv)
+{
+  _builtinpre_ (argv);
+
+  argv = argv[[1:]];
+
+  variable hasnewline = wherefirst ("-n" == argv);
+  
+  ifnot (NULL == hasnewline)
+    {
+    argv[hasnewline] = NULL;
+    argv = argv[wherenot (_isnull (argv))];
+    hasnewline = "";
+    }
+  else
+    hasnewline = "\n";
+
+  variable len = length (argv);
+
+  ifnot (len)
+    return;
+
+  if (1 == len)
+    {
+    if ('>' == argv[0][0])
+      return;
+
+    if ('$' == argv[0][0])
+      if ('?' == argv[0][1])
+        tostdout (string (SHELLLASTEXITSTATUS) + hasnewline);
+      else
+        tostdout (_$ (argv[0]) + hasnewline);
+    else
+      tostdout (argv[0] + hasnewline);
+    }
+  else
+    {
+    variable file, flags, retval;
+    (file, flags, retval) = parse_argv (argv);
+
+    if (-1 == retval)
+      {
+      _builtinpost_ (qualifier ("ved"));
+      SHELLLASTEXITSTATUS = 1;
+      return;
+      }
+    
+    ifnot (retval)
+      {
+      tostdout (strjoin (argv, " ") + hasnewline);
+      _builtinpost_ (qualifier ("ved"));
+      return;
+      }
+
+    argv[-1] = NULL;
+    argv = argv[wherenot (_isnull (argv))];
+
+    if (">>" == flags || 0 == access (file, F_OK))
+      _appendstr (file, strjoin (argv, " ") + hasnewline);
+    else
+      {
+      variable fd = open (file, O_CREAT|O_WRONLY, PERM["__PUBLIC"]);
+      if (NULL == fd)
+        tostderr (file + ":" + errno_string (errno));
+      else
+        if (-1 == write (fd, strjoin (argv, " ") + hasnewline))
+          tostderr (file + ":" + errno_string (errno));
+        else
+          if (-1 == close (fd))
+            tostderr (file + ":" + errno_string (errno));
+      }
+    }
+  
+  _builtinpost_ (qualifier ("ved"));
+}
+
+private define _cd_ (argv)
+{
+  _builtinpre_ (argv);
+
+  if (1 == length (argv))
+    {
+    ifnot (getcwd () == "$HOME/"$)
+      () = chdir ("$HOME"$);
+    }
+  else
+    {
+    variable dir = evaldir (argv[1]);
+    ifnot (are_same_files (getcwd (), dir))
+      if (-1 == chdir (dir))
+        {
+        tostderr (errno_string (errno) + "\n");
+        SHELLLASTEXITSTATUS = 1;
+        }
+    }
+
+  _builtinpost_ (qualifier ("ved"));
+}
+
+private define _which_ (argv)
+{
+  _builtinpre_ (argv);
+
+  if (1 == length (argv))
+    {
+    tostderr ("argument is required\n");
+    _builtinpost_ (qualifier ("ved"));
+    return;
+    }
+
+  variable com = argv[1];
+
+  variable path = which (com);
+
+  ifnot (NULL == path)
+    tostdout (path + "\n");
+  else
+    tostdout (com + " hasn't been found in PATH\n");
+
+  SHELLLASTEXITSTATUS = NULL == path;
+
+  _builtinpost_ (qualifier ("ved"));
+}
+
+private define _intro_ (argv)
+{
+  variable rl = qualifier ("rl");
+  variable vd = qualifier ("ved");
+ 
+  intro (rl, vd); 
 }
 
 private define _rehash_ ();
@@ -481,7 +552,6 @@ private define init_commands ()
 
   a["ved"] = @Argvlist_Type;
   a["ved"].func = &_ved_;
-  a["ved"].type = "Func_Type";
   
   a["search"] = @Argvlist_Type;
   a["search"].func = &_search_;
@@ -492,7 +562,6 @@ private define init_commands ()
 
   a["which"] = @Argvlist_Type;
   a["which"].func = &_which_;
-  a["which"].type = "Func_Type";
 
   a["q"] = @Argvlist_Type;
   a["q"].func = &_exit_;
@@ -515,6 +584,9 @@ private define init_commands ()
   a["rehash"] = @Argvlist_Type;
   a["rehash"].func = &_rehash_;
   
+  a["intro"] = @Argvlist_Type;
+  a["intro"].func = &_intro_;
+
   return a;
 }
 
@@ -533,7 +605,7 @@ private define filterargs (args, type, desc)
 define rlineinit ()
 {
   variable rl = rline->init (&init_commands;
-    histfile = "$HOME/.ashellhistory"$,
+    histfile = LCLDATADIR + "/." + string (getuid ()) + "ashellhistory",
     filtercommands = &filtercommands,
     filterargs = &filterargs,
     on_lang = &toplinedr,
@@ -544,7 +616,7 @@ define rlineinit ()
   return rl;
 }
 
-private define _rehash_ ()
+private define _rehash_ (argv)
 {
   qualifier ("rl").argvlist = init_commands ();
 }
