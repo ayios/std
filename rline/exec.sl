@@ -1,7 +1,5 @@
 loadfrom ("parse", "is_arg", NULL, &on_eval_err);
 
-private variable SUDO_BIN = which ("sudo");
-
 private define _glob_ (argv)
 {
   variable
@@ -73,18 +71,18 @@ private define _execProc_Type_ (func, argv)
     argv[index] = NULL;
     argv = argv[wherenot (_isnull (argv))];
     passwd = widg->getpasswd ();
-    
+ 
     variable p;
     variable status;
  
     () = system (sprintf ("%s -K 2>/dev/null", SUDO_BIN));
-    
+ 
     p = proc->init (1, 1, 1);
 
     p.stdin.in = passwd;
 
     status = p.execv ([SUDO_BIN, "-S", "-p", "", "echo"], NULL);
-    
+ 
     if (NULL == status || status.exit_status)
       {
       send_msg_dr (p.stderr.out, 1, NULL, NULL);
@@ -93,7 +91,7 @@ private define _execProc_Type_ (func, argv)
     }
  
   argv = _glob_ (argv);
-  
+ 
   (@func) (argv;;struct {@__qualifiers (), sudobin = SUDO_BIN, issudo = issudo, passwd = passwd});
 }
 

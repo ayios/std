@@ -21,7 +21,7 @@ define mvfile (source, dest, opts)
 
     backuptext = sprintf (" (backup: %s)", backup);
     }
-  
+ 
   if (NULL != st_dest && opts.interactive)
     {
     retval = ask ([
@@ -30,7 +30,7 @@ define mvfile (source, dest, opts)
       "n[o do not overwrite]",
       ],
       ['y',  'n']);
-    
+ 
     switch (retval)
       {
       case 'q':

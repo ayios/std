@@ -54,7 +54,7 @@ private define _load_ ()
  
   if (LOADED[lib] && 0 == qualifier_exists ("force"))
     return __get_reference (ns + "->" + fun);
-  
+ 
   try
     {
     () = evalfile (file, ns);

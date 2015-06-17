@@ -4,7 +4,7 @@ define setbuf (key)
     return;
  
   VED_CB = VED_BUFFERS[key];
-  
+ 
   variable s = VED_CB;
 
   if (s._autochdir && 0 == VED_ISONLYPAGER)
@@ -31,7 +31,7 @@ define bufdelete (s, bufname, force)
 {
   ifnot (any (s._absfname == VED_BUFNAMES))
     return;
-  
+ 
   if (s._flags & VED_MODIFIED && force)
     {
     variable retval = writetofile (s._absfname, s.lines, s._indent);
@@ -40,21 +40,21 @@ define bufdelete (s, bufname, force)
     }
 
   assoc_delete_key (VED_BUFFERS, bufname);
-  
+ 
   variable index = wherefirst (bufname == VED_BUFNAMES);
  
   VED_BUFNAMES[index] = NULL;
   VED_BUFNAMES = VED_BUFNAMES[wherenot (_isnull (VED_BUFNAMES))];
-  
+ 
   ifnot (length (VED_BUFNAMES))
     s.quit (0);
-  
+ 
   index = index ? index - 1 : length (VED_BUFNAMES) - 1;
-  
+ 
   setbuf (VED_BUFNAMES[index]);
-  
+ 
   s = VED_CB;
-  
+ 
   s.draw ();
   s.vedloop ();
 }
@@ -67,7 +67,7 @@ define initrowsbuffvars (s, rows)
   s.clrs = Integer_Type[length (s.rows)];
   s.clrs[*] = 0;
   s.clrs[-1] = VED_INFOCLRFG;
-  
+ 
   s._avlins = length (s.rows) - 2;
 }
 
@@ -109,15 +109,15 @@ define initbuf (s, fname, rows, lines, t)
   s.ptr = Integer_Type[2];
 
   s._len = length (s.lines) - 1;
-  
+ 
   initrowsbuffvars (s, rows);
 
   s.ptr[0] = s.rows[0];
   s.ptr[1] = s._indent;
-  
+ 
   s._findex = s._indent;
   s._index = s._indent;
-  
+ 
   s.undo = String_Type[0];
   s._undolevel = 0;
   s.undoset = {};

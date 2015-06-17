@@ -17,10 +17,10 @@ private define tabhook (s)
 {
   ifnot (any (s.argv[0] == ["b", "bd"]))
     return -1;
-  
+ 
   variable v = qualifier ("ved");
   variable bufnames = VED_BUFNAMES[wherenot (v._absfname == VED_BUFNAMES)];
-  variable args = array_map (String_Type, &sprintf, "%s void ", bufnames); 
+  variable args = array_map (String_Type, &sprintf, "%s void ", bufnames);
   return rline->argroutine (s;args = args, accept_ws);
 }
 

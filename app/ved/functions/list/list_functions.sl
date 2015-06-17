@@ -117,7 +117,7 @@ private define drawfile (s)
 
   if (NULL == l)
     return;
-  
+ 
   togglecur ();
 
   variable retval = add (NULL, l, defrows[0]);

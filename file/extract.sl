@@ -4,7 +4,7 @@ private define untar (archive, file, verbose, tar)
 {
   variable status;
   variable p = proc->init (0, 0, 0);
-  
+ 
   status = p.execv ([tar, sprintf ("-x%sf", verbose ? "v" : ""), archive,
     "--strip-components=1"], NULL);
 
@@ -32,12 +32,12 @@ private define func_z (archive, verbose, type)
     tostderr ("tar executable couldn't be found in PATH");
     return -1;
     }
-    
+ 
    variable p = proc->init (0, 1, 0);
-   
+ 
    p.stdout.file = "archive.tar";
    p.stdout.append_flags = O_BINARY;
-  
+ 
    status = p.execv ([exec, "-dc", archive], NULL);
 
   if (status.exit_status)
@@ -62,7 +62,7 @@ private define func_unrar (archive, verbose, type)
     }
 
   unrar = [unrar, "e", "-y", sprintf ("-id%s", verbose ? "c" : "q"), archive];
-  
+ 
   variable p = proc->init (0, 0, 0);
   status = p.execv (unrar, NULL);
 
@@ -82,7 +82,7 @@ private define func_unzip (archive, verbose, type)
     }
 
   unzip = [unzip, sprintf ("-%suo", verbose ? "" : "q"), archive];
-  
+ 
   variable p = proc->init (0, 0, 0);
 
   status = p.execv (unzip, NULL);
@@ -125,7 +125,7 @@ define extract (archive, verbose, dir, strip)
       while (1 < length (strchop (newdir, '.', 0)))
         newdir = path_basename_sans_extname (newdir);
       }
-    
+ 
     if (-1 == access (newdir, F_OK))
       if (-1 == mkdir (newdir))
         {

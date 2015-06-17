@@ -79,9 +79,9 @@ private define _execline_ (s)
 
   if (NULL == s.argvlist[s.argv[0]].func)
     return;
-  
+ 
   variable origargv = @s.argv;
-  
+ 
   ifnot (NULL == s.argvlist[s.argv[0]].type)
     if (s.argvlist[s.argv[0]].type == "Proc_Type")
       (@exec->proctype) (s.argvlist[s.argv[0]].func, s.argv;;
@@ -100,7 +100,7 @@ private define _execline_ (s)
         struct {@__qualifiers (), rl = s});
     else
       _addhistory = 0;
-  
+ 
   if (_addhistory)
     {
     s.history = addhistory (s.history, origargv, s.historyaddforce);
@@ -175,9 +175,9 @@ static define prompt (s, line, col)
   _for i (0, state - 1)
     (ar[i], rows[i]) = substr (line, int (sum (strlen (ar))) + 1, s._columns),
       s._prow - (state - i - 1);
-  
+ 
   variable lcol;
-  
+ 
   (i, lcol) = find_col (col, s._columns);
 
   s._row = rows[i];;
@@ -187,7 +187,7 @@ static define prompt (s, line, col)
 
   s.lnrs = rows;
   s._state = state;
-  
+ 
   if (msgwritten)
     {
     smg->atrcaddnstr (" ", 0, MSGROW, 0, s._columns);
@@ -641,6 +641,7 @@ private define hlitem (s, ar, base, acol, item)
 
     if (keys->NPAGE == chr)
       {
+      restore (s.cmp_lnrs, [s._row, s._col], 1, s._columns);
       ifnot (len)
         {
         ifnot (qualifier_exists ("dont_format"))
@@ -788,6 +789,7 @@ private define hlitem (s, ar, base, acol, item)
  
     if (keys->PPAGE== chr)
       {
+      restore (s.cmp_lnrs, [s._row, s._col], 1, s._columns);
       ifnot (page)
         {
         if (length (car) > lines)
@@ -901,7 +903,7 @@ private define lcmpcompletion (s)
         s.argv[s._ind] = lcmp;
       else
         s.argv[s._ind] += lcmp;
-      
+ 
       parse_args (s);
 
       s._col += strlen (lcmp);
@@ -924,7 +926,7 @@ private define lcmpcompletion (s)
 
       return 0;
       }
-    
+ 
     if (any (keys->rmap.backspace == chr))
       {
       delete_at (s);
@@ -938,7 +940,7 @@ private define lcmpcompletion (s)
     parse_args (s);
 
     prompt (s, s._lin, s._col);
-    
+ 
     return 0;
     }
 }
@@ -1116,7 +1118,7 @@ private define commandcmp (s, commands)
     help,
     indices,
     orighelp = qualifier ("help");
-  
+ 
   commands = commands[array_sort (commands)];
 
   forever
@@ -1396,7 +1398,7 @@ private define parse_argtype (s, arg, type, baselen)
     prompt (s, s._lin, s._col);
     return;
     }
-  
+ 
   variable col;
 
   if ("--pat=" == arg || "pattern" == type)
@@ -1518,6 +1520,16 @@ private define argcompletion (s)
     if (3 != sscanf (ar[i], "%s %s %[ -ώ]", &args[i], &type[i], &desc[i]))
       return 0;
 
+  ifnot (NULL == s.filterargs)
+    (args, type, desc) = (@s.filterargs) (args, type, desc);
+
+  variable bar = array_sort (args);
+  args = args[bar];
+  type = type[bar];
+  desc = desc[bar];
+ 
+  len = length (args);
+
   if (1 == len)
     {
     arg = strchop (args[0], ',', 0);
@@ -1529,14 +1541,6 @@ private define argcompletion (s)
     return 0;
     }
  
-  ifnot (NULL == s.filterargs)
-    (args, type, desc) = (@s.filterargs) (args, type, desc);
-
-  variable bar = array_sort (args);
-  args = args[bar];
-  type = type[bar];
-  desc = desc[bar];
-
   forever
     {
     ifnot (strlen (arg))
@@ -1634,13 +1638,16 @@ private define argcompletion (s)
     if ("." == arg && qualifier_exists ("base"))
       arg = char (chr);
     else
+      {
+      restore (s.cmp_lnrs, NULL, NULL, s._columns);
       arg += char (chr);
+      }
 
     s.argv[s._ind] = arg;
     s._col = baselen + strlen (s.argv[s._ind]) + 1;
 
     parse_args (s);
-    
+ 
     prompt (s, s._lin, s._col);
     }
 }
@@ -1761,7 +1768,7 @@ private define historycompletion (s)
 private define _holdcommand_ (s)
 {
   holdedcommand = @s;
-  set (s); 
+  set (s);
   prompt (s, s._lin, s._col);
 }
 
@@ -1769,7 +1776,7 @@ static define readline (s)
 {
   variable retval;
   variable initdone = 0;
-  
+ 
   ifnot (NULL == holdedcommand)
     {
     s = holdedcommand;
@@ -1781,7 +1788,7 @@ static define readline (s)
   forever
     {
     s._chr = getch (;on_lang = s.on_lang, on_lang_args = s.on_lang_args);
-    
+ 
     ifnot (initdone)
       {
       send_msg_dr (" ", 0, s._prow, s._col);
@@ -1799,7 +1806,7 @@ static define readline (s)
       s.execline (;;__qualifiers ());
       return;
       }
-    
+ 
     if (any (keys->rmap.lastcur == s._chr))
       {
       _holdcommand_ (s);
@@ -1814,7 +1821,7 @@ static define readline (s)
         }
       else
         continue;
-    
+ 
     if (any (keys->rmap.lastcmp == s._chr))
       if (1 == lcmpcompletion (s))
         {
@@ -1823,13 +1830,13 @@ static define readline (s)
         }
       else
         continue;
-    
+ 
     ifnot (NULL == s.starthook)
       {
       retval = (@s.starthook) (s;;__qualifiers ());
       ifnot (retval)
         continue;
-      
+ 
       if (retval == 1)
         {
         s.execline (;;__qualifiers ());
@@ -1844,7 +1851,7 @@ static define readline (s)
         retval = (@s.tabhook) (s;;__qualifiers ());
         ifnot (retval)
           continue;
-        
+ 
         if (retval == 1)
           {
           s.execline (;;__qualifiers ());

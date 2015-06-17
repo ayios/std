@@ -17,7 +17,7 @@ private define quit ()
   variable chr = getch ();
   while (0 == any (chr == ['y', 'n']))
     chr = getch ();
-  
+ 
   s.quit (chr == 'y');
 }
 
@@ -97,7 +97,7 @@ private define _read ()
     return;
 
   variable ar = getlines (file, s._indent, st);
-  
+ 
   variable lnr = v_lnr (s, '.');
 
   s.lines = [s.lines[[:lnr]], ar, s.lines[[lnr + 1:]]];
@@ -122,11 +122,11 @@ private define messages ()
   variable s = MSG;
   VED_ISONLYPAGER = 1;
   setbuf (s._absfname);
-  
+ 
   topline (" -- pager -- ( MESSAGES BUF) --";row =  s.ptr[0], col = s.ptr[1]);
-  
+ 
   variable st = lstat_file (s._absfname);
-  
+ 
   if (s.st_.st_size)
     if (st.st_atime == s.st_.st_atime && st.st_size == s.st_.st_size)
       {
@@ -144,7 +144,7 @@ private define messages ()
   variable len = length (s.rows) - 1;
 
   (s.ptr[1] = 0, s.ptr[0] = s._len + 1 <= len ? s._len + 1 : s.rows[-2]);
-  
+ 
   s._i = s._len + 1 <= len ? 0 : s._len + 1 - len;
 
   s.draw ();
@@ -153,13 +153,13 @@ private define messages ()
   VED_ISONLYPAGER = 0;
 
   setbuf (keep._absfname);
-  
+ 
   topline (" -- pager --");
-  
+ 
   keep._i = keep._ii;
 
-  keep.draw (); 
-  
+  keep.draw ();
+ 
   keep.vedloop ();
 }
 

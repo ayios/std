@@ -284,7 +284,7 @@ private define change_word (s, what)
     waddline (s, lline, 0, s.ptr[0]);
     smg->refresh ();
     }
-  
+ 
   s.ptr[1] = start;
   s._index = start;
 
@@ -601,11 +601,11 @@ private define toggle_case (s)
 %    }
 %
 %  variable chr = getch ();
-%  
+%
 %  ifnot ('a' < chr > 'z')
 %    return;
-%  
-%  RECORD = 1; 
+%
+%  RECORD = 1;
 %  CRECORD = char (chr);
 %  RECORDS[CRECORD] = {};
 %}

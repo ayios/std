@@ -4,13 +4,13 @@ private define _ask_ (p, cmp_lnrs, wrfd, rdfd)
 {
   variable i;
   variable ocmp_lnrs = @cmp_lnrs;
-  
+ 
   sock->send_bit (wrfd, 1);
-  
+ 
   variable str = sock->get_str (rdfd);
 
   () = widg->askprintstr (str, NULL, &cmp_lnrs);
-  
+ 
   sock->send_bit (wrfd, 1);
 
   if (length (cmp_lnrs) < length (ocmp_lnrs))
@@ -29,10 +29,10 @@ private define _ask_ (p, cmp_lnrs, wrfd, rdfd)
 private define _sendmsgdr_ (p, wrfd, rdfd)
 {
   sock->send_bit (wrfd, 1);
-  
+ 
   variable str = sock->get_str (rdfd);
-  
-  send_msg_dr (str, 0, NULL, NULL); 
+ 
+  send_msg_dr (str, 0, NULL, NULL);
 
   sock->send_bit (wrfd, 1);
 }
@@ -56,16 +56,16 @@ define waitfunc (p, wrfd, rdfd)
     {
     buf = sock->get_str (rdfd);
     buf = strtrim_end (buf);
-    
+ 
     if ("exit" == buf)
       return;
-    
+ 
     if ("restorestate" == buf)
       {
       _restorestate_ (p, cmp_lnrs, wrfd);
       continue;
       }
-    
+ 
     if ("send_msg_dr" == buf)
       {
       _sendmsgdr_ (p, wrfd, rdfd);

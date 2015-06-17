@@ -166,7 +166,7 @@ private define search (s)
     pchr,
     str,
     pat = "";
-  
+ 
   found = 0;
 
   lnr = v_lnr (s, '.');

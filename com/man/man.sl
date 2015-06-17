@@ -76,7 +76,7 @@ define getpage (page)
     }
 
   ar = readfile (errfn);
-  
+ 
   () = remove (errfn);
 
   errfn = TEMPDIR + "/" + string (getpid) + substr (string (_time), 7, -1)  + "manerrs";
@@ -139,7 +139,7 @@ define getpage (page)
   p.stdin.file = outfn;
  
   status = p.execv ([col, "-b"], NULL);
-  
+ 
   () = remove (outfn);
 
   return 0;

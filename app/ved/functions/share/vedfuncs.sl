@@ -144,7 +144,7 @@ define find_Word (s, line, col, start, end)
 define drawfile (s)
 {
   variable st = lstat_file (s._absfname);
-  
+ 
   if (s.st_.st_size)
     if (st.st_atime == s.st_.st_atime && st.st_size == s.st_.st_size)
       {
@@ -166,10 +166,10 @@ define drawfile (s)
     (s.ptr[0] = pos[0], s.ptr[1] = pos[1]);
   else
     (s.ptr[1] = 0, s.ptr[0] = s._len + 1 <= len ? s._len + 1 : s.rows[-2]);
-  
+ 
   ifnot (NULL == _i)
     s._i = _i;
-  else  
+  else
     s._i = s._len + 1 <= len ? 0 : s._len + 1 - len;
 
   s.draw ();

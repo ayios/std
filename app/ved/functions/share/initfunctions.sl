@@ -28,7 +28,7 @@ ifnot (VED_INITDONE)
       {
       if (VED_EDITOTHER)
         loadfile ("addfname", NULL, &on_eval_err);
-      
+ 
       loadfrom ("rline", "rlineInit", 1, &on_eval_err);
       loadfile ("initrline", NULL, &on_eval_err);
       loadfile ("vedrline", NULL, &on_eval_err);

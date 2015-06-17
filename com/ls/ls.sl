@@ -599,7 +599,7 @@ define main ()
     dir = __argv[[i:]];
     dir = dir[where (strncmp (dir, "--", 2))];
     }
-  
+ 
  % dir = i == __argc ? ["."] : __argv[where (strncmp (__argv[[i:__argv[[i:]];
 
   _for i (0, length (dir) - 1)

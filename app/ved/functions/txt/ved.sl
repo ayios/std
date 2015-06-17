@@ -20,6 +20,6 @@ define ved (s, fname)
     return;
  
   toplinedr (" -- pager --");
-  
+ 
   s.vedloop ();
 }

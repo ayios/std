@@ -13,7 +13,7 @@ define ved (s, fname)
   if (func)
     {
     VEDCOUNT = get_count ();
-  
+ 
     (@pagerf[string (func)]) (s);
     }
 

@@ -390,7 +390,7 @@ private define vis_mode (s)
   variable
     draw = 1,
     vs = v_init (s);
-  
+ 
   vs.startrow = vs.lnrs[0];
 
   if (s._chr == 'v')

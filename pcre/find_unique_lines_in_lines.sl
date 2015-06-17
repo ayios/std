@@ -16,7 +16,7 @@ define find_unique_lines_in_lines (ar, str, end)
   _for i (0, end)
     if (pcre_exec (pat, ar[i]))
       lines[ar[i]] = NULL;
-  
+ 
   lines = assoc_get_keys (lines);
   return lines[array_sort (lines)];
 }

@@ -186,7 +186,7 @@ define main ()
   c.add ("group", &group;type = "string");
   c.add ("user", &user;type = "string");
   c.add ("changeref", &CHANGEREF);
-  c.add ("r|recursive", &recursive);
+  c.add ("r|R|recursive", &recursive);
   c.add ("v|verbose", &verboseon);
   c.add ("help", &_usage);
   c.add ("info", &info);

@@ -22,6 +22,7 @@ public variable
   DISPLAY,
   XAUTHORITY,
   SLSH_BIN,
+  SUDO_BIN,
   PWD,
   GROUP,
   UID,
@@ -46,6 +47,7 @@ static define setdefenv ()
   SLANG_MODULE_PATH = get_import_module_path ();
   SLSH_LIB_DIR = get_slang_load_path ();
   SLSH_BIN = which ("slsh");
+  SUDO_BIN = which ("sudo");
   PWD = getcwd ();
  
   variable getscreendim = qualifier ("dimfunc", &getscreensizefromenv);

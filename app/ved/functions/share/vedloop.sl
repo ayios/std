@@ -26,7 +26,7 @@ private define _vedloop_ (s)
       }
 
     s.vedloopcallback ();
-    
+ 
     if (':' == s._chr)
       {
       if (RECORD)

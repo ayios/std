@@ -26,7 +26,7 @@ define getlines ();
 define draw (s)
 {
   variable st = lstat_file (s._absfname);
-  
+ 
   if (s.st_.st_size)
     if (st.st_atime == s.st_.st_atime && st.st_size == s.st_.st_size)
       {
@@ -49,10 +49,10 @@ define draw (s)
     (s.ptr[0] = pos[0], s.ptr[1] = pos[1]);
   else
     (s.ptr[1] = 0, s.ptr[0] = s._len + 1 <= len ? s._len + 1 : s.rows[-2]);
-  
+ 
   ifnot (NULL == _i)
     s._i = _i;
-  else  
+  else
     s._i = s._len + 1 <= len ? 0 : s._len + 1 - len;
 
   s.draw ();
@@ -67,14 +67,14 @@ define viewfile (s, type, pos, _i)
 {
   variable f = __get_reference ("setbuf");
   (@f) (s._absfname);
-  
+ 
   topline (" -- pager -- (" + type + " BUF) --";row =  s.ptr[0], col = s.ptr[1]);
-  
+ 
   ifnot (NULL == pos)
     (s.ptr[0] = pos[0], s.ptr[1] = pos[1]);
 
   draw (s;pos = pos, _i = _i);
-  
+ 
   forever
     {
     VEDCOUNT = -1;
@@ -113,7 +113,7 @@ define scratch (ved)
 define _messages_ ()
 {
   viewfile (MSG, "MSG", NULL, NULL);
-  
+ 
   variable f = __get_reference ("setbuf");
 
   (@f) (qualifier ("ved")._absfname);

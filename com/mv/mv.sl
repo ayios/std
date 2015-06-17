@@ -1,5 +1,5 @@
 loadfrom ("file", "mvfile", NULL, &on_eval_err);
-loadfrom ("dir", "mvdir", NULL, &on_eval_err);  
+loadfrom ("dir", "mvdir", NULL, &on_eval_err);
 loadfrom ("dir", "evaldir", NULL, &on_eval_err);
 
 define assign_interactive_noclobber (interactive, noclobber, code)

@@ -89,7 +89,7 @@ private define assign_substitute (substitution)
 static define init (pat, sub)
 {
   variable s = @Search_Type;
-  
+ 
   try
     {
     s.pat = pcre_compile (pat, qualifier ("pcreopts", 0));

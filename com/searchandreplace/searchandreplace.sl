@@ -69,19 +69,19 @@ private define sed (file, s)
     undiff,
     retval,
     st = qualifier ("st", stat_file (file));
-   
+ 
   ifnot (stat_is ("reg", st.st_mode))
     {
     tostderr (sprintf
       ("cannot operate on special file `%s': Operation not permitted", file));
     return;
     }
-  
+ 
   ar = readfile (file);
-  
+ 
   ifnot (length (ar))
     return;
-  
+ 
   s.fname = file;
 
   retval = search->search_and_replace (s, readfile (file));
@@ -101,7 +101,7 @@ private define sed (file, s)
         {
         undiff = unified_diff (ar, file);
         undiff = NULL == undiff ? NULL : strchop (undiff, '\n', 0);
-      
+ 
         retval = ask ([
           sprintf ("@write changes to `%s' ? y/n", file),
           NULL == undiff ? "No diff available"
@@ -129,6 +129,9 @@ private define file_callback (file, st, type)
   ifnot (HIDDENFILES)
     if ('.' == path_basename (file)[0])
       return 1;
+ 
+  if (".so" == path_extname (file))
+    return 1;
 
   sed (file, type;st = st);
 
@@ -195,7 +198,7 @@ define main ()
   if (NULL == type)
     {
     tostderr (__get_exception_info.message);
-    exit_me ();
+    exit_me (1);
     }
 
   if (NULL == DIFFEXEC)

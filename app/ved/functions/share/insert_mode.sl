@@ -608,7 +608,7 @@ private define linecompletion (s, line)
     origlen = strlen (@line),
     col = s._index - 1,
     iwchars = [MAPS, ['0':'9'], '_'];
-  
+ 
   ifnot (strlen (@line))
     return;
 
@@ -616,7 +616,7 @@ private define linecompletion (s, line)
     {
     ifnot (indexchanged)
       lines = pcre->find_unique_lines_in_lines (s.lines, @line, NULL);
-          
+ 
     ifnot (length (lines))
       {
       if (length (lines))
@@ -645,7 +645,7 @@ private define linecompletion (s, line)
         }
       else
         item = substr (item, 1, strlen (item) - 1);
-      
+ 
       smg->restore (rows, NULL, NULL);
       continue;
       }
@@ -653,11 +653,11 @@ private define linecompletion (s, line)
     if (any ([' ', '\r'] == chr))
       {
       smg->restore (rows, NULL, NULL);
-      
+ 
       @line = lines[index - 1] + substr (@line, s._index + 1, -1);
-      
+ 
       waddline (s, getlinestr (s, @line, 1), 0, s.ptr[0]);
-      
+ 
       variable len = strlen (@line);
 
       %bug here (if len > maxlen) (wrapped line)
@@ -666,10 +666,10 @@ private define linecompletion (s, line)
       else if (len > origlen)
         s._index += len - origlen;
 
-      s.ptr[1] = s._index; 
+      s.ptr[1] = s._index;
 
       draw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
-      
+ 
       return;
       }
 
@@ -699,11 +699,11 @@ private define linecompletion (s, line)
       }
     else
       item += char (chr);
-    
-    ifnot (indexchanged) 
+ 
+    ifnot (indexchanged)
       smg->restore (rows, NULL, NULL);
-   
-   % BUG HERE 
+ 
+   % BUG HERE
     if (indexchanged)
       if (index > LINES - 4)
         lines = lines[[1:]];
@@ -744,12 +744,12 @@ private define wordcompletion (is, s, line)
     {
     ifnot (indexchanged)
       words = pcre->find_unique_words_in_lines (s.lines, word, NULL);
-          
+ 
     ifnot (length (words))
       {
       if (length (rows))
         smg->restore (rows, s.ptr, 1);
-      
+ 
       return;
       }
 
@@ -773,7 +773,7 @@ private define wordcompletion (is, s, line)
         }
       else
         word = substr (word, 1, strlen (word) - 1);
-      
+ 
       smg->restore (rows, NULL, NULL);
       continue;
       }
@@ -781,11 +781,11 @@ private define wordcompletion (is, s, line)
     if (any ([' ', '\r'] == chr))
       {
       smg->restore (rows, NULL, NULL);
-      
+ 
       @line = substr (@line, 1, start) + words[index - 1] + substr (@line, s._index + 1, -1);
-      
+ 
       waddline (s, getlinestr (s, @line, 1), 0, s.ptr[0]);
-      
+ 
       variable len = strlen (@line);
 
       %bug here (if len > maxlen) (wrapped line)
@@ -794,10 +794,10 @@ private define wordcompletion (is, s, line)
       else if (len > origlen)
         s._index += len - origlen;
 
-      s.ptr[1] = s._index; 
+      s.ptr[1] = s._index;
 
       draw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
-      
+ 
       return;
       }
 
@@ -827,11 +827,11 @@ private define wordcompletion (is, s, line)
       }
     else
       word += char (chr);
-    
-    ifnot (indexchanged) 
+ 
+    ifnot (indexchanged)
       smg->restore (rows, NULL, NULL);
-   
-   % BUG HERE 
+ 
+   % BUG HERE
     if (indexchanged)
       if (index > LINES - 4)
         words = words[[1:]];
@@ -865,7 +865,7 @@ private define getline (is, s, line)
       is.cr (s, line);
       return;
       }
-    
+ 
     if (keys->CTRL_n == is.chr)
       {
       is.wordcompletion (s, line);

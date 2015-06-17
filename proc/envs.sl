@@ -15,7 +15,7 @@ static define getdefenv ()
 
   ifnot (NULL == DISPLAY)
     env = [env, "DISPLAY=" + DISPLAY];
-  
+ 
   ifnot (NULL == XAUTHORITY)
     env = [env, "XAUTHORITY=" + XAUTHORITY];
 

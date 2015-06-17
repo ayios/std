@@ -11,7 +11,7 @@ define quit ()
     flags = VED_MODIFIED,
     args = __pop_list (_NARGS - 1),
     write_on_exit = args[0];
-  
+ 
   variable s = ();
 
   ifnot (write_on_exit)

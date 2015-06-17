@@ -42,7 +42,7 @@ define main ()
   if (mountpoint == NULL == device)
     {
     p = proc->init (0, openstdout, 0);
-    
+ 
     if (openstdout)
       initproc (p);
  
@@ -75,7 +75,7 @@ define main ()
     argv = [mount, device, mountpoint];
 
   p = proc->init (0, openstdout, 0);
-  
+ 
   if (openstdout)
     initproc (p);
  

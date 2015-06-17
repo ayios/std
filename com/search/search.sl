@@ -237,7 +237,7 @@ define main ()
   else
     if (NULL == maxdepth)
       maxdepth = 1000;
-   
+ 
   ifnot (NULL == PAT)
     {
     ifnot (strlen (PAT))

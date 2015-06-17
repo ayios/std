@@ -24,9 +24,9 @@ private define _hldir_ (vline, index)
 private define _hldir (line, vline)
 {
   col = 0;
-  
+ 
   subs = pcre_exec (dirregexp[0], line, col);
-  
+ 
   if (subs)
     _hldir_ (vline, 0);
 

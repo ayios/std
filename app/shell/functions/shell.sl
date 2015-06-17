@@ -21,9 +21,9 @@ define shell (vd, rl)
   topline (" -- shell --");
 
   shell_post_header ();
-  
+ 
   draw (vd);
-  
+ 
   mainloop (rl, vd);
 }
 
@@ -37,11 +37,11 @@ define on_eval_err (err, code)
   SHELLLASTEXITSTATUS = code;
 
   variable vd = init_ftype ("ashell");
-  
+ 
   ashell_settype (vd, STDOUT, VED_ROWS, NULL);
-  
+ 
   setbuf (vd._absfname);
-  
+ 
   shell_post_header ();
 
   draw (vd);

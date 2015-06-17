@@ -38,4 +38,5 @@ static define getenviron ()
   (OS, MACHINE) = getos ();
   ISSUPROC = UID ? 0 : 1;
   SLSH_BIN = which ("slsh");
+  SUDO_BIN = which ("sudo");
 }

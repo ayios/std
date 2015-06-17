@@ -8,6 +8,8 @@ variable STDOUT      = TEMPDIR + "/" + string (MYPID) + "stdout.ashell";
 variable STDERR      = TEMPDIR + "/" + string (MYPID) + "stderr.ashell";
 variable RDFIFO      = TEMPDIR + "/" + string (MYPID) + "SRV_FIFO.fifo";
 variable WRFIFO      = TEMPDIR + "/" + string (MYPID) + "CLNT_FIFO.fifo";
+variable BGDIR       = TEMPDIR + "/" + string (MYPID) + "procs";
+variable BGPIDS      = Assoc_Type[Struct_Type];
 variable MSG;
 variable SCRATCH;
 variable ERRFD;
@@ -62,6 +64,15 @@ define shell ();
 
 define init_shell ()
 {
+  ifnot (access (BGDIR, F_OK))
+    ifnot (_isdirectory (BGDIR))
+      on_eval_err (BGDIR + ": is not a directory", 1);
+    else
+      {}
+  else
+    if (-1 == mkdir (BGDIR, PERM["PRIVATE"]))
+      on_eval_err (BGDIR + ": " + errno_string (errno), 1);
+
   MSG = init_ftype ("ashell");
 
   SCRATCH = init_ftype ("ashell");

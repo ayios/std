@@ -105,7 +105,7 @@ private define broken_sudoproc_broken (v)
 
   if (NULL == p.stdin.in)
     return NULL;
-  
+ 
   if (NULL == v._sudobin)
     return NULL;
 
@@ -123,7 +123,7 @@ private define getargvenv (p, v)
 
   ifnot (NULL == XAUTHORITY)
     env = [env, "XAUTHORITY=" + XAUTHORITY];
-  
+ 
   if (v._issudo)
     argv = [v._sudobin, "-S", "-E", "-p", "", argv];
 
@@ -209,7 +209,7 @@ private define parse_args ()
 private define connect_to_child (v)
 {
   v._fd = v.p_.connect (v._sockaddr);
-  
+ 
   if (NULL == v._fd)
     {
     () = kill (v.p_.pid, SIGALRM);
@@ -283,7 +283,7 @@ private define _ved_ ()
  
   if (NULL == v.p_)
     return;
-  
+ 
   if (-1 == connect_to_child (v))
     return;
 

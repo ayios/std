@@ -1,6 +1,8 @@
 typedef struct
   {
   pid,
+  argv,
+  uid,
   stdin,
   stdout,
   stderr,
@@ -39,7 +41,7 @@ private define parse_flags (fd)
       fd.wr_flags = FILE_FLAGS[">"];
     else
       fd.wr_flags = FILE_FLAGS[">|"];
-  
+ 
   ifnot (NULL == fd.append_flags)
     fd.wr_flags = fd.wr_flags | fd.append_flags;
 
@@ -135,7 +137,7 @@ private define connect_to_socket (s, sockaddr)
   variable
     i = -1,
     sock = socket (PF_UNIX, SOCK_STREAM, 0);
-  
+ 
   forever
     {
     i++;
@@ -167,7 +169,7 @@ private define dopid (s)
   return fork ();
 }
 
-private define _execv (s, argv, fg)
+private define _execv (s, argv, bg)
 {
   variable status = 0;
 
@@ -176,16 +178,17 @@ private define _execv (s, argv, fg)
   if ((0 == s.pid) && -1 == execv (argv[0], argv))
     return NULL;
  
-  if (NULL == fg)
+  if (NULL == bg)
     {
     status = waitpid (s.pid, 0);
     s.atexit ();
+    return status;
     }
 
-  return status;
+  return s.pid;
 }
 
-private define _execve (s, argv, env, fg)
+private define _execve (s, argv, env, bg)
 {
   variable status = 0;
 
@@ -194,13 +197,14 @@ private define _execve (s, argv, env, fg)
   if ((0 == s.pid) && -1 == execve (argv[0], argv, env))
     return NULL;
  
-  if (NULL == fg)
+  if (NULL == bg)
     {
     status = waitpid (s.pid, 0);
     s.atexit ();
+    return status;
     }
 
-  return status;
+  return s.pid;
 }
 
 private define loadfile ()
