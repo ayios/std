@@ -10,12 +10,15 @@ variable RDFIFO      = TEMPDIR + "/" + string (MYPID) + "SRV_FIFO.fifo";
 variable WRFIFO      = TEMPDIR + "/" + string (MYPID) + "CLNT_FIFO.fifo";
 variable BGDIR       = TEMPDIR + "/" + string (MYPID) + "procs";
 variable BGPIDS      = Assoc_Type[Struct_Type];
+variable VED;
 variable MSG;
 variable SCRATCH;
 variable ERRFD;
 variable STACK;
 variable STACKFILE = LCLDATADIR + "/.stack";
 variable OUTFD;
+
+define runcom ();
 
 loadfrom ("sys", "checkpermissions", NULL, &on_eval_err);
 loadfrom ("sys", "setpermissions", NULL, &on_eval_err);

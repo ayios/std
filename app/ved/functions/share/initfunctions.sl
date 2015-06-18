@@ -36,6 +36,7 @@ ifnot (VED_INITDONE)
 
     loadfile ("visual_mode", NULL, &on_eval_err);
     loadfile ("ed", NULL, &on_eval_err);
+    loadfile ("preloop", NULL, &on_eval_err);
 
     ifnot (NULL == DISPLAY)
       ifnot (NULL == XAUTHORITY)

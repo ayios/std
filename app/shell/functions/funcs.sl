@@ -67,6 +67,7 @@ define viewfile (s, type, pos, _i)
 {
   variable f = __get_reference ("setbuf");
   (@f) (s._absfname);
+  VED = s;
  
   topline (" -- pager -- (" + type + " BUF) --";row =  s.ptr[0], col = s.ptr[1]);
  
@@ -105,8 +106,9 @@ define scratch (ved)
   viewfile (SCRATCH, "SCRATCH", [1, 0], 0);
 
   variable f = __get_reference ("setbuf");
-
+  
   (@f) (ved._absfname);
+  VED = ved;
   ved.draw ();
 }
 
@@ -115,9 +117,11 @@ define _messages_ ()
   viewfile (MSG, "MSG", NULL, NULL);
  
   variable f = __get_reference ("setbuf");
+  variable ved = qualifier ("ved");
 
-  (@f) (qualifier ("ved")._absfname);
-  qualifier ("ved").draw ();
+  (@f) (ved._absfname);
+  VED = ved;
+  ved.draw ();
 }
 
 define _appendstr (file, str)

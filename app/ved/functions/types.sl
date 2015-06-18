@@ -49,3 +49,9 @@ typedef struct
   next_l,
   modified,
   } Insert_Type;
+
+typedef struct
+  {
+  _i,
+  ptr
+  } Mark_Type;

@@ -1,3 +1,9 @@
+define markbacktick (s)
+{
+  MARKS[string ('`')]._i = s._ii;
+  MARKS[string ('`')].ptr = s.ptr;
+}
+
 private define adjust_col (s, linlen, plinlen)
 {
   if (linlen == 0 || 0 == s.ptr[1] - s._indent)
@@ -115,6 +121,7 @@ private define gotoline (s)
 {
   if (VEDCOUNT <= s._len + 1)
     {
+    markbacktick (s);
     s._i = VEDCOUNT - (VEDCOUNT ? 1 : 0);
     s.draw (;dont_draw);
 
@@ -129,6 +136,7 @@ private define gotoline (s)
 
 private define eof (s)
 {
+
   if (VEDCOUNT > -1)
     {
     ifnot (VEDCOUNT + 1)
@@ -137,6 +145,8 @@ private define eof (s)
     gotoline (s);
     return;
     }
+
+  markbacktick (s);
 
   s._i = s._len - s._avlins;
 
@@ -165,6 +175,8 @@ private define bof (s)
     gotoline (s);
     return;
     }
+
+  markbacktick (s);
 
   s._i = 0;
  
@@ -261,6 +273,8 @@ private define page_down (s)
 {
   if (s._i + s._avlins > s._len)
     return;
+  
+  markbacktick (s);
 
   s._is_wrapped_line = 0;
   s._i += (s._avlins);
@@ -277,6 +291,8 @@ private define page_up (s)
   ifnot (s.lnrs[0] - 1)
     return;
  
+  markbacktick (s);
+
   if (s.lnrs[0] >= s._avlins)
     s._i = s.lnrs[0] - s._avlins;
   else
@@ -293,6 +309,8 @@ private define page_up (s)
 private define eos (s)
 {
   variable linlen = v_linlen (s, '.');
+
+  markbacktick (s);
 
   if (linlen > s._linlen)
     {
@@ -311,7 +329,7 @@ private define eos (s)
     s._findex = s._indent;
     s._index = linlen - 1 + s._indent;
     }
-
+  
   draw_tail (s);
 }
 
@@ -478,6 +496,48 @@ private define reread (s)
   s.draw ();
 }
 
+define gotomark (s)
+{
+  variable marks = assoc_get_keys (MARKS);
+  variable mark = getch (;disable_langchange);
+ 
+  mark = string (mark);
+
+  if (any (mark == marks))
+    {
+    variable keep = @MARKS[mark];
+
+    if (keep._i > s._len)
+      return;
+
+    MARKS[mark]._i = s._ii;
+    MARKS[mark].ptr = s.ptr;
+
+    s._i = keep._i;
+    s.ptr = keep.ptr;
+
+    s.draw ();  
+    }
+}
+
+define mark (s)
+{
+  variable mark = getch (;disable_langchange);
+  
+  if ('a' <= mark <= 'z')
+    {
+    mark = string (mark);
+    
+    ifnot (assoc_key_exists (MARKS, mark))
+      MARKS[mark] = @Mark_Type;  
+
+    MARKS[mark]._i = s._ii;
+    MARKS[mark].ptr = s.ptr;
+    }
+}
+
+pagerf[string ('m')] = &mark;
+pagerf[string ('`')] = &gotomark;
 pagerf[string (keys->CTRL_l)] = &reread;
 pagerf[string ('Y')] = &Yank;
 pagerf[string (keys->DOWN)] = &down;

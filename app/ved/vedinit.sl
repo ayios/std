@@ -8,11 +8,9 @@ typedef struct
   _func,
   _count,
   _drawonly,
-  _issudo,
-  _passwd,
-  _sudobin,
   _tmpdir,
   _slshbin,
+  _uid,
   p_,
   } Ved_Type;
 
@@ -97,21 +95,6 @@ private define addflags (p)
   p.stderr.wr_flags = ">|";
 }
 
-private define broken_sudoproc_broken (v)
-{
-  variable p = proc->init (1, 0, 1);
-
-  p.stdin.in = v._passwd;
-
-  if (NULL == p.stdin.in)
-    return NULL;
- 
-  if (NULL == v._sudobin)
-    return NULL;
-
-  return p;
-}
-
 private define getargvenv (p, v)
 {
   variable
@@ -124,9 +107,6 @@ private define getargvenv (p, v)
   ifnot (NULL == XAUTHORITY)
     env = [env, "XAUTHORITY=" + XAUTHORITY];
  
-  if (v._issudo)
-    argv = [v._sudobin, "-S", "-E", "-p", "", argv];
-
   return argv, env;
 }
 
@@ -134,14 +114,8 @@ private define doproc (v)
 {
   variable p, argv, env;
 
-  ifnot (v._issudo)
-    {
-    if (p = proc->init (0, 0, 1), p == NULL)
-      return NULL;
-    }
-  else
-    if (p = broken_sudoproc_broken (v), p == NULL)
-      return NULL;
+  if (p = proc->init (0, 0, 1), p == NULL)
+    return NULL;
 
   addflags (p);
 
@@ -164,9 +138,9 @@ private define is_file (fn)
   return 0;
 }
 
-private define is_file_readable (fn, issudo)
+private define is_file_readable (fn)
 {
-  if (-1 == access (fn, R_OK) && 0 == issudo)
+  if (-1 == access (fn, R_OK))
     {
     () = fprintf (stderr, "%s: is not readable", fn);
     return -1;
@@ -175,14 +149,14 @@ private define is_file_readable (fn, issudo)
   return 0;
 }
 
-private define check_file (fn, issudo)
+private define check_file (fn)
 {
   ifnot (access (fn, F_OK))
     {
     if (-1 == is_file (fn))
       return -1;
  
-    if (-1 == is_file_readable (fn, issudo))
+    if (-1 == is_file_readable (fn))
       return -1;
 
     return 1;
@@ -193,12 +167,11 @@ private define check_file (fn, issudo)
 
 private define parse_args ()
 {
-  variable issudo = ();
   variable fname = ();
 
   @fname = ();
  
-  variable exists = check_file (@fname, issudo);
+  variable exists = check_file (@fname);
 
   if (-1 == exists)
     return -1;
@@ -252,8 +225,7 @@ private define init_ved (fn, exists)
   v._func = qualifier ("func");
   v._tmpdir = qualifier ("tmpdir", TEMPDIR);
   v._drawonly = qualifier_exists ("drawonly");
-  v._passwd = qualifier ("passwd");
-  v._sudobin = qualifier ("sudobin");
+  v._uid = getuid ();
   return v;
 }
 
@@ -263,20 +235,17 @@ private define init_sockaddr (fn)
     path_basename_sans_extname (fn));
 }
 
-private define _ved_ ()
+define ved ()
 {
-  variable issudo = ();
   variable file;
-  variable args = __pop_list (_NARGS - 1);
-  variable exists = parse_args (__push_list (args), &file, issudo;;__qualifiers ());
+  variable args = __pop_list (_NARGS);
+  variable exists = parse_args (__push_list (args), &file;;__qualifiers ());
 
   if (-1 == exists)
     return;
 
   variable v = init_ved (file, exists;;__qualifiers ());
 
-  v._issudo = issudo;
- 
   v._sockaddr = init_sockaddr (file);
 
   v.p_ = doproc (v);
@@ -288,18 +257,6 @@ private define _ved_ ()
     return;
 
   ved_exit (v);
-}
-
-define ved ()
-{
-  variable args = __pop_list (_NARGS);
-  _ved_ (__push_list (args), 0;;__qualifiers ());
-}
-
-define vedsudo ()
-{
-  variable args = __pop_list (_NARGS);
-  _ved_ (__push_list (args), 1;;__qualifiers ());
 }
 
 funcs[string (JUST_DRAW)] = &just_draw;

@@ -18,6 +18,8 @@ define ved (s, fname)
 
   if (VED_DRAWONLY)
     return;
+
+  preloop (s);
  
   toplinedr (" -- pager --");
  

@@ -63,8 +63,8 @@ define main ()
   c.add ("--no-preserve-root", &no_preserve_root);
   c.add ("ignore", &assign_string_pattern, &opts.pattern, &opts.ignore;type = "string");
   c.add ("match", &assign_string_pattern, &opts.pattern, &opts.match;type = "string");
-  c.add ("recursive", &recursive);
-  c.add ("interactive", &interactive;type="string", optional = "always");
+  c.add ("r|recursive", &recursive);
+  c.add ("i|interactive", &interactive;type="string", optional = "always");
   c.add ("v|verbose", &verboseon);
   c.add ("help", &_usage);
   c.add ("info", &info);

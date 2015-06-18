@@ -50,8 +50,11 @@ public variable
   VEDCOUNT = 0,
   RECORD = 0,
   CRECORD,
+  MARKS = Assoc_Type[Mark_Type],
   RECORDS = Assoc_Type[List_Type],
   REG = Assoc_Type[String_Type];
+
+MARKS[string ('`')] = @Mark_Type;
 
 FTYPES["sl"] = 0;
 FTYPES["txt"] = 0;

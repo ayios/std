@@ -10,6 +10,55 @@ private define _precom_ ()
   MSG.st_.st_size = stat_file (STDERR).st_size;;
 }
 
+define runapp (argv)
+{
+  smg->suspend ();
+  
+  argv[0] = ROOTDIR + "/bin/" + argv[0];
+
+  variable issudo = qualifier ("issudo");
+  
+  variable p = proc->init (issudo, 0, 0);
+  if (issudo)
+    {
+    p.stdin.in = qualifier ("passwd");
+    argv = [SUDO_BIN, "-S", "-E", "-p", "", argv];
+    }
+
+  variable status = p.execv (argv, NULL);
+  smg->resume ();
+}
+
+define _shell_ (argv)
+{
+  runapp ([argv, "--no-intro"];;__qualifiers ());
+}
+
+private define _ved_ (argv)
+{
+  _precom_ ();
+ 
+  variable fname = 1 == length (argv) ? SCRATCHFILE : argv[1];
+ 
+  shell_pre_header ("ved " + fname);
+
+  runapp (["ved", fname];;__qualifiers ());
+ 
+  %variable issudo = qualifier ("issudo");
+
+  %loadfrom ("app/ved", "vedInit", NULL, &on_eval_err);
+
+  %variable ved = issudo ? __get_reference ("vedsudo") : __get_reference ("ved");
+
+  %(@ved) (fname;;__qualifiers ());
+
+  %smg->resume ();
+
+  shell_post_header ();
+ 
+  draw (qualifier ("ved"));
+}
+
 private define parse_redir (lastarg, file, flags)
 {
   variable index = 0;
@@ -186,31 +235,6 @@ private define _exit_ ()
   exit_me (0);
 }
 
-private define _ved_ (argv)
-{
-  _precom_ ();
- 
-  variable fname = 1 == length (argv) ? SCRATCHFILE : argv[1];
- 
-  shell_pre_header ("ved " + fname);
-
-  smg->suspend ();
- 
-  variable issudo = qualifier ("issudo");
-
-  loadfrom ("app/ved", "vedInit", NULL, &on_eval_err);
-
-  variable ved = issudo ? __get_reference ("vedsudo") : __get_reference ("ved");
-
-  (@ved) (fname;;__qualifiers ());
-
-  smg->resume ();
-
-  shell_post_header ();
- 
-  draw (qualifier ("ved"));
-}
-
 private define _preexec_ (argv, header, issudo, env)
 {
   _precom_ ();
@@ -241,7 +265,7 @@ private define _preexec_ (argv, header, issudo, env)
       return NULL;
       }
 
-    argv = [qualifier ("sudobin"), "-S", "-E", "-p", "", argv];
+    argv = [SUDO_BIN, "-S", "-E", "-p", "", argv];
     }
 
   return argv, p;
@@ -776,6 +800,9 @@ private define init_commands ()
   a["killbgjob"] = @Argvlist_Type;
   a["killbgjob"].func = &_kill_bg_job;
 
+  a["shell"] = @Argvlist_Type;
+  a["shell"].func = &_shell_;
+
   return a;
 }
 
@@ -829,4 +856,19 @@ define rlineinit ()
 private define _rehash_ (argv)
 {
   qualifier ("rl").argvlist = init_commands ();
+}
+
+define runcom (argv, issudo)
+{
+  variable rl = rlineinit ();
+
+  ifnot (any (assoc_get_keys (rl.argvlist) == argv[0]))
+    {
+    tostderr (argv[0] + ": no such command");
+    return;
+    }
+
+  rl.argv = argv;
+
+  (@rl.argvlist[argv[0]].func) (rl.argv;;struct {issudo = issudo, ved = VED, @__qualifiers ()});
 }
