@@ -112,15 +112,18 @@ private define drawfile (s)
 {
   ifnot (frame)
     return;
- 
+
   variable l = getitem (s);
 
   if (NULL == l)
     return;
- 
+  
+  if (".list" == path_extname (l.fname))
+    return;
+
   togglecur ();
 
-  variable retval = add (NULL, l, defrows[0]);
+  variable retval = add (NULL, l, defrows[0];force);
 
   s = set_cf (l.fname);
  

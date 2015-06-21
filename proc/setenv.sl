@@ -1,3 +1,4 @@
+loadfrom ("getvar", "defvars", NULL, &on_eval_err);
 loadfrom ("getvar", "getterm", NULL, &on_eval_err);
 loadfrom ("getvar", "getlang", NULL, &on_eval_err);
 loadfrom ("getvar", "gethome", NULL, &on_eval_err);
@@ -7,29 +8,7 @@ loadfrom ("getvar", "getX", NULL, &on_eval_err);
 loadfrom ("getvar", "getxauth", NULL, &on_eval_err);
 loadfrom ("getvar", "getscreensizefromenv", NULL, &on_eval_err);
 loadfrom ("sys", "which", NULL, &on_eval_err);
-
-public variable
-  OS,
-  MACHINE,
-  TERM,
-  PATH,
-  LANG,
-  HOME,
-  LINES,
-  COLUMNS,
-  SLSH_LIB_DIR,
-  SLANG_MODULE_PATH,
-  DISPLAY,
-  XAUTHORITY,
-  SLSH_BIN,
-  SUDO_BIN,
-  PWD,
-  GROUP,
-  UID,
-  GID,
-  PID,
-  ISSUPROC,
-  USER;
+loadfrom ("sys", "getpw", NULL, &on_eval_err);
 
 static define setdefenv ()
 {
@@ -49,6 +28,8 @@ static define setdefenv ()
   SLSH_BIN = which ("slsh");
   SUDO_BIN = which ("sudo");
   PWD = getcwd ();
+  USER = getpwname (UID, 0);
+  GROUP = getgrname (GID, 0);
  
   variable getscreendim = qualifier ("dimfunc", &getscreensizefromenv);
 

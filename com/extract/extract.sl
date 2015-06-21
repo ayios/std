@@ -1,4 +1,5 @@
 loadfrom ("file", "extract", NULL, &on_eval_err);
+
 private variable VERBOSE = 0;
 
 private define _verbose_ ()

@@ -33,7 +33,7 @@ private define getargvenv (p)
 {
   variable
     argv = [SLSH_BIN, p.loadfile, path_dirname (__FILE__) + "/proc"],
-    env = [proc->getdefenv (), sprintf ("SHELL_SOCKADDR=%s", shell_._sockaddr),
+    env = [proc->defenv (), sprintf ("SHELL_SOCKADDR=%s", shell_._sockaddr),
       ];
 
   return argv, env;

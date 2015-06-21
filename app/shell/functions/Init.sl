@@ -5,6 +5,7 @@ variable SHELLLASTEXITSTATUS = 0;
 variable SCRATCHFILE = TEMPDIR + "/" + string (MYPID) + "scratch.ashell";
 variable GREPILE     = TEMPDIR + "/" + string (MYPID) + "grep.list";
 variable STDOUT      = TEMPDIR + "/" + string (MYPID) + "stdout.ashell";
+variable STDOUTBG    = TEMPDIR + "/" + string (MYPID) + "stdoutbg.ashell";
 variable STDERR      = TEMPDIR + "/" + string (MYPID) + "stderr.ashell";
 variable RDFIFO      = TEMPDIR + "/" + string (MYPID) + "SRV_FIFO.fifo";
 variable WRFIFO      = TEMPDIR + "/" + string (MYPID) + "CLNT_FIFO.fifo";
@@ -13,10 +14,12 @@ variable BGPIDS      = Assoc_Type[Struct_Type];
 variable VED;
 variable MSG;
 variable SCRATCH;
-variable ERRFD;
+variable OUTBG;
 variable STACK;
 variable STACKFILE = LCLDATADIR + "/.stack";
 variable OUTFD;
+variable OUTFDBG;
+variable ERRFD;
 
 define runcom ();
 
@@ -36,9 +39,9 @@ loadfile ("srv", NULL, &on_eval_err);
 loadfrom ("com/intro", "intro", NULL, &on_eval_err);
 loadfile ("initrline", NULL, &on_eval_err);
 
-VED_INFOCLRFG = 4;
-VED_INFOCLRBG = 5;
-VED_PROMPTCLR = 3;
+VED_INFOCLRFG = COLOR.infofg;
+VED_INFOCLRBG = COLOR.infobg;
+VED_PROMPTCLR = COLOR.prompt;
 
 private define init_stream (fname)
 {
@@ -77,7 +80,7 @@ define init_shell ()
       on_eval_err (BGDIR + ": " + errno_string (errno), 1);
 
   MSG = init_ftype ("ashell");
-
+  OUTBG = init_ftype ("ashell");
   SCRATCH = init_ftype ("ashell");
 
   variable vd = init_ftype ("ashell");
@@ -85,6 +88,7 @@ define init_shell ()
   variable rl = rlineinit ();
 
   OUTFD = init_stream (STDOUT);
+  OUTFDBG = init_stream (STDOUTBG);
   ERRFD = init_stream (STDERR);
  
   ifnot (access (RDFIFO, F_OK))

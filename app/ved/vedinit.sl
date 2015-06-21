@@ -4,15 +4,15 @@ typedef struct
   _sockaddr,
   _fd,
   _state,
-  _exists,
   _func,
   _count,
   _drawonly,
-  _tmpdir,
   _slshbin,
-  _uid,
   p_,
   } Ved_Type;
+
+private variable VEDFD = NULL;
+private variable VEDSTATE = 0;
 
 private variable funcs = Assoc_Type[Ref_Type];
 
@@ -21,25 +21,24 @@ private variable
   IDLED = 0x2,
   JUST_DRAW = 0x064,
   GOTO_EXIT = 0x0C8,
-  SEND_TMPDIR = 0x01F4,
-  SEND_FILE = 0x0258,
-  SEND_ROWS = 0x02BC,
-  SEND_VED_INFOCLRFG = 0x0384,
-  SEND_VED_INFOCLRBG = 0x0385,
-  SEND_PROMPTCOLOR = 0x03E8,
-  SEND_FUNC = 0x04b0;
+  GO_IDLED =  0x12c,
+  SEND_FILE = 0x0190,
+  SEND_FUNC = 0x01f4;
 
 private define ved_exit (v)
 {
-  variable status = waitpid (v.p_.pid, 0);
-  v.p_.atexit ();
+  ifnot (v._state & IDLED)
+    {
+    variable status = waitpid (v.p_.pid, 0);
+    v.p_.atexit ();
 
-  () = close (v._fd);
-}
+    () = close (v._fd);
+    return 0;
+    }
+  
+  VEDSTATE = VEDSTATE | IDLED;
 
-private define send_tmpdir (sock, v)
-{
-  sock->send_str (sock, v._tmpdir);
+  return 1;
 }
 
 private define send_func (sock, v)
@@ -64,29 +63,9 @@ private define just_draw (sock, v)
   sock->send_int (sock, v._drawonly);
 }
 
-private define send_rows (sock, v)
-{
-  sock->send_int_ar (sock, [[1:LINES-3]]);
-}
-
 private define send_file (sock, v)
 {
   sock->send_str (sock, v._fname);
-}
-
-private define send_infoclrfg (sock, v)
-{
-  sock->send_int (sock, 4);
-}
-
-private define send_infoclrbg (sock, v)
-{
-  sock->send_int (sock, 5);
-}
-
-private define send_promptcolor (sock, v)
-{
-  sock->send_int (sock, 3);
 }
 
 private define addflags (p)
@@ -99,7 +78,7 @@ private define getargvenv (p, v)
 {
   variable
     argv = [SLSH_BIN, p.loadfile, path_dirname (__FILE__) + "/proc", v._fname],
-    env = [proc->getdefenv (), sprintf ("VED_SOCKADDR=%s", v._sockaddr)];
+    env = [proc->defenv (), sprintf ("VED_SOCKADDR=%s", v._sockaddr)];
 
   ifnot (NULL == DISPLAY)
     env = [env, "DISPLAY=" + DISPLAY];
@@ -179,20 +158,8 @@ private define parse_args ()
   return exists;
 }
 
-private define connect_to_child (v)
+private define vedloop (v)
 {
-  v._fd = v.p_.connect (v._sockaddr);
- 
-  if (NULL == v._fd)
-    {
-    () = kill (v.p_.pid, SIGALRM);
-    variable status = waitpid (v.p_.pid, 0);
-    v.p_.atexit ();
-    return -1;
-    }
- 
-  v._state = v._state | CONNECTED;
-
   variable retval;
 
   forever
@@ -200,32 +167,59 @@ private define connect_to_child (v)
     retval = sock->get_int (v._fd);
  
     ifnot (Integer_Type == typeof (retval))
-      break;
+      return;
 
     if (retval == GOTO_EXIT)
       {
       v._state = v._state & ~CONNECTED;
-      break;
+      return;
+      }
+
+    if (retval == GO_IDLED)
+      {
+      v._state = v._state | IDLED;
+      return;
       }
  
     (@funcs[string (retval)]) (v._fd, v);
     }
+}
+
+private define connect_to_child (v)
+{
+  ifnot (VEDSTATE & CONNECTED)
+    {
+    v._fd = v.p_.connect (v._sockaddr);
+ 
+    if (NULL == v._fd)
+      {
+      () = kill (v.p_.pid, SIGALRM);
+      variable status = waitpid (v.p_.pid, 0);
+      v.p_.atexit ();
+      return -1;
+      }
+    }
+  
+  if (NULL == VEDFD) 
+    VEDFD = v._fd;
+
+  v._state = v._state | CONNECTED;
+ 
+  ifnot (VEDSTATE)
+    VEDSTATE = VEDSTATE | CONNECTED;
 
   return 0;
 }
 
-private define init_ved (fn, exists)
+private define init_ved (fn)
 {
   variable v;
   v = @Ved_Type;
   v._fname = fn;
   v._state = 0;
-  v._exists = exists;
   v._count = qualifier ("count");
   v._func = qualifier ("func");
-  v._tmpdir = qualifier ("tmpdir", TEMPDIR);
   v._drawonly = qualifier_exists ("drawonly");
-  v._uid = getuid ();
   return v;
 }
 
@@ -242,28 +236,25 @@ define ved ()
   variable exists = parse_args (__push_list (args), &file;;__qualifiers ());
 
   if (-1 == exists)
-    return;
+    return -1;
 
-  variable v = init_ved (file, exists;;__qualifiers ());
+  variable v = init_ved (file;;__qualifiers ());
 
   v._sockaddr = init_sockaddr (file);
 
   v.p_ = doproc (v);
  
   if (NULL == v.p_)
-    return;
+    return -1;
  
   if (-1 == connect_to_child (v))
-    return;
+    return -1;
 
-  ved_exit (v);
+  vedloop (v);
+
+  return ved_exit (v);
 }
 
 funcs[string (JUST_DRAW)] = &just_draw;
 funcs[string (SEND_FILE)] = &send_file;
-funcs[string (SEND_ROWS)] = &send_rows;
-funcs[string (SEND_VED_INFOCLRBG)] = &send_infoclrbg;
-funcs[string (SEND_VED_INFOCLRFG)] = &send_infoclrfg;
-funcs[string (SEND_PROMPTCOLOR)] = &send_promptcolor;
 funcs[string (SEND_FUNC)] = &send_func;
-funcs[string (SEND_TMPDIR)] = &send_tmpdir;

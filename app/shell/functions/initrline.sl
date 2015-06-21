@@ -10,7 +10,7 @@ private define _precom_ ()
   MSG.st_.st_size = stat_file (STDERR).st_size;;
 }
 
-define runapp (argv)
+define runapp (argv, env)
 {
   smg->suspend ();
   
@@ -24,14 +24,20 @@ define runapp (argv)
     p.stdin.in = qualifier ("passwd");
     argv = [SUDO_BIN, "-S", "-E", "-p", "", argv];
     }
+  
+  variable status;
+  
+  ifnot (NULL == env)
+    status = p.execve (argv, env, NULL);
+  else
+    status = p.execv (argv, NULL);
 
-  variable status = p.execv (argv, NULL);
   smg->resume ();
 }
 
 define _shell_ (argv)
 {
-  runapp ([argv, "--no-intro"];;__qualifiers ());
+  runapp ([argv, "--no-intro"], NULL;;__qualifiers ());
 }
 
 private define _ved_ (argv)
@@ -42,18 +48,8 @@ private define _ved_ (argv)
  
   shell_pre_header ("ved " + fname);
 
-  runapp (["ved", fname];;__qualifiers ());
+  runapp (["ved", fname], [proc->defenv (), "return_code=1"];;__qualifiers ());
  
-  %variable issudo = qualifier ("issudo");
-
-  %loadfrom ("app/ved", "vedInit", NULL, &on_eval_err);
-
-  %variable ved = issudo ? __get_reference ("vedsudo") : __get_reference ("ved");
-
-  %(@ved) (fname;;__qualifiers ());
-
-  %smg->resume ();
-
   shell_post_header ();
  
   draw (qualifier ("ved"));
@@ -140,10 +136,10 @@ private define parse_redir (lastarg, file, flags)
   return 1;
 }
 
-private define parse_argv (argv)
+private define parse_argv (argv, isbg)
 {
   variable flags = ">>|";
-  variable file = STDOUT;
+  variable file = isbg ? STDOUTBG : STDOUT;
   variable retval = parse_redir (argv[-1], &file, &flags);
  
   return file, flags, retval;
@@ -241,7 +237,7 @@ private define _preexec_ (argv, header, issudo, env)
 
   @header = strlen (argv[0]) > 1 && 0 == qualifier_exists ("no_header");
   @issudo = qualifier ("issudo");
-  @env = [proc->getdefenv (), "PPID=" + string (MYPID)];
+  @env = [proc->defenv (), "PPID=" + string (MYPID)];
 
   variable p = proc->init (@issudo, 0, 1);
 
@@ -327,23 +323,27 @@ private define _getbgstatus_ (pid)
       tostderr (pid + ": " + errno_string (errno) + "\n");
       return;
       }
-
-  ifnot (force)
+  
+  if (isnotsudo)
     {
     variable rdfd = open (RDFIFO, O_RDONLY);
-
     variable buf = sock->get_str (rdfd);
- 
+
     buf = strtrim_end (buf);
- 
+
     ifnot ("exit" == buf)
       return;
     }
 
   variable status = waitpid (atoi (pid), 0);
  
+  variable out = read_fd (OUTFDBG;pos = OUTBG.st_.st_size);
+
+  ifnot (NULL == out)
+    tostdout ("\n" + pid + ": " + strjoin (BGPIDS[pid].argv, " ") + "\n" +  out);
+
   ifnot (force)
-    tostdout (pid + ": returned " + string (status.exit_status) + "\n");
+    tostdout (pid + ": exit status " + string (status.exit_status) + "\n");
 
   BGPIDS[pid].atexit ();
 
@@ -369,9 +369,14 @@ private define _forkbg_ (p, argv, env)
 {
   env = [env, "BG=" + BGDIR];
 
+  OUTBG.st_.st_size = stat_file (STDOUTBG).st_size;
+
   variable pid = p.execve (argv, env, 1);
- 
-  p.argv = argv[[2:]];
+
+  ifnot (p.uid)
+    p.argv = ["sudo", argv[[7:]]];
+  else
+    p.argv = argv[[2:]];
  
   BGPIDS[string (pid)] = p;
  
@@ -440,7 +445,6 @@ private define _search_ (argv)
 
 private define execute (argv)
 {
-
   variable isbg = 0;
   if (argv[-1] == "&")
     {
@@ -467,6 +471,7 @@ private define execute (argv)
  
   ifnot (NULL == isscratch)
     {
+    isbg = 0;
     argv[isscratch] = NULL;
     argv = argv[wherenot (_isnull (argv))];
     stdoutfile = SCRATCHFILE;
@@ -475,7 +480,7 @@ private define execute (argv)
   else
     {
     variable file, flags, retval;
-    (file, flags, retval) = parse_argv (argv);
+    (file, flags, retval) = parse_argv (argv, isbg);
 
     if (-1 == retval)
       {
@@ -501,6 +506,7 @@ private define execute (argv)
   %%% CARE FOR CHANGES        argv-index
   if (NULL == isscratch && any (argv[2] == ["man"]))
     {
+    isbg = 0;
     stdoutfile = SCRATCHFILE;
     stdoutflags = ">|";
     isscratch = 1;
@@ -523,7 +529,8 @@ private define execute (argv)
     ifnot (SHELLLASTEXITSTATUS)
       scratch (qualifier ("ved"));
 
-  _getbgjobs_ ();
+  ifnot (isbg)
+    _getbgjobs_ ();
 
   _postexec_ (header, qualifier ("ved"));
 }
@@ -584,7 +591,7 @@ private define _echo_ (argv)
   else
     {
     variable file, flags, retval;
-    (file, flags, retval) = parse_argv (argv);
+    (file, flags, retval) = parse_argv (argv, 0);
 
     if (-1 == retval)
       {
@@ -821,7 +828,7 @@ private define filterargs (args, type, desc)
 private define tabhook (s)
 {
   ifnot (s._ind)
-    return-1;
+    return -1;
  
   ifnot (s.argv[0] == "killbgjob")
     return -1;
@@ -835,7 +842,7 @@ private define tabhook (s)
   _for i (0, length (pids) - 1)
     pids[i] = pids[i] + " void " + strjoin (BGPIDS[pids[i]].argv, " ");
 
-  return rline->argroutine (s;args = pids);
+  return rline->argroutine (s;args = pids, accept_ws);
 }
 
 define rlineinit ()

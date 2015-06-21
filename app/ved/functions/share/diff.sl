@@ -1,12 +1,18 @@
 define diff (lines, fname, retval)
 {
+  % if 65536 < size error
+  if (strbytelen (lines) >= 256 * 256)
+    {
+    @retval = NULL;
+    return "Bytes are more than 65535";
+    }
+
   variable
     status,
     p = proc->init (1, 1, 1);
 
   p.stdin.in = lines;
 
-  % if 65536 < size error
   status = p.execv ([which ("diff"), "-u", fname, "-"], NULL);
 
   if (NULL == status)
@@ -34,6 +40,13 @@ define diff (lines, fname, retval)
 
 define patch (in, dir, retval)
 {
+  % if 65536 < size error
+  if (strbytelen (in) >= 256 * 256)
+    {
+    @retval = NULL;
+    return "Bytes are more than 65535";
+    }
+
   variable
     status,
     p = proc->init (1, 1, 1);

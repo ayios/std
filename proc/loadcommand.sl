@@ -30,24 +30,33 @@ variable COMDIR;
 variable PPID = getenv ("PPID");
 variable MYPID = getpid ();
 
-variable WRFIFO = TEMPDIR + "/" + string (PPID) + "SRV_FIFO.fifo";
-variable RDFIFO = TEMPDIR + "/" + string (PPID) + "CLNT_FIFO.fifo";
-
-variable RDFD = open (RDFIFO, O_RDONLY);
-variable WRFD = open (WRFIFO, O_WRONLY);
-
 variable BG = getenv ("BG");
 variable BGPIDFILE;
 variable BGX = 0;
 
-loadfrom ("proc", "setenv", 1, &on_eval_err);
+variable WRFIFO = TEMPDIR + "/" + string (PPID) + "SRV_FIFO.fifo";
+variable RDFIFO = TEMPDIR + "/" + string (PPID) + "CLNT_FIFO.fifo";
 
-proc->setdefenv ();
+variable RDFD = NULL;
+variable WRFD = NULL;
+
+if (NULL == BG)
+{
+  RDFD = open (RDFIFO, O_RDONLY);
+  WRFD = open (WRFIFO, O_WRONLY);
+}
+
+loadfrom ("proc", "getdefenv", 1, &on_eval_err);
+
+proc->getdefenv ();
 
 loadfrom ("sock", "sockInit", NULL, &on_eval_err);
 
 define sigalrm_handler (sig)
 {
+  if (NULL == WRFD)
+    WRFD = open (WRFIFO, O_WRONLY);
+
   sock->send_str (WRFD, "exit");
   exit (BGX);
 }
@@ -58,7 +67,7 @@ define exit_me_bg (x)
     BGPIDFILE, 1, strlen (BGPIDFILE) - strlen (".RUNNING")) + ".WAIT");
 
   BGX = x;
- 
+
   forever
     sleep (86400);
 }
@@ -84,7 +93,6 @@ loadfrom ("sys", "permissions", NULL, &on_eval_err);
 loadfrom ("input", "inputInit", NULL, &on_eval_err);
 loadfrom ("stdio", "readfile", NULL, &on_eval_err);
 loadfrom ("parse", "cmdopt", NULL, &on_eval_err);
-loadfrom ("sys", "which", NULL, &on_eval_err);
 
 variable stdoutfile = getenv ("stdoutfile");
 variable stdoutflags = getenv ("stdoutflags");

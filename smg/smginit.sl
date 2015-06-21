@@ -14,12 +14,12 @@ private define set_basic_color (field, color)
 
 array_map (Void_Type, &set_basic_color,
   ["normal", "error", "success", "warn", "prompt",
-   "border", "focus", "hlchar", "infoline", "activeframe",
-   "hlregion", "topline"],
+   "border", "focus", "hlchar",   "hlregion", "topline",
+   "infofg", "infobg"
+  ],
   [COLOR.normal, COLOR.error, COLOR.success, COLOR.warn,
    COLOR.prompt, COLOR.border, COLOR.focus, COLOR.hlchar,
-   COLOR.infoline, COLOR.activeframe, COLOR.hlregion,
-   COLOR.topline]);
+   COLOR.hlregion, COLOR.topline, COLOR.infofg, COLOR.infobg]);
 
 array_map (Void_Type, &slsmg_define_color, [0:14:1],
   [

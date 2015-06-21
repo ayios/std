@@ -12,12 +12,9 @@ private variable
   MYPATH = path_dirname (__FILE__),
   JUST_DRAW = 0x064,
   GOTO_EXIT = 0x0C8,
-  GET_TMPDIR = 0x01F4,
-  GET_FILE = 0x0258,
-  GET_VED_INFOCLRFG = 0x0384,
-  GET_VED_INFOCLRBG = 0x0385,
-  GET_PROMPTCOLOR = 0x03E8,
-  GET_FUNC = 0x04b0,
+  GO_IDLED =  0x12c,
+  GET_FILE = 0x0190,
+  GET_FUNC = 0x01f4,
   VED_SOCKET,
   VED_SOCKADDR = getenv ("VED_SOCKADDR");
 
@@ -35,9 +32,8 @@ define tostderr (str)
   () = fprintf (stderr, "%s\n", str);
 }
 
-loadfrom ("proc", "setenv", 1, &on_eval_err);
-
-proc->setdefenv ();
+loadfrom ("proc", "getdefenv", 1, &on_eval_err);
+proc->getdefenv ();
 
 loadfrom ("sock", "sockInit", 1, &on_eval_err);
 
@@ -144,34 +140,10 @@ define on_eval_err (err, code)
 
 loadfile (MYPATH + "/functions/Init", NULL, &on_eval_err);
 
-define get_tmpdir ()
-{
-  send_int (GET_TMPDIR);
-  return get_str ();
-}
-
 define get_file ()
 {
   send_int (GET_FILE);
   return get_str ();
-}
-
-define get_infoclrfg ()
-{
-  send_int (GET_VED_INFOCLRFG);
-  return get_int ();
-}
-
-define get_infoclrbg ()
-{
-  send_int (GET_VED_INFOCLRBG);
-  return get_int ();
-}
-
-define get_promptcolor ()
-{
-  send_int (GET_PROMPTCOLOR);
-  return get_int ();
 }
 
 define just_draw ()
@@ -202,52 +174,18 @@ define tostderr (str)
   () = write (VED_STDERRFD, str);
 }
 
-define exit_me (exit_code)
-{
-  if (any ("input" == _get_namespaces ()))
-    {
-    variable f = __get_reference ("input->at_exit");
-    (@f);
-    }
-
-  smg->reset ();
-
-  send_int (GOTO_EXIT);
-  exit (exit_code);
-}
-
-define on_eval_err (err, code)
-{
-  variable msg;
-
-  if (Array_Type == typeof (err))
-    {
-    msg = substr (err[0], 1, COLUMNS);
-    err = strjoin (err, "\n");
-    }
-  else
-    msg = substr (err, 1, COLUMNS);
-
-  tostderr (err);
-
-  if (__is_initialized (&VED_CB))
-    {
-    send_msg_dr (msg, 1, NULL, NULL);
-    VED_CB.vedloop ();
-    }
-  else
-    exit_me (code);
-}
-
 VED_ROWS = [1:LINES - 3];
 MSGROW = LINES - 1;
 PROMPTROW = MSGROW - 1;
+
 VED_DRAWONLY = just_draw ();
-VED_INFOCLRFG = get_infoclrfg ();
-VED_INFOCLRBG = get_infoclrbg ();
-VED_PROMPTCLR = get_promptcolor ();
+
+VED_INFOCLRFG = COLOR.infofg;
+VED_INFOCLRBG = COLOR.infobg;
+VED_PROMPTCLR = COLOR.prompt;
 
 MSG = init_ftype ("txt");
+
 txt_settype (MSG, VED_STDERR, VED_ROWS, NULL);
 
 private variable s_ = init_ftype (get_ftype (__argv[-1]));

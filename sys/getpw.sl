@@ -1,4 +1,4 @@
-static define getgrname (gid, exit_on_err)
+define getgrname (gid, exit_on_err)
 {
   variable fp = fopen ("/etc/group", "r");
 
@@ -41,7 +41,7 @@ static define getgrname (gid, exit_on_err)
   return NULL;
 }
 
-static define getpwname (uid, exit_on_err)
+define getpwname (uid, exit_on_err)
 {
   variable fp = fopen ("/etc/passwd", "r");
 
@@ -84,7 +84,7 @@ static define getpwname (uid, exit_on_err)
   return NULL;
 }
 
-static define getpwuidgid (name, exit_on_err)
+define getpwuidgid (name, exit_on_err)
 {
   variable fp = fopen ("/etc/passwd", "r");
 

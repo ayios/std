@@ -32,10 +32,10 @@ define tostderr (str)
 
 define exit_me ();
 
-loadfrom ("proc", "setenv", 1, &on_eval_err);
+loadfrom ("proc", "getdefenv", 1, &on_eval_err);
 
-proc->setdefenv ();
-
+proc->getdefenv ();
+ 
 importfrom ("std", "socket",  NULL, &on_eval_err);
 
 ifnot (SHELLPROC._inited)

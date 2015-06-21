@@ -9,6 +9,6 @@ define seltoX (sel)
   p.stdin.in = sel;
 
   () = p.execve ([which ("xclip")],
-    ["DISPLAY=" + DISPLAY, "XAUTHORITY=" + getenv ("XAUTHORITY")], NULL);
+    ["DISPLAY=" + DISPLAY, "XAUTHORITY=" + XAUTHORITY], NULL);
 }
 

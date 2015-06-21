@@ -7,9 +7,9 @@ variable COLOR = struct
   prompt = "yellow",
   border = "brightred",
   focus = "brightcyan",
-  infoline = "blackonred",
-  activeframe = "blackonyellow",
   hlchar = "blackonyellow",
   hlregion = "white",
   topline = "blackonbrown",
+  infofg = "blue",
+  infobg = "brown",
   };

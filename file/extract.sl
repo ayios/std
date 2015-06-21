@@ -53,7 +53,7 @@ private define func_unrar (archive, verbose, type)
 {
   variable
     status,
-    unrar = [which ("unrar")];
+    unrar = which ("unrar");
 
   if (NULL == unrar)
     {
@@ -73,7 +73,7 @@ private define func_unzip (archive, verbose, type)
 {
   variable
     status,
-    unzip = [which ("unzip")];
+    unzip = which ("unzip");
 
   if (NULL == unzip)
     {

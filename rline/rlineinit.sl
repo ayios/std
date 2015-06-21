@@ -130,7 +130,7 @@ static define init (getcommands)
   rl.execline = qualifier ("execline", &_execline_);
   rl._pchar = qualifier ("pchar", ":");
   rl._prow = qualifier ("prow", PROMPTROW);
-  rl._pclr = qualifier ("pclr", 6);
+  rl._pclr = qualifier ("pclr", COLOR.prompt);
   rl.totype = qualifier ("totype", "Proc_Type");
   rl.filtercommands = qualifier ("filtercommands");
   rl.filterargs = qualifier ("filterargs");
@@ -1047,6 +1047,7 @@ private define fnamecmp (s, start)
 
         if (isdir)
           {
+          restore (s.cmp_lnrs, [s._row, s._col], 1, s._columns);
           prompt (s, s._lin, s._col);
           continue;
           }
