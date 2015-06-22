@@ -553,6 +553,57 @@ private define _builtinpost_ (vd)
   draw (vd);
 }
 
+private define _eval_ (argv)
+{
+  variable rl = qualifier ("rl");
+  variable line = "";
+
+  send_msg ("Type an expression" , 0);
+
+  variable
+    res,
+    chr;
+
+  forever
+    {
+    rline->prompt (rl, ">" + line, strlen (line) + 1);
+    chr = getch ();
+
+    if (chr == 033)
+      break;
+    
+    if (any (keys->rmap.backspace == chr))
+      line = substr (line, 1, strlen (line) - 1);
+    else if ('\r' == chr)
+      {
+      if ('=' == line[0])
+        eval (substr (line, 2, -1));
+
+      line = "";
+      continue;
+      }
+    else
+      line += char (chr);
+
+    ifnot (strlen (line))
+      continue;
+ 
+    try
+      {
+      ifnot ('=' == line[0])
+        res = string (eval (line));
+      else
+        continue;
+      }
+    catch AnyError:
+      res = __get_exception_info.message;
+
+    send_msg (res, 0);
+    }
+
+  send_msg (" ", 0);
+}
+
 private define _echo_ (argv)
 {
   _builtinpre_ (argv);
@@ -809,6 +860,9 @@ private define init_commands ()
 
   a["shell"] = @Argvlist_Type;
   a["shell"].func = &_shell_;
+
+  a["eval"] = @Argvlist_Type;
+  a["eval"].func = &_eval_;
 
   return a;
 }

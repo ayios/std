@@ -1,14 +1,24 @@
 private variable LOADED = Assoc_Type[Integer_Type, 0];
 
-public variable ROOTDIR = path_dirname (__FILE__) + "/..";
+public variable ROOTDIR = path_concat (getcwd (), path_dirname (__FILE__));
+ 
+if (ROOTDIR[[-2:]] == "/.")
+  ROOTDIR = substr (ROOTDIR, 1, strlen (ROOTDIR) - 2);
+ 
+ROOTDIR+= "/..";
 
-public variable MACHINE;
+public variable MACHINE = uname ().machine;
+public variable OS = uname ().sysname;
+public variable PID = getpid ();
+public variable UID = getuid ();
+public variable GID = getgid ();
+public variable ISSUPROC = UID;
 
 public variable ADIR = ROOTDIR;
 public variable STDDIR = ROOTDIR + "/std";
 public variable USRDIR = ROOTDIR + "/usr";
 public variable LCLDIR = ROOTDIR + "/local";
-public variable MDLDIR = ROOTDIR + "/modules";
+public variable MDLDIR = ROOTDIR + "/modules/" + MACHINE;
 
 public variable STDDATADIR = STDDIR + "/share/data";
 public variable USRDATADIR = USRDIR + "/share/data";
@@ -77,25 +87,33 @@ private define _load_ ()
 
 private define _findns_ (ns, lns, lib)
 {
-  variable found = NULL;
+  variable foundlib = NULL;
+  variable foundns = NULL;
   variable i;
   variable nss = [ADIR, LCLDIR, STDDIR, USRDIR];
  
   _for i (0, length (nss) - 1)
     {
     @lns =  nss[i]+ "/" + ns;
+    
+    ifnot (access (@lns, F_OK))
+      foundns = 1;
 
     ifnot (access (@lns, F_OK))
       if (0 == access (@lns + "/" + lib + ".sl", F_OK)
         ||0 == access (@lns + "/" + lib + ".slc", F_OK))
         {
-        found = 1;
+        foundlib = 1;
         break;
         }
     }
  
-  if (NULL == found)
-    throw OpenError,  "(load) " + ns + " :no such namespace", 2;
+  if (NULL == foundns)
+    throw OpenError,  "(load error) " + ns + ": no such namespace", 2;
+
+  if (NULL == foundlib)
+    throw OpenError,  "(load error) " + lib + ": no such library", 2;
+
 }
 
 private define _loadfrom_ (ns, lib, dons)
@@ -156,7 +174,7 @@ public define importfrom (ns, module, dons, errfunc)
 {
   variable exception;
   variable excar;
-  variable lns = MDLDIR + "/" + MACHINE + "/" + ns;
+  variable lns = MDLDIR + "/" + ns;
 
   if (-1 == access (lns, F_OK))
     throw OpenError, "(import) " + ns + " :no such namespace", 2;
@@ -245,3 +263,16 @@ public define loadfile (file, ns, errfunc)
       () = array_map (Integer_Type, &fprintf, stderr, "%s\n", excar ());
     }
 }
+
+importfrom ("std", "ayios", NULL, NULL);
+
+ROOTDIR = realpath (ROOTDIR);
+STDDIR =  realpath (STDDIR);
+USRDIR = realpath (USRDIR);
+LCLDIR = realpath (LCLDIR);
+MDLDIR = realpath (MDLDIR);
+STDDATADIR = realpath (STDDATADIR);
+USRDATADIR = realpath (USRDATADIR);
+LCLDATADIR = realpath (LCLDATADIR);
+SOURCEDIR = realpath (SOURCEDIR);
+TEMPDIR = realpath (TEMPDIR);

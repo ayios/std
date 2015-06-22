@@ -4,7 +4,6 @@ loadfrom ("getvar", "getlang", NULL, &on_eval_err);
 loadfrom ("getvar", "isutf8", NULL, &on_eval_err);
 loadfrom ("getvar", "gethome", NULL, &on_eval_err);
 loadfrom ("getvar", "getpath", NULL, &on_eval_err);
-loadfrom ("getvar", "getos", NULL, &on_eval_err);
 loadfrom ("getvar", "getX", NULL, &on_eval_err);
 loadfrom ("getvar", "getxauth", NULL, &on_eval_err);
 loadfrom ("getvar", "getscreensizefromenv", NULL, &on_eval_err);
@@ -33,11 +32,7 @@ static define getenviron ()
 
   DISPLAY = getenv ("DISPLAY");
   XAUTHORITY = getenv ("XAUTHORITY");
-  PID = getpid ();
-  UID = getuid ();
-  GID = getgid ();
   PWD = getcwd ();
-  (OS, MACHINE) = getos ();
   ISSUPROC = UID ? 0 : 1;
   SLSH_BIN = which ("slsh");
   SUDO_BIN = which ("sudo");

@@ -39,6 +39,7 @@ loadfile ("srv", NULL, &on_eval_err);
 loadfrom ("com/intro", "intro", NULL, &on_eval_err);
 loadfile ("initrline", NULL, &on_eval_err);
 
+loadfrom ("os", "osInit", NULL, &on_eval_err);
 VED_INFOCLRFG = COLOR.infofg;
 VED_INFOCLRBG = COLOR.infobg;
 VED_PROMPTCLR = COLOR.prompt;

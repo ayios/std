@@ -1,6 +1,4 @@
 public variable
-  OS,
-  MACHINE,
   TERM,
   PATH,
   LANG,
@@ -14,9 +12,5 @@ public variable
   SLSH_BIN,
   SUDO_BIN,
   PWD,
-  UID,
-  GID,
-  PID,
-  ISSUPROC,
   GROUP,
   USER;

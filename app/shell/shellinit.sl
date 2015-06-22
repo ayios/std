@@ -3,7 +3,6 @@ typedef struct
   _sockaddr,
   _fd,
   _state,
-  _issudo,
   p_,
   } Shell_Type;
 
@@ -21,6 +20,7 @@ private define shell_exit ()
 
   () = close (shell_._fd);
   __uninitialize (&shell_);
+  return status.exit_status;
 }
 
 private define addflags (p)
@@ -97,14 +97,10 @@ private define init_sockaddr ()
   return sprintf (TEMPDIR + "/" + string (PID) + "shell.sock");
 }
 
-private define _shell_ ()
+define shell ()
 {
-  variable issudo = ();
-
   init_shell ();
 
-  shell_._issudo = issudo;
- 
   shell_._sockaddr = init_sockaddr ();
 
   shell_.p_ = doproc ();
@@ -114,11 +110,5 @@ private define _shell_ ()
 
   connect_to_child ();
 
-  shell_exit ();
-}
-
-define shell ()
-{
-  variable args = __pop_list (_NARGS);
-  _shell_ (__push_list (args), 0;;__qualifiers ());
+  return shell_exit ();
 }

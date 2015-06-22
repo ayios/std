@@ -498,6 +498,7 @@ static define sync_new ()
       ignoredir,
       ignoredironremove,
       ignorefile,
+      ignorefileonremove,
       rmextra = 1,
       methods
       },

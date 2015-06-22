@@ -9,8 +9,6 @@ static define defenv ()
     "HOME=" + HOME,
     "LINES=" + string (LINES),
     "COLUMNS=" + string (COLUMNS),
-    "MACHINE=" + MACHINE,
-    "OS=" + OS,
     "SLANG_MODULE_PATH=" + get_import_module_path (),
     "SLSH_LIB_DIR=" + get_slang_load_path (),
     ];
