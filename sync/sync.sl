@@ -82,10 +82,20 @@ private define rmfile (file)
   return 1;
 }
 
-private define file_callback_a (file, st, cur, other, exit_code)
+private define file_callback_a (file, st, s, cur, other, exit_code)
 {
   variable newfile = strreplace (file, other, cur);
  
+  ifnot (NULL == s.ignorefileonremove)
+    {
+    variable lfile = strtok (file, "/");
+    if (any (lfile[-1] == s.ignorefileonremove))
+      {
+      tostdout (sprintf ("ignored file: %s", file));
+      return 1;
+      }
+    }
+
   if (-1 == access (newfile, F_OK) && 0 == access (file, F_OK))
     if (-1 == rmfile (file))
       {
@@ -122,7 +132,7 @@ private define rm_extra (s, cur, other)
     exit_code = 0,
     dirs = {},
     fs = fswalk_new (&dir_callback_a, &file_callback_a;
-      dargs = {s, dirs, cur, other}, fargs = {cur, other, &exit_code});
+      dargs = {s, dirs, cur, other}, fargs = {s, cur, other, &exit_code});
  
   if (s.interactive_remove)
     Accept_All_As_Yes = 0;

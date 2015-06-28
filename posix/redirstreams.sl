@@ -1,4 +1,4 @@
-loadfrom ("posix", "permissions", NULL, &on_eval_err);
+loadfrom ("sys", "permissions", NULL, &on_eval_err);
 loadfrom ("posix", "fileflags", NULL, &on_eval_err);
 
 private define redirstreamtofile (stream, file, flags, mode)
@@ -18,25 +18,25 @@ private define redirstreamtofile (stream, file, flags, mode)
   if (-1 == dup2_fd (newfd, _fileno (stream)))
     throw OpenError, " ", "dup2_fd failed " + errno_string (errno);
  
-  return oldfd;
+  return newfd, oldfd;
 }
 
 private define _parse_flags_mode_ (file, flags, mode)
 {
   if (-1 == access (file, F_OK))
     if (NULL == @flags)
-      @flags = FILE_FLAGS[">"];
+      @flags = FILE_FLAGS["<>"];
     else
       ifnot (assoc_key_exists (FILE_FLAGS, @flags))
-        @flags = FILE_FLAGS[">"];
+        @flags = FILE_FLAGS["<>"];
       else
         @flags = FILE_FLAGS[@flags];
   else
     if (NULL == @flags)
-      @flags = FILE_FLAGS[">>"];
+      @flags = FILE_FLAGS["<>>|"];
     else
       ifnot (assoc_key_exists (FILE_FLAGS, @flags))
-        @flags = FILE_FLAGS[">>"];
+        @flags = FILE_FLAGS["<>>|"];
       else
         @flags = FILE_FLAGS[@flags];
  
@@ -46,14 +46,12 @@ private define _parse_flags_mode_ (file, flags, mode)
         @mode = NULL;
 
   if (@flags & O_CREAT && NULL == @mode)
-    @mode = PERM["_PRIVATE"];
+    @mode = PERM["___PUBLIC"];
 }
 
 private define _redir_ (stream, file, flags, mode)
 {
   _parse_flags_mode_ (file, &flags, &mode);
- 
-  variable oldfd;
  
   try
     return redirstreamtofile (stream, file, flags, mode);

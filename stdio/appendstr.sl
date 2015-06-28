@@ -1,33 +1,38 @@
-define appendstr (file, str, err)
+define appendstr (file, str)
 {
   if (-1 == access (file, F_OK|W_OK))
     {
-    @err = file + ": " + errno_string (errno);
-    return;
+    tostderr (file + ": " + errno_string (errno));
+    return -1;
     }
 
   variable fd = open (file, O_WRONLY|O_APPEND);
  
   if (NULL == fd)
     {
-    @err = file + ": " + errno_string (errno);
-    return;
+    tostderr (file + ": " + errno_string (errno));
+    return -1;
     }
  
   if (-1 == lseek (fd, 0, SEEK_END))
     {
-    @err = file + ": " + errno_string (errno);
-    return;
+    tostderr (file + ": " + errno_string (errno));
+    return -1;
     }
 
   if (-1 == write (fd, str))
     {
-    @err = file + ": " + errno_string (errno);
-    return;
+    tostderr (file + ": " + errno_string (errno));
+    return -1;
     }
 
   if (-1 == close (fd))
-    @err = file + ": " + errno_string (errno);
+    {
+    tostderr (file + ": " + errno_string (errno));
+    return -1;
+    }
+
+  return 0;
 }
 
 define writestring (file, str)
@@ -37,15 +42,20 @@ define writestring (file, str)
   if (NULL == fd)
     {
     tostderr (file + ": " + errno_string (errno));
-    return;
+    return -1;
     }
  
   if (-1 == write (fd, str))
     {
     tostderr (file + ": " + errno_string (errno));
-    return;
+    return -1;
     }
 
   if (-1 == close (fd))
+    {
     tostderr (file + ": " + errno_string (errno));
+    return -1;
+    }
+
+  return 0;
 }

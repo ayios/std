@@ -1,26 +1,6 @@
 private variable defclr = 11;
 private variable headerclr = 5;
 
-static define getpasswd ()
-{
-  send_msg_dr ("Password:", 1, NULL, NULL);
- 
-  variable chr;
-  variable passwd = "";
- 
-  forever
-    {
-    chr = getch ();
-    if ('\r' == chr)
-      break;
-    passwd += char (chr);
-    }
- 
-  send_msg_dr (" ", 0, NULL, NULL);
-
-  return passwd + "\n";
-}
-
 static define _pop_up_ (ar, row, col, ifocus)
 {
   variable lar = array_map (String_Type, &sprintf, " %s", ar);
@@ -78,7 +58,7 @@ static define pop_up (ar, row, col, ifocus)
 static define write_completion_routine (ar, startrow)
 {
   variable
-    headerclr = qualifier ("headerclr", qualifier ("clr", defclr)),
+    lheaderclr = qualifier ("headerclr", headerclr),
     len = length (ar),
     cmpl_lnrs = [startrow:startrow + len - 1],
     columns = qualifier ("columns", COLUMNS),
@@ -86,7 +66,7 @@ static define write_completion_routine (ar, startrow)
     cols = Integer_Type[len];
 
   clrs[*] = qualifier ("clr", defclr);
-  clrs[0] = headerclr;
+  clrs[0] = lheaderclr;
   cols[*] = qualifier ("startcol", 0);
 
   smg->aratrcaddnstr (ar, clrs, cmpl_lnrs, cols, columns);

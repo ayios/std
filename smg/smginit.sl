@@ -1,3 +1,6 @@
+private variable SMGINITED = 0;
+private variable SUSPENDSTATE = 0;
+
 private define set_basic_color (field, color)
 {
   variable colors =
@@ -58,22 +61,38 @@ static define refresh ()
 
 static define init ()
 {
+  if (SMGINITED)
+    return;
+
   slsmg_init_smg ();
+  SMGINITED = 1;
 }
 
 static define reset ()
 {
+  ifnot (SMGINITED)
+    return;
+
   slsmg_reset_smg ();
+  SMGINITED = 0;
 }
 
 static define suspend ()
 {
+  if (SUSPENDSTATE)
+    return;
+
   slsmg_suspend_smg ();
+  SUSPENDSTATE = 1;
 }
 
 static define resume ()
 {
+  ifnot (SUSPENDSTATE)
+    return;
+
   slsmg_resume_smg ();
+  SUSPENDSTATE = 0;
 }
 
 static define setrc (row, col)
@@ -174,10 +193,8 @@ static define set_img (lines)
  
   SMGIMG = List_Type[lines];
  
-  _for i (1, length (SMGIMG) - 1)
+  _for i (0, length (SMGIMG) - 1)
     SMGIMG[i] = {" ", 0, i, 0};
- 
-  SMGIMG[0] = {strftime ("%c"), 3, 0, 0};
 }
 
 static define restore (r, ptr, refresh)

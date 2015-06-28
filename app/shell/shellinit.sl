@@ -16,6 +16,8 @@ private variable
 private define shell_exit ()
 {
   variable status = waitpid (shell_.p_.pid, 0);
+  _log_ ("shell exit_status: " + string (status.exit_status), LOGNORM);
+
   shell_.p_.atexit ();
 
   () = close (shell_._fd);
@@ -64,10 +66,13 @@ private define connect_to_child ()
     {
     shell_.p_.atexit ();
     () = kill (shell_.p_.pid, SIGKILL);
+    _log_ ("shell: failed to connect to socket", LOGERR);
     return;
     }
  
   shell_._state = shell_._state | CONNECTED;
+  
+  _log_ ("shell: connected to socket", LOGNORM);
 
   variable retval;
 
@@ -76,7 +81,10 @@ private define connect_to_child ()
     retval = sock->get_int (shell_._fd);
  
     ifnot (Integer_Type == typeof (retval))
+      {
+      _log_ ("shell loop: expected Integer_Type, received " + string (typeof (retval)), LOGERR);
       break;
+      }
 
     if (retval == GOTO_EXIT)
       {
@@ -99,14 +107,23 @@ private define init_sockaddr ()
 
 define shell ()
 {
+  _log_ ("running shell", LOGALL);
+
   init_shell ();
 
   shell_._sockaddr = init_sockaddr ();
+  
+  _log_ ("sockaddress: " + shell_._sockaddr, LOGALL);
 
   shell_.p_ = doproc ();
  
   if (NULL == shell_.p_)
+    {
+    _log_ ("shell: fork failed", LOGERR);
     return;
+    }
+  
+  _log_ ("shell pid: " + string (shell_.p_.pid), LOGNORM);
 
   connect_to_child ();
 

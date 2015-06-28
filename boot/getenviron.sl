@@ -22,7 +22,7 @@ static define getenviron ()
   ifnot (v_islangutf8 (LANG))
     exit (1);
 
-  HOME = v_gethome ("HOME");
+  HOME = v_gethome ();
   if (NULL == HOME)
     exit (1);
  
@@ -36,6 +36,6 @@ static define getenviron ()
   ISSUPROC = UID ? 0 : 1;
   SLSH_BIN = which ("slsh");
   SUDO_BIN = which ("sudo");
-  USER = getpwname (UID, 1);
-  GROUP = getgrname (GID, 1);
+  USER = setpwname (UID, 1);
+  GROUP = setgrname (GID, 1);
 }

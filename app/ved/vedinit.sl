@@ -146,9 +146,18 @@ private define check_file (fn)
 
 private define parse_args ()
 {
-  variable fname = ();
+  variable fname;
 
-  @fname = ();
+  if (1 == _NARGS)
+    {
+    fname = ();
+    @fname = TEMPDIR + "/" + string (getpid ()) + "scratch.txt";
+    }
+  else
+    {
+    fname = ();
+    @fname = ();
+    }
  
   variable exists = check_file (@fname);
 

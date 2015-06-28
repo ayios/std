@@ -1,29 +1,12 @@
-define tostdout (str)
-{
-  () = lseek (OUTFD, 0, SEEK_END);
-  () = write (OUTFD, str);
-}
+VED_ROWS = [1:LINES - 3];
+VED_INFOCLRFG = COLOR.infofg;
+VED_INFOCLRBG = COLOR.infobg;
+VED_PROMPTCLR = COLOR.prompt;
+ERR = init_ftype ("txt");
+txt_settype (ERR, STDERR, VED_ROWS, NULL);
+setbuf (ERR._absfname);
 
-define tostderr (str)
-{
-  () = lseek (ERRFD, 0, SEEK_END);
-  () = write (ERRFD, str);
-}
-
-define shell_pre_header (argv)
-{
-  iarg++;
-  tostdout (strjoin (argv, " ") + "\n");
-}
-
-define shell_post_header ()
-{
-  tostdout ("[" + string (iarg) + "](" + getcwd + ")[" + string (SHELLLASTEXITSTATUS) + "]$ ");
-}
-
-define getlines ();
-
-define draw (s)
+define osdraw (s)
 {
   variable st = lstat_file (s._absfname);
  
@@ -31,6 +14,7 @@ define draw (s)
     if (st.st_atime == s.st_.st_atime && st.st_size == s.st_.st_size)
       {
       s._i = s._ii;
+
       s.draw ();
       return;
       }
@@ -58,28 +42,19 @@ define draw (s)
   s.draw ();
 }
 
-define on_lang_change (args)
-{
-  toplinedr (args[1];row =  args[0][0], col = args[0][1]);
-}
-
 define viewfile (s, type, pos, _i)
 {
-  variable f = __get_reference ("setbuf");
-  (@f) (s._absfname);
-  VED = s;
- 
   topline (" -- pager -- (" + type + " BUF) --";row =  s.ptr[0], col = s.ptr[1]);
  
   ifnot (NULL == pos)
     (s.ptr[0] = pos[0], s.ptr[1] = pos[1]);
-
-  draw (s;pos = pos, _i = _i);
- 
+  
+  osdraw (s;pos = pos, _i = _i);
+  
   forever
     {
     VEDCOUNT = -1;
-    s._chr = getch (;on_lang = &on_lang_change, on_lang_args = {s.ptr, "--pager -- (MSG BUF) --"});
+    s._chr = getch (;on_lang = &toplinedr, on_lang_args = {s.ptr, "--pager -- (OS BUF) --"});
 
     if ('1' <= s._chr <= '9')
       {
@@ -88,7 +63,7 @@ define viewfile (s, type, pos, _i)
       while ('0' <= s._chr <= '9')
         {
         VEDCOUNT += char (s._chr);
-        s._chr = getch (;on_lang = &on_lang_change, on_lang_args = {s.ptr, "--pager -- (MSG BUF) --"});
+        s._chr = getch (;on_lang = &toplinedr, on_lang_args = {s.ptr, "--pager -- (OS BUF) --"});
         }
 
       VEDCOUNT = integer (VEDCOUNT);
@@ -101,25 +76,7 @@ define viewfile (s, type, pos, _i)
     }
 }
 
-define scratch (ved)
-{
-  viewfile (SCRATCH, "SCRATCH", [1, 0], 0);
-
-  variable f = __get_reference ("setbuf");
-  
-  (@f) (ved._absfname);
-  VED = ved;
-  ved.draw ();
-}
-
 define _messages_ (argv)
 {
-  viewfile (MSG, "MSG", NULL, NULL);
- 
-  variable f = __get_reference ("setbuf");
-  variable ved = qualifier ("ved");
-
-  (@f) (ved._absfname);
-  VED = ved;
-  ved.draw ();
+  viewfile (ERR, "OS", NULL, NULL);
 }

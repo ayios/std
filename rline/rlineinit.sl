@@ -577,7 +577,7 @@ private define hlitem (s, ar, base, acol, item)
     icol = 0,
     colr = 5,
     index = 0,
-    header = qualifier ("header"),
+    header = qualifier ("header", " "),
     max_len = max (strlen (ar)) + 2,
     fmt = sprintf ("%%-%ds", max_len),
     lines;
@@ -613,12 +613,8 @@ private define hlitem (s, ar, base, acol, item)
  
   frow = irow - 1;
 
-  ifnot (NULL == header)
-    smg->aratrcaddnstr  (header, 6, frow, 0, s._columns);
-
   bar = printout (s, bar, bcol, &len;lines = lines,
-    row = s._prow - (strlen (s._lin) / s._columns) + i,
-    hl_region = [colr, irow, icol * max_len, 1, max_len]);
+    hl_region = [colr, irow, icol * max_len, 1, max_len], header = header);
  
   ifnot (NULL == header)
     s.cmp_lnrs = [s.cmp_lnrs[0] - 1, s.cmp_lnrs];
@@ -671,12 +667,8 @@ private define hlitem (s, ar, base, acol, item)
  
       frow = irow - 1;
 
-      ifnot (NULL == header)
-        smg->aratrcaddnstr  (header, 6, frow, 0, s._columns);
-
       bar = printout (s, bar, bcol, &len;lines = lines,
-        row = s._prow - (strlen (s._lin) / s._columns) + i,
-        hl_region = [colr, irow, icol * max_len, 1, max_len]);
+        hl_region = [colr, irow, icol * max_len, 1, max_len], header = header);
  
       ifnot (NULL == header)
         s.cmp_lnrs = [s.cmp_lnrs[0] - 1, s.cmp_lnrs];
@@ -849,12 +841,8 @@ private define hlitem (s, ar, base, acol, item)
 
     frow = irow - 1;
 
-    ifnot (NULL == header)
-      smg->aratrcaddnstr  (header, 6, frow, 0, s._columns);
-
     () = printout (s, car, bcol, &len;lines = lines,
-      row = s._prow - (strlen (s._lin) / s._columns) + i,
-      hl_region = [colr, irow, icol * max_len, 1, max_len]);
+      hl_region = [colr, irow, icol * max_len, 1, max_len], header = header);
  
     ifnot (NULL == header)
       s.cmp_lnrs = [s.cmp_lnrs[0] - 1, s.cmp_lnrs];
@@ -1356,11 +1344,10 @@ private define getpattern (s, pat)
     len = length (ar),
     lines = s._lines - (strlen (s._lin) / s._columns) - 3,
     prow = s._prow - (strlen (s._lin) / s._columns) - (len > lines ? lines : len) - 1;
+   
+  () = printout (rl, ar, strlen (rl.argv[0]), &len;lines = lines, _prow = s._prow,
+     _lin = s._lin, header = strlen (@pat) ? @pat : " ", headerclr = 7);
 
-  smg->atrcaddnstr  (strlen (@pat) ? @pat : " ", 7, prow, 0, rl._columns);
-
-  () = printout (rl, ar, strlen (rl.argv[0]), &len;lines = lines, _prow = s._prow, _lin = s._lin);
- 
   smg->setrcdr (prow, strlen (rl.argv[0]));
 
   forever
@@ -1425,7 +1412,7 @@ private define parse_argtype (s, arg, type, baselen)
 
   if ("pcrepattern" == type)
       {
-      smg->atrcaddnstrdr ("arg type should be " + type, 1, MSGROW, 0, s._row, s._col, s._columns);
+      smg->atrcaddnstr ("arg type should be " + type, 1, MSGROW, 0, s._columns);
 
       prompt (s, s._lin, s._col);
  

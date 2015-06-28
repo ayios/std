@@ -9,10 +9,18 @@ ROOTDIR+= "/..";
 
 public variable MACHINE = uname ().machine;
 public variable OS = uname ().sysname;
+
+try
+  import (ROOTDIR + "/modules/" + MACHINE + "/std/ayios");
+catch ImportError:
+  exit (1);
+
+ROOTDIR = realpath (ROOTDIR);
+
 public variable PID = getpid ();
 public variable UID = getuid ();
 public variable GID = getgid ();
-public variable ISSUPROC = UID;
+public variable ISSUPROC = UID ? 0 : 1;
 
 public variable ADIR = ROOTDIR;
 public variable STDDIR = ROOTDIR + "/std";
@@ -23,6 +31,7 @@ public variable MDLDIR = ROOTDIR + "/modules/" + MACHINE;
 public variable STDDATADIR = STDDIR + "/share/data";
 public variable USRDATADIR = USRDIR + "/share/data";
 public variable LCLDATADIR = LCLDIR + "/share/data";
+public variable HISTDIR = LCLDIR + "/share/history";
 
 % for now
 public variable SOURCEDIR = ROOTDIR;
@@ -263,16 +272,3 @@ public define loadfile (file, ns, errfunc)
       () = array_map (Integer_Type, &fprintf, stderr, "%s\n", excar ());
     }
 }
-
-importfrom ("std", "ayios", NULL, NULL);
-
-ROOTDIR = realpath (ROOTDIR);
-STDDIR =  realpath (STDDIR);
-USRDIR = realpath (USRDIR);
-LCLDIR = realpath (LCLDIR);
-MDLDIR = realpath (MDLDIR);
-STDDATADIR = realpath (STDDATADIR);
-USRDATADIR = realpath (USRDATADIR);
-LCLDATADIR = realpath (LCLDATADIR);
-SOURCEDIR = realpath (SOURCEDIR);
-TEMPDIR = realpath (TEMPDIR);

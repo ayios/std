@@ -22,8 +22,8 @@ static define setdefenv ()
   SLSH_BIN = which ("slsh");
   SUDO_BIN = which ("sudo");
   PWD = getcwd ();
-  USER = getpwname (UID, 0);
-  GROUP = getgrname (GID, 0);
+  USER = setpwname (UID, 0);
+  GROUP = setgrname (GID, 0);
  
   variable getscreendim = qualifier ("dimfunc", &getscreensizefromenv);
 

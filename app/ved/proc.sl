@@ -92,6 +92,10 @@ define on_eval_err (err, code)
   exit_me (code);
 }
 
+variable HASHEDDATA = NULL;
+
+define getch ();
+
 loadfrom ("stdio", "readfile", NULL, &on_eval_err);
 loadfrom ("sys", "which", NULL, &on_eval_err);
 
@@ -100,6 +104,8 @@ loadfile (MYPATH + "/functions/vars", NULL, &on_eval_err);
 
 loadfrom ("keys", "keysInit", 1, &on_eval_err);
 loadfrom ("smg", "smgInit", NULL, &on_eval_err);
+
+loadfrom ("boot", "passwd", 1, &on_eval_err);
 
 define exit_me (exit_code)
 {

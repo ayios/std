@@ -1,5 +1,42 @@
 loadfrom ("parse", "is_arg", NULL, &on_eval_err);
 
+private define _getpasswd_ ()
+{
+  variable passwd;
+
+  ifnot (NULL == HASHEDDATA)
+    {
+    passwd = boot->confirmpasswd (HASHEDDATA);
+    if (NULL == passwd)
+      send_msg_dr ("Authentication error", 1, NULL, NULL);
+    else
+      passwd+= "\n";
+    }
+  else
+    {
+    passwd = boot->getpasswd ();
+   
+    () = system (sprintf ("%s -K 2>/dev/null", SUDO_BIN));
+    
+    variable p = proc->init (1, 1, 1);
+
+    p.stdin.in = passwd + "\n";
+
+    variable status = p.execv ([SUDO_BIN, "-S", "-p", "", "echo"], NULL);
+ 
+    if (NULL == status || status.exit_status)
+      {
+      send_msg_dr (p.stderr.out, 1, NULL, NULL);
+      passwd = NULL;
+      }
+
+    ifnot (NULL == passwd)
+      HASHEDDATA = boot->encryptpasswd (passwd);
+    }
+
+  return passwd;
+}
+
 private define _glob_ (argv)
 {
   variable
@@ -70,24 +107,7 @@ private define _execProc_Type_ (func, argv)
     issudo = 1;
     argv[index] = NULL;
     argv = argv[wherenot (_isnull (argv))];
-    passwd = widg->getpasswd ();
- 
-    variable p;
-    variable status;
- 
-    () = system (sprintf ("%s -K 2>/dev/null", SUDO_BIN));
- 
-    p = proc->init (1, 1, 1);
-
-    p.stdin.in = passwd;
-
-    status = p.execv ([SUDO_BIN, "-S", "-p", "", "echo"], NULL);
- 
-    if (NULL == status || status.exit_status)
-      {
-      send_msg_dr (p.stderr.out, 1, NULL, NULL);
-      passwd = NULL;
-      }
+    passwd = _getpasswd_ ();
     }
  
   argv = _glob_ (argv);
@@ -95,15 +115,6 @@ private define _execProc_Type_ (func, argv)
   (@func) (argv;;struct {@__qualifiers (), issudo = issudo, passwd = passwd});
 }
 
-private define _execProc_Type_nosudo (func, argv)
-{
-  argv = _glob_ (argv);
-  (@func) (argv;;__qualifiers ());
-}
-
 static variable proctype;
 
-ifnot (NULL == SUDO_BIN)
-  proctype = &_execProc_Type_;
-else
-  proctype = &_execProc_Type_nosudo;
+proctype = &_execProc_Type_;

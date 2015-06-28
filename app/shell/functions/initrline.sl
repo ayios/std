@@ -1,3 +1,5 @@
+loadfrom ("os", "evalfunc", NULL, &on_eval_err);
+
 private variable redirexists = NULL;
 private variable licom = 0;
 
@@ -7,7 +9,7 @@ if (-1 == access (STACKFILE, F_OK))
 private define _precom_ ()
 {
   icom++;
-  MSG.st_.st_size = stat_file (STDERR).st_size;;
+  MSG.st_.st_size = stat_file (STDERR).st_size;
 }
 
 define runapp (argv, env)
@@ -193,7 +195,7 @@ private define write_file (s, overwrite, ptr, argv)
  
   variable retval = writetofile (file, s.lines, s._indent);
  
-  ifnot (0 == retval)
+  if (retval)
     {
     send_msg_dr (errno_string (retval), 1, ptr[0], ptr[1]);
     return;
@@ -212,7 +214,7 @@ private define _write_ (argv)
     }
 }
 
-private define edit ()
+private define edit (argv)
 {
   _precom_ ();
 
@@ -269,20 +271,37 @@ private define _preexec_ (argv, header, issudo, env)
 
 private define _getpasswd_ ()
 {
-  variable passwd = widg->getpasswd ();
- 
-  () = system (sprintf ("%s -K 2>/dev/null", SUDO_BIN));
- 
-  variable p = proc->init (1, 1, 1);
+  variable passwd;
 
-  p.stdin.in = passwd;
-
-  variable status = p.execv ([SUDO_BIN, "-S", "-p", "", "echo"], NULL);
- 
-  if (NULL == status || status.exit_status)
+  ifnot (NULL == HASHEDDATA)
     {
-    send_msg_dr (p.stderr.out, 1, NULL, NULL);
-    passwd = NULL;
+    passwd = boot->confirmpasswd (HASHEDDATA);
+    if (NULL == passwd)
+      tostderr ("Authentication error");
+    else
+      passwd+= "\n";
+    }
+  else
+    {
+    passwd = boot->getpasswd ();
+    
+    passwd+= "\n";
+    () = system (sprintf ("%s -K 2>/dev/null", SUDO_BIN));
+ 
+    variable p = proc->init (1, 1, 1);
+
+    p.stdin.in = passwd;
+
+    variable status = p.execv ([SUDO_BIN, "-S", "-p", "", "echo"], NULL);
+ 
+    if (NULL == status || status.exit_status)
+      {
+      send_msg_dr (p.stderr.out, 1, NULL, NULL);
+      passwd = NULL;
+      }
+
+    ifnot (NULL == passwd)
+      HASHEDDATA = boot->encryptpasswd (passwd);
     }
 
   return passwd;
@@ -503,8 +522,9 @@ private define execute (argv)
     stdoutflags = flags;
     }
 
-  %%% CARE FOR CHANGES        argv-index
-  if (NULL == isscratch && any (argv[2] == ["man"]))
+  if (NULL == isscratch &&
+  %%% CARE FOR CHANGES argv-index
+    (any (argv[2] == ["man"]) && NULL == is_arg ("--buildcache", argv)))
     {
     isbg = 0;
     stdoutfile = SCRATCHFILE;
@@ -551,57 +571,6 @@ private define _builtinpost_ (vd)
   shell_post_header ();
 
   draw (vd);
-}
-
-private define _eval_ (argv)
-{
-  variable rl = qualifier ("rl");
-  variable line = "";
-
-  send_msg ("Type an expression" , 0);
-
-  variable
-    res,
-    chr;
-
-  forever
-    {
-    rline->prompt (rl, ">" + line, strlen (line) + 1);
-    chr = getch ();
-
-    if (chr == 033)
-      break;
-    
-    if (any (keys->rmap.backspace == chr))
-      line = substr (line, 1, strlen (line) - 1);
-    else if ('\r' == chr)
-      {
-      if ('=' == line[0])
-        eval (substr (line, 2, -1));
-
-      line = "";
-      continue;
-      }
-    else
-      line += char (chr);
-
-    ifnot (strlen (line))
-      continue;
- 
-    try
-      {
-      ifnot ('=' == line[0])
-        res = string (eval (line));
-      else
-        continue;
-      }
-    catch AnyError:
-      res = __get_exception_info.message;
-
-    send_msg (res, 0);
-    }
-
-  send_msg (" ", 0);
 }
 
 private define _echo_ (argv)
@@ -662,7 +631,10 @@ private define _echo_ (argv)
     argv = argv[wherenot (_isnull (argv))];
 
     if (">>" == flags || 0 == access (file, F_OK))
-      _appendstr (file, strjoin (argv, " ") + hasnewline);
+      {
+      if (-1 == appendstr (file, strjoin (argv, " ") + hasnewline))
+       return;
+      }
     else
       {
       variable fd = open (file, O_CREAT|O_WRONLY, PERM["__PUBLIC"]);
@@ -902,7 +874,7 @@ private define tabhook (s)
 define rlineinit ()
 {
   variable rl = rline->init (&init_commands;
-    histfile = LCLDATADIR + "/." + string (getuid ()) + "ashellhistory",
+    histfile = HISTDIR + "/" + string (getuid ()) + "shellhistory",
     filtercommands = &filtercommands,
     filterargs = &filterargs,
     tabhook = &tabhook,

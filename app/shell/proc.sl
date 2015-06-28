@@ -48,14 +48,6 @@ ifnot (SHELLPROC._inited)
   SHELLPROC._state = SHELLPROC._state | CONNECTED;
   }
 
-loadfrom ("sys", "which", NULL, &on_eval_err);
-loadfrom ("sock", "sockInit", 1, &on_eval_err);
-loadfrom ("proc", "procInit", NULL, &on_eval_err);
-loadfrom ("smg", "smgInit", NULL, &on_eval_err);
-loadfrom ("input", "inputInit", NULL, &on_eval_err);
-loadfrom ("wind", "shelltopline", NULL, &on_eval_err);
-loadfrom ("rline", "rlineInit", NULL, &on_eval_err);
-
 loadfile ("Init", NULL, &on_eval_err);
 
 define send_int (fd, i)
