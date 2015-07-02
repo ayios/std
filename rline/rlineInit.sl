@@ -29,6 +29,8 @@ typedef struct
   totype,
   cmp_lnrs,
   execline,
+  onnolength,
+  onnolengthargs,
   } Rline_Type;
 
 typedef struct

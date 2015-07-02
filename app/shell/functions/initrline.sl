@@ -42,6 +42,29 @@ define _shell_ (argv)
   runapp ([argv, "--no-intro"], NULL;;__qualifiers ());
 }
 
+private define _exit_ ()
+{
+  variable rl = qualifier ("rl");
+
+  ifnot (NULL == rl)
+    rline->writehistory (rl.history, rl.histfile);
+
+  exit_me (0);
+}
+
+define _idle_ (argv)
+{
+  smg->suspend ();
+  variable retval = go_idled ();
+  ifnot (retval)
+    {
+    smg->resume ();
+    return;
+    }
+
+  _exit_ (;;__qualifiers  ());
+}
+
 private define _ved_ (argv)
 {
   _precom_ ();
@@ -223,16 +246,6 @@ private define edit (argv)
   viewfile (s, "STDOUT", s.ptr, s._ii);
 }
 
-private define _exit_ ()
-{
-  variable rl = qualifier ("rl");
-
-  ifnot (NULL == rl)
-    rline->writehistory (rl.history, rl.histfile);
-
-  exit_me (0);
-}
-
 private define _preexec_ (argv, header, issudo, env)
 {
   _precom_ ();
@@ -275,7 +288,8 @@ private define _getpasswd_ ()
 
   ifnot (NULL == HASHEDDATA)
     {
-    passwd = boot->confirmpasswd (HASHEDDATA);
+    passwd = os->confirmpasswd (HASHEDDATA);
+
     if (NULL == passwd)
       tostderr ("Authentication error");
     else
@@ -283,25 +297,15 @@ private define _getpasswd_ ()
     }
   else
     {
-    passwd = boot->getpasswd ();
+    passwd = getpasswd ();
     
-    passwd+= "\n";
-    () = system (sprintf ("%s -K 2>/dev/null", SUDO_BIN));
- 
-    variable p = proc->init (1, 1, 1);
-
-    p.stdin.in = passwd;
-
-    variable status = p.execv ([SUDO_BIN, "-S", "-p", "", "echo"], NULL);
- 
-    if (NULL == status || status.exit_status)
-      {
-      send_msg_dr (p.stderr.out, 1, NULL, NULL);
+    if (-1 == os->authenticate (USER, passwd))
       passwd = NULL;
-      }
 
     ifnot (NULL == passwd)
-      HASHEDDATA = boot->encryptpasswd (passwd);
+      HASHEDDATA = os->encryptpasswd (passwd);
+    
+    passwd+= "\n";
     }
 
   return passwd;
@@ -437,7 +441,7 @@ private define _search_ (argv)
 
   argv = ();
 
-  stdoutfile = GREPILE;
+  stdoutfile = GREPFILE;
   stdoutflags = ">|";
   p.stderr.file = STDERR;
   p.stderr.wr_flags = ">>|";
@@ -447,19 +451,11 @@ private define _search_ (argv)
   _fork_ (p, argv, env, qualifier ("ved"));
 
   ifnot (SHELLLASTEXITSTATUS)
-    {
-    smg->suspend ();
+    runapp (["ved", GREPFILE], [proc->defenv (), "return_code=1"]);
  
-    loadfrom ("app/ved", "vedInit", NULL, &on_eval_err);
-
-    variable ved = __get_reference ("ved");
-
-    (@ved) (GREPILE);
-
-    smg->resume ();
-    }
+  shell_post_header ();
  
-  _postexec_ (header, qualifier ("ved"));
+% _postexec_ (header, qualifier ("ved"));
 }
 
 private define execute (argv)
@@ -815,6 +811,9 @@ private define init_commands ()
   a["w!"] = @Argvlist_Type;
   a["w!"].func = &_write_;
 
+  a["&"] = @Argvlist_Type;
+  a["&"].func = &_idle_;
+
   a["messages"] = @Argvlist_Type;
   a["messages"].func = &_messages_;
  
@@ -878,6 +877,8 @@ define rlineinit ()
     filtercommands = &filtercommands,
     filterargs = &filterargs,
     tabhook = &tabhook,
+    onnolength = &toplinedr,
+    onnolengthargs = {""},
     on_lang = &toplinedr,
     on_lang_args = " -- shell --");
  

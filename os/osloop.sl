@@ -9,4 +9,3 @@ define osloop ()
     topline (" -- OS CONSOLE --" + " (depth " + string (_stkdepth ()) + ")");
     }
 }
-

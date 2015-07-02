@@ -1,3 +1,4 @@
+public variable SMGINITED = 0;
 public variable SMGIMG;
 public variable LINES;
 public variable COLUMNS;
@@ -16,9 +17,10 @@ PROMPTROW = LINES - 2;
 MSGROW = LINES - 1;
 
 loadfrom ("smg", "functions", NULL, &on_eval_err);
+loadfrom ("os", "smg_getpasswd", NULL, &on_eval_err);
 
 array_map (Void_Type, &set_struct_field, COLOR, get_struct_field_names (COLOR),
-    array_map (Integer_Type, &smg->get_color, get_struct_field_names (COLOR)));
+  array_map (Integer_Type, &smg->get_color, get_struct_field_names (COLOR)));
 
 smg->init ();
 smg->set_img (LINES - 2);

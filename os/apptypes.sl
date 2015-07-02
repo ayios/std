@@ -7,6 +7,9 @@ typedef struct
   p_,
   uid,
   gid,
+  _procfile,
+  _appname,
+  _appdir,
   }App_Type;
 
 typedef struct

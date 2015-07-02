@@ -3,6 +3,9 @@ typedef struct
   pid,
   argv,
   uid,
+  gid,
+  user,
+  setid,
   stdin,
   stdout,
   stderr,
@@ -175,8 +178,33 @@ private define _execv (s, argv, bg)
 
   s.pid = dopid (s);
 
-  if ((0 == s.pid) && -1 == execv (argv[0], argv))
-    return NULL;
+  ifnot (s.pid)
+    {
+    if (NULL != s.setid)
+      if (NULL != s.uid && NULL != s.gid && NULL != s.user)
+        {
+        if (-1 == initgroups (s.user, s.gid))
+          {
+          tostderr ("initgroups: " + errno_string (errno));
+          return NULL;
+          }
+
+        if (-1 == setgid (s.gid))
+          {
+          tostderr ("setgid: " + errno_string (errno));
+          return NULL;
+          }
+
+        if (-1 == setuid (s.uid))
+          {
+          tostderr ("setuid: " + errno_string (errno));
+          return NULL;
+          }
+        }
+    
+    if (-1 == execv (argv[0], argv))
+      return NULL;
+    }
  
   if (NULL == bg)
     {
@@ -194,9 +222,34 @@ private define _execve (s, argv, env, bg)
 
   s.pid = dopid (s);
 
-  if ((0 == s.pid) && -1 == execve (argv[0], argv, env))
-    return NULL;
- 
+  ifnot (s.pid)
+    {
+    if (NULL != s.setid)
+      if (NULL != s.uid && NULL != s.gid && NULL != s.user)
+        {
+        if (-1 == initgroups (s.user, s.gid))
+          {
+          tostderr ("initgroups: " + errno_string (errno));
+          return NULL;
+          }
+
+        if (-1 == setgid (s.gid))
+          {
+          tostderr ("setgid: " + errno_string (errno));
+          return NULL;
+          }
+
+        if (-1 == setuid (s.uid))
+          {
+          tostderr ("setuid: " + errno_string (errno));
+          return NULL;
+          }
+        }
+
+    if (-1 == execve (argv[0], argv, env))
+      return NULL;
+    }
+
   if (NULL == bg)
     {
     status = waitpid (s.pid, 0);
@@ -237,6 +290,10 @@ define init (in, out, err)
   p.loadcommand = loadcommand ();
   p.execve = &_execve;
   p.execv = &_execv;
+  p.setid = qualifier ("setid");
+  p.uid = qualifier ("uid");
+  p.gid = qualifier ("gid");
+  p.user = qualifier ("user");
 
   return p;
 }

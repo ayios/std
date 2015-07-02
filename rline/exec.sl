@@ -1,12 +1,10 @@
-loadfrom ("parse", "is_arg", NULL, &on_eval_err);
-
 private define _getpasswd_ ()
 {
   variable passwd;
 
   ifnot (NULL == HASHEDDATA)
     {
-    passwd = boot->confirmpasswd (HASHEDDATA);
+    passwd = os->confirmpasswd (HASHEDDATA);
     if (NULL == passwd)
       send_msg_dr ("Authentication error", 1, NULL, NULL);
     else
@@ -14,24 +12,13 @@ private define _getpasswd_ ()
     }
   else
     {
-    passwd = boot->getpasswd ();
+    passwd = getpasswd ();
    
-    () = system (sprintf ("%s -K 2>/dev/null", SUDO_BIN));
-    
-    variable p = proc->init (1, 1, 1);
-
-    p.stdin.in = passwd + "\n";
-
-    variable status = p.execv ([SUDO_BIN, "-S", "-p", "", "echo"], NULL);
- 
-    if (NULL == status || status.exit_status)
-      {
-      send_msg_dr (p.stderr.out, 1, NULL, NULL);
+    if (-1 == os->authenticate (USER, passwd))
       passwd = NULL;
-      }
 
     ifnot (NULL == passwd)
-      HASHEDDATA = boot->encryptpasswd (passwd);
+      HASHEDDATA = os->encryptpasswd (passwd);
     }
 
   return passwd;

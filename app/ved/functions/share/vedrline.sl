@@ -148,6 +148,7 @@ private define messages ()
   s._i = s._len + 1 <= len ? 0 : s._len + 1 - len;
 
   s.draw ();
+
   s.vedloop ();
 
   VED_ISONLYPAGER = 0;
@@ -163,6 +164,22 @@ private define messages ()
   keep.vedloop ();
 }
 
+private define _idle_ ()
+{
+  smg->suspend ();
+
+  variable retval = go_idled ();
+  
+  ifnot (retval)
+    {
+    smg->resume ();
+    return;
+    }
+
+  quit (;;__qualifiers  ());
+}
+
+clinef["&"] = &_idle_;
 clinef["w"] = &write_file;
 clinef["W"] = &write_file;
 clinef["w!"] = &write_file;

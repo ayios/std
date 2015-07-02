@@ -10,10 +10,6 @@ public variable
   XCLIP_BIN = which ("xclip");
 
 public variable
-  MSGROW,
-  PROMPTROW;
-
-public variable
   VED_FRAME = 0,
   VED_MAXFRAMES = 2,
   VED_FRAME_ROWS,

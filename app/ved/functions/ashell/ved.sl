@@ -8,17 +8,6 @@ define ved (s, fname)
 
   s.draw ();
 
-  variable func = get_func ();
-
-  if (func)
-    {
-    VEDCOUNT = get_count ();
-    (@pagerf[string (func)]) (s);
-    }
-
-  if (VED_DRAWONLY)
-    return;
-
   preloop (s);
  
   toplinedr (" -- pager --");

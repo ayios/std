@@ -71,6 +71,16 @@ private define _execFunc_Type_ (func, argv)
 
 private define _execline_ (s)
 {
+  ifnot (strlen (s.argv[0]))
+    {
+    ifnot (NULL == s.onnolength)
+      ifnot (NULL == s.onnolengthargs)
+        (@s.onnolength) (__push_list (s.onnolengthargs));
+      else
+        (@s.onnolength);
+    return;
+    }
+
   variable _addhistory = 1;
 
   if (1 < length (s.argv))
@@ -144,6 +154,8 @@ static define init (getcommands)
   rl.lcmp = qualifier ("lcmp", {});
   rl._lines = qualifier ("lines", LINES);
   rl._columns = qualifier ("columns", COLUMNS);
+  rl.onnolength = qualifier ("onnolength");
+  rl.onnolengthargs = qualifier ("onnolengthargs");
  
   if (0 == length (rl.history) && NULL != rl.histfile)
     rl.history = readhistory (rl.histfile);

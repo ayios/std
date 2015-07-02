@@ -1,4 +1,3 @@
-private variable SMGINITED = 0;
 private variable SUSPENDSTATE = 0;
 
 private define set_basic_color (field, color)

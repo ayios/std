@@ -1,11 +1,10 @@
 loadfile ("vars", NULL, &on_eval_err);
 loadfrom ("sys", "which", NULL, &on_eval_err);
-loadfrom ("sock", "sockInit", 1, &on_eval_err);
 loadfrom ("proc", "procInit", NULL, &on_eval_err);
-loadfrom ("smg", "smgInit", NULL, &on_eval_err);
 loadfrom ("input", "inputInit", NULL, &on_eval_err);
+loadfrom ("smg", "smgInit", NULL, &on_eval_err);
 loadfrom ("wind", "shelltopline", NULL, &on_eval_err);
-loadfrom ("boot", "passwd", 1, &on_eval_err);
+loadfrom ("os", "passwd", 1, &on_eval_err);
 loadfrom ("rline", "rlineInit", NULL, &on_eval_err);
 loadfrom ("sys", "checkpermissions", NULL, &on_eval_err);
 loadfrom ("sys", "setpermissions", NULL, &on_eval_err);
@@ -82,8 +81,6 @@ define init_shell ()
 
   () = mkfifo (RDFIFO, 0644);
   () = mkfifo (WRFIFO, 0644);
-
-  SHELLPROC._inited = 1;
 
   loadfile (path_dirname (__FILE__) + "/shell", NULL, &on_eval_err);
 

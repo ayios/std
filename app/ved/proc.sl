@@ -1,22 +1,11 @@
 sigprocmask (SIG_BLOCK, [SIGINT]);
 
-private variable
-  VEDPROC = struct
-    {
-    _inited = 0,
-    _fd,
-    _state = 0,
-    },
-  CONNECTED = 0x1,
-  IDLED = 0x2,
-  MYPATH = path_dirname (__FILE__),
-  JUST_DRAW = 0x064,
-  GOTO_EXIT = 0x0C8,
-  GO_IDLED =  0x12c,
-  GET_FILE = 0x0190,
-  GET_FUNC = 0x01f4,
-  VED_SOCKET,
-  VED_SOCKADDR = getenv ("VED_SOCKADDR");
+private variable MYPATH = path_dirname (__FILE__);
+private variable GO_ATEXIT = 0x0C8;
+private variable GO_IDLED =  0x012c;
+private variable RECONNECT = 0x0190;
+private variable VED_SOCKET;
+private variable VED_SOCKADDR = getenv ("SOCKADDR");
 
 set_slang_load_path (sprintf ("%s/functions/share%c%s", MYPATH,
   path_get_delimiter (), get_slang_load_path ()));
@@ -33,21 +22,25 @@ define tostderr (str)
 }
 
 loadfrom ("proc", "getdefenv", 1, &on_eval_err);
+ 
 proc->getdefenv ();
 
-loadfrom ("sock", "sockInit", 1, &on_eval_err);
+private variable pw = getpwuid (getuid ());
 
+if (NULL == pw)
+  exit (1);
+
+UID = pw.pw_uid;
+GID = pw.pw_gid;
+USER = pw.pw_name;
+
+loadfrom ("sock", "sockInit", 1, &on_eval_err);
 importfrom ("std", "socket",  NULL, &on_eval_err);
 
-ifnot (VEDPROC._inited)
-  {
-  $1 = socket (PF_UNIX, SOCK_STREAM, 0);
-  bind ($1, VED_SOCKADDR);
-  listen ($1, 1);
-  VED_SOCKET = accept (__tmp ($1));
-  VEDPROC._fd = VED_SOCKET;
-  VEDPROC._state = VEDPROC._state | CONNECTED;
-  }
+$1 = socket (PF_UNIX, SOCK_STREAM, 0);
+bind ($1, VED_SOCKADDR);
+listen ($1, 1);
+VED_SOCKET = accept (__tmp ($1));
 
 define send_int (i)
 {
@@ -71,8 +64,19 @@ define get_str ()
 
 define exit_me (exit_code)
 {
-  send_int (GOTO_EXIT);
+  send_int (GO_ATEXIT);
   exit (exit_code);
+}
+
+define go_idled ()
+{
+  send_int (GO_IDLED);
+  variable retval = get_int ();
+
+  if (RECONNECT == retval)
+    return 0;
+
+  return 1;
 }
 
 define on_eval_err (err, code)
@@ -105,7 +109,7 @@ loadfile (MYPATH + "/functions/vars", NULL, &on_eval_err);
 loadfrom ("keys", "keysInit", 1, &on_eval_err);
 loadfrom ("smg", "smgInit", NULL, &on_eval_err);
 
-loadfrom ("boot", "passwd", 1, &on_eval_err);
+loadfrom ("os", "passwd", 1, &on_eval_err);
 
 define exit_me (exit_code)
 {
@@ -117,7 +121,7 @@ define exit_me (exit_code)
 
   smg->reset ();
 
-  send_int (GOTO_EXIT);
+  send_int (GO_ATEXIT);
   exit (exit_code);
 }
 
@@ -146,34 +150,6 @@ define on_eval_err (err, code)
 
 loadfile (MYPATH + "/functions/Init", NULL, &on_eval_err);
 
-define get_file ()
-{
-  send_int (GET_FILE);
-  return get_str ();
-}
-
-define just_draw ()
-{
-  send_int (JUST_DRAW);
-  return get_int ();
-}
-
-define get_func ()
-{
-  send_int (GET_FUNC);
-  return get_int ();
-}
-
-define get_count ()
-{
-  send_int (0);
-  ifnot (get_int ())
-    return -1;
-
-  send_int (0);
-  return get_int ();
-}
-
 define tostderr (str)
 {
   () = lseek (VED_STDERRFD, 0, SEEK_END);
@@ -181,23 +157,21 @@ define tostderr (str)
 }
 
 VED_ROWS = [1:LINES - 3];
-MSGROW = LINES - 1;
-PROMPTROW = MSGROW - 1;
-
-VED_DRAWONLY = just_draw ();
-
+VED_DRAWONLY = 0;
 VED_INFOCLRFG = COLOR.infofg;
 VED_INFOCLRBG = COLOR.infobg;
 VED_PROMPTCLR = COLOR.prompt;
 
 MSG = init_ftype ("txt");
-
 txt_settype (MSG, VED_STDERR, VED_ROWS, NULL);
 
-private variable s_ = init_ftype (get_ftype (__argv[-1]));
+variable fname;
 
-VEDPROC._inited = 1;
+if (1 == __argc)
+  fname = VED_SCRATCH_BUF;
+else
+  fname = __argv[-1];
 
-s_.ved (__argv[-1]);
+private variable s_ = init_ftype (get_ftype (fname));
 
-exit_me (0);
+s_.ved (fname);

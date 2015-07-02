@@ -9,7 +9,7 @@ loadfrom ("getvar", "getxauth", NULL, &on_eval_err);
 loadfrom ("getvar", "getscreensizefromenv", NULL, &on_eval_err);
 loadfrom ("sys", "getpw", NULL, &on_eval_err);
 
-static define getenviron ()
+static define setenviron ()
 {
   TERM = v_getterm ();
   if (NULL == TERM)
