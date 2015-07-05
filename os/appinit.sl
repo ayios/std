@@ -45,7 +45,7 @@ static define addflags (p, s)
   p.stderr.wr_flags = ">|";
 }
 
-static define init_app (name, dir)
+static define init_app (name, dir, argv)
 {
   variable s = @App_Type;
 
@@ -53,6 +53,7 @@ static define init_app (name, dir)
   s._appdir = dir;
   s._procfile = dir + "/proc";;
   s._appname = name;
+  s.argv = argv;
   s._sockaddr = TEMPDIR + "/" + string (PID) + name + ".sock";
 
   return s;

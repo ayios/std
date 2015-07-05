@@ -55,7 +55,9 @@ private define _exit_ ()
 define _idle_ (argv)
 {
   smg->suspend ();
+
   variable retval = go_idled ();
+  
   ifnot (retval)
     {
     smg->resume ();
@@ -256,7 +258,7 @@ private define _preexec_ (argv, header, issudo, env)
 
   variable p = proc->init (@issudo, 0, 1);
 
-  p.uid = @issudo ? 0 : getuid ();
+  p.issu = @issudo ? 0 : 1;
 
   if (@header)
     shell_pre_header (argv);
@@ -303,9 +305,10 @@ private define _getpasswd_ ()
       passwd = NULL;
 
     ifnot (NULL == passwd)
+      {
       HASHEDDATA = os->encryptpasswd (passwd);
-    
-    passwd+= "\n";
+      passwd+= "\n";
+      }
     }
 
   return passwd;
@@ -324,7 +327,7 @@ private define _getbgstatus_ (pid)
 {
   variable pidfile = BGDIR + "/" + pid + ".WAIT";
   variable force = qualifier_exists ("force");
-  variable isnotsudo = BGPIDS[pid].uid;
+  variable isnotsudo = BGPIDS[pid].issu;
 
   if (-1 == access (pidfile, F_OK))
     ifnot (force)
@@ -332,7 +335,7 @@ private define _getbgstatus_ (pid)
     else
       pidfile = BGDIR + "/" + pid + ".RUNNING";
  
-  ifnot (isnotsudo)
+  if (0 == isnotsudo && UID)
     {
     variable passwd = _getpasswd_ ();
     if (NULL == passwd)
@@ -347,7 +350,7 @@ private define _getbgstatus_ (pid)
       return;
       }
   
-  if (isnotsudo)
+  if (isnotsudo || (isnotsudo == 0 == UID))
     {
     variable rdfd = open (RDFIFO, O_RDONLY);
     variable buf = sock->get_str (rdfd);
@@ -396,7 +399,7 @@ private define _forkbg_ (p, argv, env)
 
   variable pid = p.execve (argv, env, 1);
 
-  ifnot (p.uid)
+  ifnot (p.issu)
     p.argv = ["sudo", argv[[7:]]];
   else
     p.argv = argv[[2:]];
@@ -454,8 +457,6 @@ private define _search_ (argv)
     runapp (["ved", GREPFILE], [proc->defenv (), "return_code=1"]);
  
   shell_post_header ();
- 
-% _postexec_ (header, qualifier ("ved"));
 }
 
 private define execute (argv)

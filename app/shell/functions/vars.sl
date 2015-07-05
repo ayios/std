@@ -1,6 +1,6 @@
 variable iarg;
 variable icom = 0;
-variable MYPID = getpid ();
+variable MYPID = PID;
 variable SHELLLASTEXITSTATUS = 0;
 variable SCRATCHFILE = TEMPDIR + "/" + string (MYPID) + "scratch.ashell";
 variable GREPFILE    = TEMPDIR + "/" + string (MYPID) + "grep.list";
@@ -16,11 +16,10 @@ variable MSG;
 variable SCRATCH;
 variable OUTBG;
 variable STACK;
-variable STACKFILE = HISTDIR + "/" + string (getuid ()) + "stack";
+variable STACKFILE = HISTDIR + "/" + string (UID) + "stack";
 variable OUTFD;
 variable OUTFDBG;
 variable ERRFD;
 variable HASHEDDATA = NULL;
 
 define runcom ();
-

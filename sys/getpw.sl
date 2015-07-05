@@ -1,15 +1,13 @@
-define setgrname (gid, exit_on_err)
+define setgrname (gid, msg)
 {
   variable gr = getgrgid (gid);
+  
   if (NULL == gr)
     {
     if (errno)
-      tostderr (errno_string (errno));
+      @msg = errno_string (errno);
     else
-      tostderr ("cannot find the GID " + string (gid) + " in /etc/group, who are you?");
-
-    if (exit_on_err)
-      exit (1);
+      @msg = "cannot find the GID " + string (gid) + " in /etc/group, who are you?";
 
     return NULL;
     }
@@ -17,18 +15,16 @@ define setgrname (gid, exit_on_err)
   return gr.gr_name;
 }
 
-define setpwname (uid, exit_on_err)
+define setpwname (uid, msg)
 {
   variable pw =getpwuid (uid);
+  
   if (NULL == pw)
     {
     if (errno)
-      tostderr (errno_string (errno));
+      @msg = errno_string (errno);
     else
-      tostderr ("cannot find the UID " + string (uid) + " in /etc/passwd, who are you?");
-
-    if (exit_on_err)
-      exit (1);
+      @msg = "cannot find the UID " + string (uid) + " in /etc/passwd, who are you?";
 
     return NULL;
     }
@@ -36,20 +32,17 @@ define setpwname (uid, exit_on_err)
   return pw.pw_name;
 }
 
-define setpwuidgid (user, exit_on_err)
+define setpwuidgid (user, msg)
 {
   variable pw = getpwnam (user);
   if (NULL == pw)
     {
     if (errno)
-      tostderr (errno_string (errno));
+      @msg = errno_string (errno);
     else
-      tostderr ("cannot find the user " + user + " in /etc/passwd, who are you?");
+      @msg = "cannot find the user " + user + " in /etc/passwd, who are you?";
 
-    if (exit_on_err)
-      exit (1);
-
-    return NULL;
+    return NULL, NULL;
     }
 
   return pw.pw_uid, pw.pw_gid;

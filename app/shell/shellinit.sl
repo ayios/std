@@ -6,7 +6,7 @@ define shell ()
 
   _log_ ("running shell", LOGALL);
 
-  variable s = os->init_app ("shell", path_dirname (__FILE__));
+  variable s = os->init_app ("shell", path_dirname (__FILE__), argv);
 
   _log_ ("sockaddress: " + s._sockaddr, LOGALL);
 

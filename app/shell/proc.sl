@@ -39,11 +39,22 @@ UID = pw.pw_uid;
 GID = pw.pw_gid;
 USER = pw.pw_name;
 
+loadfrom ("sys", "getpw", NULL, &on_eval_err);
+
+private variable err;
+
+GROUP = setgrname (GID, &err);
+if (NULL == GROUP)
+  {
+  tostderr (err);
+  exit (1);
+  }
+
 putenv ("USER=" + USER);
 putenv ("LOGNAME=" + USER);
 putenv ("USERNAME=" + USER);
 putenv ("HOME=/home/" + USER); 
-putenv ("GROUP=sudo");
+putenv ("GROUP=" + GROUP);
 
 importfrom ("std", "socket",  NULL, &on_eval_err);
 

@@ -6,6 +6,7 @@ typedef struct
   gid,
   user,
   setid,
+  issu,
   stdin,
   stdout,
   stderr,

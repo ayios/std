@@ -18,7 +18,11 @@ private define _getpasswd_ ()
       passwd = NULL;
 
     ifnot (NULL == passwd)
+      {
       HASHEDDATA = os->encryptpasswd (passwd);
+      passwd+= "\n";
+      }
+
     }
 
   return passwd;
@@ -94,7 +98,11 @@ private define _execProc_Type_ (func, argv)
     issudo = 1;
     argv[index] = NULL;
     argv = argv[wherenot (_isnull (argv))];
-    passwd = _getpasswd_ ();
+
+    ifnot (UID)
+      issudo = 0;
+    else
+      passwd = _getpasswd_ ();
     }
  
   argv = _glob_ (argv);

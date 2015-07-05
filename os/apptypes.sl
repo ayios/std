@@ -10,6 +10,7 @@ typedef struct
   _procfile,
   _appname,
   _appdir,
+  argv,
   }App_Type;
 
 typedef struct

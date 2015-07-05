@@ -11,6 +11,8 @@ loadfrom ("sys", "getpw", NULL, &on_eval_err);
 
 static define setenviron ()
 {
+  variable msg = "";
+  
   TERM = v_getterm ();
   if (NULL == TERM)
     exit (1);
@@ -36,6 +38,18 @@ static define setenviron ()
   ISSUPROC = UID ? 0 : 1;
   SLSH_BIN = which ("slsh");
   SUDO_BIN = which ("sudo");
-  USER = setpwname (UID, 1);
-  GROUP = setgrname (GID, 1);
+ 
+  USER = setpwname (UID, &msg);
+  if (NULL == USER)
+    {
+    tostderr (msg);
+    exit (1);
+    }
+  
+  GROUP = setgrname (GID, &msg);
+  if (NULL == GROUP)
+    {
+    tostderr (msg);
+    exit (1);
+    }
 }

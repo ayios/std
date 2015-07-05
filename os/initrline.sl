@@ -27,22 +27,61 @@ define _exit_me_ (argv)
   exit_me (0);
 }
 
+private define _get_connected_app (app)
+{
+  ifnot (any (app == _APPS_))
+    return NULL;
+
+  variable pids = assoc_get_keys (APPS[app]);
+
+  ifnot (length (pids))
+    return NULL;
+
+  return pids;
+}
+
+private define _get_all_connected_apps ()
+{
+  variable i;
+  variable ii;
+  variable apps = {};
+
+  _for i (0, length (_APPS_) - 1)
+    {
+    variable app = _APPS_[i];
+    variable pids = _get_connected_app (app);
+    ifnot (NULL == pids)
+      _for ii (0, length (pids) - 1)
+        list_append (apps, [app, pids[ii]]);
+    }
+  
+  return list_to_array (apps, Array_Type);
+}
+
 private define reconnect_toapp (argv)
 {
   if (1 == length (argv))
     return;
 
-  variable app = argv[1];
+  variable pid = NULL;
+  
+  variable args = strtok (argv[1], "::");
+  
+  variable app = args[0];
+  
+  if (1 < length (args))
+    pid = args[1];
 
-  ifnot (any (app == _APPS_))
+  variable pids = _get_connected_app (app);
+
+  if (NULL == pids)
     return;
 
-  variable pids = assoc_get_keys (APPS[app]);
+  ifnot (NULL == pid)
+    ifnot (any (pid == pids))
+      return;
 
-  ifnot (length (pids))
-    return;
-
-  variable s = APPS[app][pids[0]];
+  variable s = APPS[app][pid == NULL ? pids[0] : pid];
   
   s._state = s._state & ~IDLED;
 
@@ -92,10 +131,38 @@ define init_commands ()
   return a;
 }
 
+private define tabhook (s)
+{
+  ifnot (s._ind)
+    return -1;
+
+  ifnot (any (s.argv[0] == ["reconnect"]))
+    return -1;
+  
+  variable pids = _get_all_connected_apps ();
+  
+  ifnot (length (pids))
+    return -1;
+  
+  variable i;
+  variable arg;
+  variable args = String_Type[0];
+
+  _for i (0, length (pids) - 1)
+    {
+    arg = pids[i];
+    args = [args, arg[0] +  "::" + string (APPS[arg[0]][arg[1]].p_.pid) + " void " + 
+    strjoin (APPS[arg[0]][arg[1]].argv, " ") + " connect to application"];
+    }
+
+  return rline->argroutine (s;args = args, accept_ws);
+}
+
 define initrline ()
 {
   variable rl = rline->init (&init_commands;
     histfile = HISTDIR + "/" + string (OSUID) + "oshistory",
+    tabhook = &tabhook,
     on_lang = &toplinedr,
     on_lang_args = " -- OS CONSOLE --");
  

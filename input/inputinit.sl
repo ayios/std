@@ -95,7 +95,7 @@ public define getch ()
   ifnot (TTY_INITED)
     {
     init_tty (-1, 0, 0);
-    TTY_INITED = @(__get_reference ("TTY_Inited"));
+    TTY_INITED = @(__get_reference ("input->TTY_Inited"));
     }
 
   esc_pend = qualifier ("esc_pend", 2);
