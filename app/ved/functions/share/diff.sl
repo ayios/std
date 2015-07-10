@@ -7,13 +7,11 @@ define diff (lines, fname, retval)
     return "Bytes are more than 65535";
     }
 
-  variable
-    status,
-    p = proc->init (1, 1, 1);
+  variable p = proc->init (1, 1, 1);
 
   p.stdin.in = lines;
 
-  status = p.execv ([which ("diff"), "-u", fname, "-"], NULL);
+  variable status = p.execv ([which ("diff"), "-u", fname, "-"], NULL);
 
   if (NULL == status)
     {
@@ -47,13 +45,11 @@ define patch (in, dir, retval)
     return "Bytes are more than 65535";
     }
 
-  variable
-    status,
-    p = proc->init (1, 1, 1);
+  variable p = proc->init (1, 1, 1);
 
   p.stdin.in = in;
 
-  status = p.execv ([which ("patch"), "-d", dir, "-r",
+  variable status = p.execv ([which ("patch"), "-d", dir, "-r",
     sprintf ("%s/patch.rej", TEMPDIR), "-o", "-"], NULL);
 
   if (NULL == status)
@@ -75,5 +71,6 @@ define patch (in, dir, retval)
     }
 
   @retval = 0;
+
   return p.stdout.out;
 }

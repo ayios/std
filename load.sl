@@ -13,7 +13,10 @@ public variable OS = uname ().sysname;
 try
   import (ROOTDIR + "/modules/" + MACHINE + "/std/ayios");
 catch ImportError:
+  {
+  () = fprintf (stderr, "%s\n", __get_exception_info.message);
   exit (1);
+  }
 
 ROOTDIR = realpath (ROOTDIR);
 
@@ -31,7 +34,45 @@ public variable MDLDIR = ROOTDIR + "/modules/" + MACHINE;
 public variable STDDATADIR = STDDIR + "/share/data";
 public variable USRDATADIR = USRDIR + "/share/data";
 public variable LCLDATADIR = LCLDIR + "/share/data";
-public variable HISTDIR = LCLDIR + "/share/history";
+public variable HISTDIR    = LCLDIR + "/share/history";
+
+public variable FILE_FLAGS = Assoc_Type[Integer_Type];
+FILE_FLAGS[">"]    = O_WRONLY|O_CREAT;
+FILE_FLAGS[">|"]   = O_WRONLY|O_TRUNC|O_CREAT;
+FILE_FLAGS[">>"]   = O_WRONLY|O_APPEND;
+FILE_FLAGS[">>|"]  =  O_WRONLY|O_APPEND|O_CREAT;
+FILE_FLAGS["<"]    = O_RDONLY;
+FILE_FLAGS["<>"]   = O_RDWR|O_CREAT;
+FILE_FLAGS["<>|"]  = O_RDWR|O_TRUNC|O_CREAT;
+FILE_FLAGS["<>>"]  = O_RDWR|O_APPEND;
+FILE_FLAGS["<>>|"] =  O_RDWR|O_APPEND|O_CREAT;
+
+public variable PERM = Assoc_Type[Integer_Type];
+PERM["PRIVATE"]  = S_IRWXU;                          %0700
+PERM["_PRIVATE"] = S_IRUSR|S_IWUSR;                  %0600
+PERM["STATIC"]   = PERM["PRIVATE"]|S_IRWXG;          %0770
+PERM["_STATIC"]  = PERM["PRIVATE"]|S_IRGRP|S_IXGRP;  %0750
+PERM["__STATIC"] = PERM["_PRIVATE"]|S_IRGRP;         %0640
+PERM["PUBLIC"]   = PERM["STATIC"]|S_IRWXO;           %0777
+PERM["_PUBLIC"]  = PERM["_STATIC"]|S_IROTH|S_IXOTH;  %0755
+PERM["__PUBLIC"] = PERM["__STATIC"]|S_IROTH;         %0644
+PERM["___PUBLIC"]= PERM["_PRIVATE"]|S_IWGRP|S_IWOTH; %0622 
+
+public variable TERM;
+public variable PATH;
+public variable LANG;
+public variable HOME;
+public variable LINES;
+public variable COLUMNS;
+public variable SLSH_LIB_DIR;
+public variable SLANG_MODULE_PATH;
+public variable DISPLAY;
+public variable XAUTHORITY;
+public variable SLSH_BIN;
+public variable SUDO_BIN;
+public variable PWD;
+public variable GROUP;
+public variable USER;
 
 % for now
 public variable SOURCEDIR = ROOTDIR;
@@ -271,4 +312,27 @@ public define loadfile (file, ns, errfunc)
     else
       () = array_map (Integer_Type, &fprintf, stderr, "%s\n", excar ());
     }
+}
+
+define which (executable)
+{
+  variable
+    ar,
+    st,
+    path;
+
+  path = PATH;
+  if (NULL == path)
+    return NULL;
+
+  path = strchop (path, path_get_delimiter (), 0);
+  path = array_map (String_Type, &path_concat, path, executable);
+  path = path [wherenot (array_map (Integer_Type, &_isdirectory, path))];
+
+  ar = wherenot (array_map (Integer_Type, &access, path, X_OK));
+
+  if (length (ar))
+    return path[ar][0];
+  else
+    return NULL;
 }

@@ -100,15 +100,11 @@ variable HASHEDDATA = NULL;
 
 define getch ();
 
-loadfrom ("stdio", "readfile", NULL, &on_eval_err);
-loadfrom ("sys", "which", NULL, &on_eval_err);
-
-loadfile (MYPATH + "/functions/types", NULL, &on_eval_err);
-loadfile (MYPATH + "/functions/vars", NULL, &on_eval_err);
-
 loadfrom ("keys", "keysInit", 1, &on_eval_err);
 loadfrom ("smg", "smgInit", NULL, &on_eval_err);
-
+loadfrom ("stdio", "readfile", NULL, &on_eval_err);
+loadfrom ("ved", "vedtypes", NULL, &on_eval_err);
+loadfrom ("ved", "vedvars", NULL, &on_eval_err);
 loadfrom ("os", "passwd", 1, &on_eval_err);
 
 define exit_me (exit_code)
@@ -155,12 +151,6 @@ define tostderr (str)
   () = lseek (VED_STDERRFD, 0, SEEK_END);
   () = write (VED_STDERRFD, str);
 }
-
-VED_ROWS = [1:LINES - 3];
-VED_DRAWONLY = 0;
-VED_INFOCLRFG = COLOR.infofg;
-VED_INFOCLRBG = COLOR.infobg;
-VED_PROMPTCLR = COLOR.prompt;
 
 MSG = init_ftype ("txt");
 txt_settype (MSG, VED_STDERR, VED_ROWS, NULL);

@@ -1,4 +1,3 @@
-loadfrom ("getvar", "defvars", NULL, &on_eval_err);
 loadfrom ("getvar", "getterm", NULL, &on_eval_err);
 loadfrom ("getvar", "getlang", NULL, &on_eval_err);
 loadfrom ("getvar", "gethome", NULL, &on_eval_err);
@@ -6,7 +5,6 @@ loadfrom ("getvar", "getpath", NULL, &on_eval_err);
 loadfrom ("getvar", "getX", NULL, &on_eval_err);
 loadfrom ("getvar", "getxauth", NULL, &on_eval_err);
 loadfrom ("getvar", "getscreensizefromenv", NULL, &on_eval_err);
-loadfrom ("sys", "which", NULL, &on_eval_err);
 loadfrom ("sys", "getpw", NULL, &on_eval_err);
 
 static define setdefenv ()

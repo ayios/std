@@ -7,6 +7,7 @@ typedef struct
   _type,
   _fname,
   _absfname,
+  _fd,
   _flags,
   _maxlen,
   _indent,

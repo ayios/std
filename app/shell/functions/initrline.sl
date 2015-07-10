@@ -9,7 +9,7 @@ if (-1 == access (STACKFILE, F_OK))
 private define _precom_ ()
 {
   icom++;
-  MSG.st_.st_size = stat_file (STDERR).st_size;
+  MSG.st_.st_size = fstat (ERRFD).st_size;
 }
 
 define runapp (argv, env)
@@ -75,7 +75,7 @@ private define _ved_ (argv)
  
   shell_pre_header ("ved " + fname);
 
-  runapp (["ved", fname], [proc->defenv (), "return_code=1"];;__qualifiers ());
+  runapp (["ved", fname], proc->defenv ();;__qualifiers ());
  
   shell_post_header ();
  
@@ -227,7 +227,7 @@ private define write_file (s, overwrite, ptr, argv)
     }
  
   if (file == s._fname)
-    s._flags = s._flags & ~VED_MODIFIED;
+    s._flags &= ~VED_MODIFIED;
 }
 
 private define _write_ (argv)
@@ -395,7 +395,7 @@ private define _forkbg_ (p, argv, env)
 {
   env = [env, "BG=" + BGDIR];
 
-  OUTBG.st_.st_size = stat_file (STDOUTBG).st_size;
+  OUTBG.st_.st_size = fstat (OUTFDBG).st_size;
 
   variable pid = p.execve (argv, env, 1);
 

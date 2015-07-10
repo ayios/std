@@ -155,6 +155,8 @@ static define at_exit ()
 {
   if (TTY_INITED)
     reset_tty ();
+
+  TTY_INITED = @(__get_reference ("input->TTY_Inited"));
 }
 
 alias["&en_getch"] = "US";

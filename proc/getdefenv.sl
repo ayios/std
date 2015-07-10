@@ -1,6 +1,3 @@
-loadfrom ("getvar", "defvars", NULL, &on_eval_err);
-loadfrom ("sys", "which", NULL, &on_eval_err);
-
 static define getdefenv ()
 {
   TERM = getenv ("TERM");

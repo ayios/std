@@ -8,8 +8,7 @@ define setbuf (key)
   variable s = VED_CB;
 
   if (s._autochdir && 0 == VED_ISONLYPAGER)
-    () = chdir (path_dirname (s._fname));
-
+    () = chdir (s._dir);
 }
 
 define addbuf (s)
@@ -24,7 +23,7 @@ define addbuf (s)
 
   VED_BUFFERS[s._absfname] = s;
   VED_BUFNAMES = [VED_BUFNAMES,  s._absfname];
-  VED_BUFFERS[s._absfname]._dir = path_dirname (s._absfname);
+  VED_BUFFERS[s._absfname]._dir = realpath (path_dirname (s._absfname));
 }
 
 define bufdelete (s, bufname, force)

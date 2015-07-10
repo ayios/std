@@ -138,7 +138,7 @@ define getpwuid (user_ar)
 
   uids = user_ar[unique (user_ar)];
 
-  _for i (0,length(uids)-1)
+  _for i (0, length (uids) - 1)
     {
     uid = string (uids[i]);
     foreach line (lines)
@@ -174,7 +174,7 @@ define getgrgid (group_ar)
 
   gids = group_ar[unique (group_ar)];
 
-  _for i (0, length(gids) - 1)
+  _for i (0, length (gids) - 1)
     {
     gid = string (gids[i]);
     foreach line (lines)
@@ -202,15 +202,9 @@ define long_format (files, st)
     uid,
     size,
     nlink,
-    ref,
     i,
-    fp,
     fmt,
-    sizef = length (files),
-    f = ["mode", "nlink", "uid", "gid", "size", "mtime"],
-    type =
-    [Integer_Type, Integer_Type, UInteger_Type, UInteger_Type,
-     ULLong_Type, UInteger_Type];
+    f = ["mode", "nlink", "uid", "gid", "size", "mtime"];
 
   _for i (length (f) - 1, 0, -1)
     {
@@ -600,8 +594,6 @@ define main ()
     dir = dir[where (strncmp (dir, "--", 2))];
     }
  
- % dir = i == __argc ? ["."] : __argv[where (strncmp (__argv[[i:__argv[[i:]];
-
   _for i (0, length (dir) - 1)
     if ("." != dir[i])
       dir[i] = evaldir (dir[i];dont_change);

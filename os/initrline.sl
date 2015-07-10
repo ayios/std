@@ -83,7 +83,7 @@ private define reconnect_toapp (argv)
 
   variable s = APPS[app][pid == NULL ? pids[0] : pid];
   
-  s._state = s._state & ~IDLED;
+  s._state &= ~IDLED;
 
   smg->reset ();
 

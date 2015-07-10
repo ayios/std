@@ -1,7 +1,4 @@
 VED_ROWS = [1:LINES - 3];
-VED_INFOCLRFG = COLOR.infofg;
-VED_INFOCLRBG = COLOR.infobg;
-VED_PROMPTCLR = COLOR.prompt;
 ERR = init_ftype ("txt");
 txt_settype (ERR, STDERR, VED_ROWS, NULL);
 setbuf (ERR._absfname);

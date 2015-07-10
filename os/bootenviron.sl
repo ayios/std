@@ -1,4 +1,3 @@
-loadfrom ("getvar", "defvars", NULL, &on_eval_err);
 loadfrom ("getvar", "getterm", NULL, &on_eval_err);
 loadfrom ("getvar", "getlang", NULL, &on_eval_err);
 loadfrom ("getvar", "isutf8", NULL, &on_eval_err);

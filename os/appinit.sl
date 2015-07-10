@@ -112,7 +112,7 @@ static define apploop (s)
 
     if (retval == GO_ATEXIT)
       {
-      s._state = s._state & ~CONNECTED;
+      s._state &= ~CONNECTED;
       break;
       }
 
@@ -121,7 +121,7 @@ static define apploop (s)
       ifnot (ALLOWIDLED)
         sock->send_int (s._fd, 0);
       else
-        s._state = s._state | IDLED;
+        s._state |= IDLED;
 
       break;
       }
@@ -143,7 +143,7 @@ static define connect_to_child (s)
     return;
     }
  
-  s._state = s._state | CONNECTED;
+  s._state |= CONNECTED;
   
   _log_ (s._appname + ": connected to socket", LOGNORM);
 
@@ -161,7 +161,7 @@ static define doproc (s, argv)
 
   addflags (p, s);
 
- (argv, env) = getargvenv (p, s, argv);
+  (argv, env) = getargvenv (p, s, argv);
   
   s.p_ = p;
 

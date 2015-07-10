@@ -1,5 +1,4 @@
 loadfile ("vars", NULL, &on_eval_err);
-loadfrom ("sys", "which", NULL, &on_eval_err);
 loadfrom ("proc", "procInit", NULL, &on_eval_err);
 loadfrom ("input", "inputInit", NULL, &on_eval_err);
 loadfrom ("smg", "smgInit", NULL, &on_eval_err);
@@ -11,7 +10,7 @@ loadfrom ("sys", "setpermissions", NULL, &on_eval_err);
 loadfrom ("crypt", "cryptInit", NULL, &on_eval_err);
 loadfrom ("proc", "envs", 1, &on_eval_err);
 loadfrom ("smg", "widg", "widg", &on_eval_err);
-loadfrom ("app/ved/functions", "vedlib", NULL, &on_eval_err);
+loadfrom ("ved", "vedlib", NULL, &on_eval_err);
 loadfrom ("parse", "is_arg", NULL, &on_eval_err);
 loadfrom ("dir", "are_same_files", NULL, &on_eval_err);
 loadfrom ("file", "fileis",  NULL, &on_eval_err);
@@ -20,10 +19,6 @@ loadfile ("funcs", NULL, &on_eval_err);
 loadfile ("srv", NULL, &on_eval_err);
 loadfrom ("com/intro", "intro", NULL, &on_eval_err);
 loadfile ("initrline", NULL, &on_eval_err);
-
-VED_INFOCLRFG = COLOR.infofg;
-VED_INFOCLRBG = COLOR.infobg;
-VED_PROMPTCLR = COLOR.prompt;
 
 private define init_stream (fname)
 {
@@ -40,7 +35,7 @@ private define init_stream (fname)
     exit_me ();
     }
  
-  variable st = stat_file (fname);
+  variable st = fstat (fd);
   if (-1 == checkperm (st.st_mode, PERM["_PRIVATE"]))
     if (-1 == setperm (fname, PERM["_PRIVATE"]))
       exit_me ();

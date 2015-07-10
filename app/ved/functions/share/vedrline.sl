@@ -1,5 +1,3 @@
-loadfrom ("dir", "istype", NULL, &on_eval_err);
-
 private define quit ()
 {
   variable rl = qualifier ("rl");
@@ -75,7 +73,7 @@ private define write_file ()
     }
  
   if (file == s._absfname)
-    s._flags = s._flags & ~VED_MODIFIED;
+    s._flags &= ~VED_MODIFIED;
 }
 
 private define _read ()
@@ -90,7 +88,7 @@ private define _read ()
 
   variable st = stat_file (file);
 
-  ifnot (istype (st, "reg"))
+  ifnot (istype (st.st_mode, "reg"))
     return;
 
   ifnot (st.st_size)
@@ -123,7 +121,7 @@ private define messages ()
   VED_ISONLYPAGER = 1;
   setbuf (s._absfname);
  
-  topline (" -- pager -- ( MESSAGES BUF) --";row =  s.ptr[0], col = s.ptr[1]);
+  topline (" -- pager -- ( MESSAGES BUF) --";row = s.ptr[0], col = s.ptr[1]);
  
   variable st = lstat_file (s._absfname);
  

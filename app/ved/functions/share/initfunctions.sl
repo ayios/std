@@ -41,7 +41,7 @@ ifnot (VED_INITDONE)
     ifnot (NULL == DISPLAY)
       ifnot (NULL == XAUTHORITY)
         ifnot (NULL == XCLIP_BIN)
-          loadfile ("seltoX", NULL, &on_eval_err);
+          loadfrom ("X", "seltoX", NULL, &on_eval_err);
     }
 
   VED_INITDONE = 1;

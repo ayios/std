@@ -47,7 +47,7 @@ private define parse_flags (fd)
       fd.wr_flags = FILE_FLAGS[">|"];
  
   ifnot (NULL == fd.append_flags)
-    fd.wr_flags = fd.wr_flags | fd.append_flags;
+    fd.wr_flags |= fd.append_flags;
 
   if (fd.wr_flags & O_CREAT)
     if (NULL == fd.mode)

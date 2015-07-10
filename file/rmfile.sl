@@ -8,7 +8,6 @@ define rmfile (file, interactive)
       "n[o do not remove file]",
       "q[uit question and abort the operation (exit)]",
       "a[ll continue by removing file and without asking again]",
-      "escape to remove file and never ask again, same as all"
       ],
       ['y', 'q', 'a', 'n']);
 
@@ -36,7 +35,7 @@ define rmfile (file, interactive)
       }
 
       {
-      case 'a' || case 033:
+      case 'a':
         @interactive = NULL;
         if (-1 == remove (file))
           {

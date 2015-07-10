@@ -1,13 +1,71 @@
-public variable com = __argv[1];
-public variable openstdout = 1;
+variable com = __argv[1];
 
 __set_argc_argv (__argv[[1:]]);
 
 () = evalfile (path_dirname (__FILE__) + "/../load");
 
-define on_eval_err ()
+variable openstdout = 1;
+variable COMDIR;
+variable PPID = getenv ("PPID");
+variable BG = getenv ("BG");
+variable BGPIDFILE;
+variable BGX = 0;
+variable WRFIFO = TEMPDIR + "/" + string (PPID) + "SRV_FIFO.fifo";
+variable RDFIFO = TEMPDIR + "/" + string (PPID) + "CLNT_FIFO.fifo";
+variable RDFD = NULL;
+variable WRFD = NULL;
+variable stdoutfile = getenv ("stdoutfile");
+variable stdoutflags = getenv ("stdoutflags");
+variable stdoutfd;
+
+define sigalrm_handler (sig)
 {
-  exit (1);
+  if (NULL == WRFD)
+    WRFD = open (WRFIFO, O_WRONLY);
+
+  () = write (WRFD, "exit");
+  exit (BGX);
+}
+
+if (NULL == BG)
+  {
+  RDFD = open (RDFIFO, O_RDONLY);
+  WRFD = open (WRFIFO, O_WRONLY);
+  }
+
+ifnot (NULL == BG)
+  {
+  BGPIDFILE = BG + "/" + string (PID) + ".RUNNING";
+  () = open (BGPIDFILE, O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR);
+
+  signal (SIGALRM, &sigalrm_handler);
+  }
+
+define exit_me_bg (x)
+{
+  () = rename (BGPIDFILE, substr (
+    BGPIDFILE, 1, strlen (BGPIDFILE) - strlen (".RUNNING")) + ".WAIT");
+
+  BGX = x;
+
+  forever
+    sleep (86400);
+}
+
+define exit_me (x)
+{
+  variable ref = __get_reference ("input->at_exit");
+  (@ref);
+
+  ifnot (NULL == BG)
+    exit_me_bg (x);
+  
+  variable buf;
+
+  () = write (WRFD, "exit");
+  () = read (RDFD, &buf, 1024);
+
+  exit (x);
 }
 
 define tostderr (str)
@@ -23,80 +81,8 @@ define tostdout ()
 define on_eval_err (ar, err)
 {
   array_map (&tostderr, ar);
-  exit (err);
-}
-
-variable COMDIR;
-variable PPID = getenv ("PPID");
-variable MYPID = getpid ();
-
-variable BG = getenv ("BG");
-variable BGPIDFILE;
-variable BGX = 0;
-
-variable WRFIFO = TEMPDIR + "/" + string (PPID) + "SRV_FIFO.fifo";
-variable RDFIFO = TEMPDIR + "/" + string (PPID) + "CLNT_FIFO.fifo";
-
-variable RDFD = NULL;
-variable WRFD = NULL;
-
-if (NULL == BG)
-{
-  RDFD = open (RDFIFO, O_RDONLY);
-  WRFD = open (WRFIFO, O_WRONLY);
-}
-
-loadfrom ("proc", "getdefenv", 1, &on_eval_err);
-
-proc->getdefenv ();
-
-loadfrom ("sock", "sockInit", NULL, &on_eval_err);
-
-define sigalrm_handler (sig)
-{
-  if (NULL == WRFD)
-    WRFD = open (WRFIFO, O_WRONLY);
-
-  sock->send_str (WRFD, "exit");
-  exit (BGX);
-}
-
-define exit_me_bg (x)
-{
-  () = rename (BGPIDFILE, substr (
-    BGPIDFILE, 1, strlen (BGPIDFILE) - strlen (".RUNNING")) + ".WAIT");
-
-  BGX = x;
-
-  forever
-    sleep (86400);
-}
-
-define exit_me (x)
-{
-  ifnot (NULL == BG)
-    exit_me_bg (x);
-
-  sock->send_str (WRFD, "exit");
-  () = sock->get_bit (RDFD);
-  exit (x);
-}
-
-define on_eval_err (ar, err)
-{
-  array_map (&tostderr, ar);
   exit_me (err);
 }
-
-loadfrom ("posix", "fileflags", NULL, &on_eval_err);
-loadfrom ("sys", "permissions", NULL, &on_eval_err);
-loadfrom ("input", "inputInit", NULL, &on_eval_err);
-loadfrom ("stdio", "readfile", NULL, &on_eval_err);
-loadfrom ("parse", "cmdopt", NULL, &on_eval_err);
-
-variable stdoutfile = getenv ("stdoutfile");
-variable stdoutflags = getenv ("stdoutflags");
-variable stdoutfd;
 
 ifnot (access (stdoutfile, F_OK))
   stdoutfd = open (stdoutfile, FILE_FLAGS[stdoutflags]);
@@ -106,13 +92,24 @@ else
 if (NULL == stdoutfd)
   on_eval_err (errno_string (errno), 1);
 
-ifnot (NULL == BG)
-  {
-  BGPIDFILE = BG + "/" + string (MYPID) + ".RUNNING";
-  () = open (BGPIDFILE, O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR);
+loadfrom ("proc", "getdefenv", 1, &on_eval_err);
 
-  signal (SIGALRM, &sigalrm_handler);
-  }
+proc->getdefenv ();
+
+loadfrom ("sock", "sockInit", NULL, &on_eval_err);
+loadfrom ("input", "inputInit", NULL, &on_eval_err);
+loadfrom ("stdio", "readfile", NULL, &on_eval_err);
+loadfrom ("parse", "cmdopt", NULL, &on_eval_err);
+
+define verboseon ()
+{
+  loadfrom ("print", "comtostdout", NULL, &on_eval_err);
+}
+
+define verboseoff ()
+{
+  loadfrom ("print", "null_tostdout", NULL, &on_eval_err);
+}
 
 define initproc (p)
 {
@@ -136,16 +133,6 @@ define sigint_handler_null ();
 define sigint_handler_null (sig)
 {
   signal (sig, &sigint_handler_null);
-}
-
-define verboseon ()
-{
-  loadfrom ("print", "comtostdout", NULL, &on_eval_err);
-}
-
-define verboseoff ()
-{
-  loadfrom ("print", "null_tostdout", NULL, &on_eval_err);
 }
 
 define close_smg ()
@@ -205,7 +192,7 @@ define ask (questar, charar)
     while ('\r' != chr)
       {
       if  ('0' <= chr <= '9')
-        retval += char (chr);
+        retval+= char (chr);
 
       if (any ([0x110, 0x8, 0x07F] == chr))
         retval = retval[[:-2]];
@@ -222,8 +209,6 @@ define ask (questar, charar)
     send_msg_dr (strjoin (array_map (String_Type, &char, charar), "/") + " ");
     while (chr = getch (), 0 == any (chr == charar));
     }
- 
-  input->reset_tty ();
  
   sock->send_str (WRFD, "restorestate");
 

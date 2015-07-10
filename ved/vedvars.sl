@@ -3,10 +3,10 @@ public variable
   VED_MODIFIED = 0x01,
   VED_ONDISKMODIFIED = 0x02,
   VED_RDONLY = 0x04,
-  VED_ROWS,
-  VED_PROMPTCLR,
-  VED_INFOCLRBG,
-  VED_INFOCLRFG,
+  VED_ROWS = [1:LINES - 3],
+  VED_INFOCLRFG = COLOR.infofg,
+  VED_INFOCLRBG = COLOR.infobg,
+  VED_PROMPTCLR = COLOR.prompt,
   XCLIP_BIN = which ("xclip");
 
 public variable

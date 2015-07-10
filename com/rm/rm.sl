@@ -192,15 +192,14 @@ define main ()
         "Do you want to proceed?",
         "y[es remove files all files without asking again]",
         "q[uit question and abort the operation]",
-        "s[how files and redo the question]",
-        "escape to abort the question and never ask again, same as yes"
+        "s[how files and redo the question]"
         ],
         ['y', 'q', 's']);
 
       switch (retval)
 
         {
-        case 'y' || case 033:
+        case 'y':
           interactive = NULL;
         }
 
@@ -212,19 +211,18 @@ define main ()
 
         {
         case 's':
-          %printtostdout (filelist);
 
           retval = ask ([
+            sprintf ("There %d files for removal", length (filelist)),
             "Do you want to proceed?",
             "y[es remove files all files without asking again]",
-            "q[uit question and abort the operation]",
-            "escape to abort the question and never ask again, same as yes"
+            "q[uit question and abort the operation]"
             ],
             ['y', 'q']);
 
           switch (retval)
             {
-            case 'y' || case 033:
+            case 'y':
               interactive = NULL;
             }
 
@@ -233,7 +231,6 @@ define main ()
               tostdout ("Aborting ...");
               exit_me (0);
             }
-
         }
       }
     else if ("never" == interactive)

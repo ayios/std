@@ -1,6 +1,4 @@
 loadfrom ("proc", "procInit", NULL, &on_eval_err);
-loadfrom ("dir", "istype", NULL, &on_eval_err);
-
 variable VERBOSE = 0;
 
 private define verbose ()
@@ -63,7 +61,7 @@ define main ()
     exit_me (1);
     }
 
-  ifnot (istype (stat_file (device), "blk"))
+  ifnot (istype (stat_file (device).st_mode, "blk"))
     {
     tostderr (sprintf ("%s is not a block device", device));
     exit_me (1);

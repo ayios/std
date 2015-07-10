@@ -1,13 +1,22 @@
-loadfrom ("dir", "istype", NULL, &on_eval_err);
-loadfrom ("dir", "isdirectory", NULL, &on_eval_err);
 loadfrom ("sys", "checkpermissions", NULL, &on_eval_err);
 loadfrom ("sys", "setpermissions", NULL, &on_eval_err);
-
+ 
+private define _isdirectory_ (dir, st)
+{
+  ifnot (fileexists (dir))
+    return 0;
+  
+  ifnot (istype (st.st_mode, "dir"))
+    return -1;
+  
+  return 1;
+}
+  
 define makedir (dir, perm)
 {
   variable
-    st,
-    retval = isdirectory (dir, &st);
+    st = lstat_file (dir),
+    retval = _isdirectory_ (dir, st);
 
   if (-1 == retval)
     {
@@ -44,8 +53,8 @@ define makedir (dir, perm)
 define _makedir (dir, perm)
 {
   variable
-    st,
-    retval = isdirectory (dir, &st);
+    st = lstat_file (dir),
+    retval = _isdirectory_ (dir, st);
 
   if (-1 == retval)
     {

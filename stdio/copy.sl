@@ -1,7 +1,5 @@
 loadfrom ("file", "copyfile", NULL, &on_eval_err);
 loadfrom ("sys", "modetoint", NULL, &on_eval_err);
-loadfrom ("dir", "istype", NULL, &on_eval_err);
-
 define clean (force, backup, backupfile, dest)
 {
   if (force)
@@ -58,8 +56,8 @@ define copy (source, dest, st_source, st_dest, opts)
       }
 
     if (opts.backup)
-      ifnot (any ([istype (st_source, "fifo"), istype (st_source, "blk"),
-          istype (st_source, "chr"), istype (st_source, "sock")]))
+      ifnot (any ([istype (st_source.st_mode, "fifo"), istype (st_source.st_mode, "blk"),
+          istype (st_source.st_mode, "chr"), istype (st_source.st_mode, "sock")]))
         {
         backup = sprintf ("%s%s", dest, opts.suffix);
 
@@ -82,8 +80,8 @@ define copy (source, dest, st_source, st_dest, opts)
         return 0;
         }
       else
-        ifnot (any ([istype (st_source, "fifo"), istype (st_source, "blk"),
-            istype (st_source, "chr"), istype (st_source, "sock")]))
+        ifnot (any ([istype (st_source.st_mode, "fifo"), istype (st_source.st_mode, "blk"),
+            istype (st_source.st_mode, "chr"), istype (st_source.st_mode, "sock")]))
           {
           if (NULL == opts.backup)
             {
@@ -129,8 +127,8 @@ define copy (source, dest, st_source, st_dest, opts)
         return -1;
         }
     }
-  else if (any ([istype (st_source, "fifo"), istype (st_source, "blk"),
-      istype (st_source, "chr"), istype (st_source, "sock")]))
+  else if (any ([istype (st_source.st_mode, "fifo"), istype (st_source.st_mode, "blk"),
+      istype (st_source.st_mode, "chr"), istype (st_source.st_mode, "sock")]))
     {
     tostdout ("cannot copy special file `" + source + "': Operation not permitted");
 

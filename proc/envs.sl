@@ -1,5 +1,3 @@
-loadfrom ("getvar", "defvars", NULL, &on_eval_err);
-
 static define defenv ()
 {
   variable env = [

@@ -23,7 +23,7 @@ define set_modified (s)
     return;
     }
 
-  s._flags = s._flags | VED_MODIFIED;
+  s._flags |= VED_MODIFIED;
  
   s.undo = [s.undo, d];
   list_append (s.undoset, [qualifier ("_i", s._ii), s.ptr[0], s.ptr[1]]);
@@ -76,7 +76,7 @@ private define undo (s)
 
   s._undolevel--;
  
-  s._flags = s._flags | VED_MODIFIED;
+  s._flags |= VED_MODIFIED;
 
   s.draw ();
 }
@@ -115,7 +115,7 @@ private define redo (s)
 
   s._undolevel++;
 
-  s._flags = s._flags | VED_MODIFIED;
+  s._flags |= VED_MODIFIED;
 
   s.draw ();
 }

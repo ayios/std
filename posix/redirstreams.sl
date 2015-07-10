@@ -1,6 +1,3 @@
-loadfrom ("sys", "permissions", NULL, &on_eval_err);
-loadfrom ("posix", "fileflags", NULL, &on_eval_err);
-
 private define redirstreamtofile (stream, file, flags, mode)
 {
   variable oldfd, newfd;
