@@ -44,10 +44,8 @@ define _shell_ (argv)
 
 private define _exit_ ()
 {
-  variable rl = qualifier ("rl");
-
-  ifnot (NULL == rl)
-    rline->writehistory (rl.history, rl.histfile);
+  ifnot (NULL == RLINE)
+    rline->writehistory (RLINE.history, RLINE.histfile);
 
   exit_me (0);
 }
@@ -79,7 +77,7 @@ private define _ved_ (argv)
  
   shell_post_header ();
  
-  draw (qualifier ("ved"));
+  draw (SHELL_VED);
 }
 
 private define parse_redir (lastarg, file, flags)
@@ -234,7 +232,7 @@ private define _write_ (argv)
 {
   if ("w" == argv[0] || "w!" == argv[0])
     {
-    write_file (qualifier ("ved"), "w!" == argv[0], [PROMPTROW, 1], argv[[1:]]);
+    write_file (SHELL_VED, "w!" == argv[0], [PROMPTROW, 1], argv[[1:]]);
     return;
     }
 }
@@ -243,9 +241,7 @@ private define edit (argv)
 {
   _precom_ ();
 
-  variable s = qualifier ("ved");
-
-  viewfile (s, "STDOUT", s.ptr, s._ii);
+  viewfile (SHELL_VED, "STDOUT", SHELL_VED.ptr, SHELL_VED._ii);
 }
 
 private define _preexec_ (argv, header, issudo, env)
@@ -254,7 +250,7 @@ private define _preexec_ (argv, header, issudo, env)
 
   @header = strlen (argv[0]) > 1 && 0 == qualifier_exists ("no_header");
   @issudo = qualifier ("issudo");
-  @env = [proc->defenv (), "PPID=" + string (MYPID)];
+  @env = [proc->defenv (), "PPID=" + string (PID)];
 
   variable p = proc->init (@issudo, 0, 1);
 
@@ -409,7 +405,7 @@ private define _forkbg_ (p, argv, env)
   tostdout ("forked " + string (pid) + " &\n");
 }
 
-private define _fork_ (p, argv, env, ved)
+private define _fork_ (p, argv, env)
 {
   variable errfd = @FD_Type (_fileno (ERRFD));
  
@@ -423,12 +419,12 @@ private define _fork_ (p, argv, env, ved)
     tostdout (err);
 }
 
-private define _postexec_ (header, ved)
+private define _postexec_ (header)
 {
   if (header)
     shell_post_header ();
 
-  draw (ved);
+  draw (SHELL_VED);
 }
 
 private define _search_ (argv)
@@ -451,7 +447,7 @@ private define _search_ (argv)
  
   env = [env, "stdoutfile=" + stdoutfile, "stdoutflags=" + stdoutflags];
 
-  _fork_ (p, argv, env, qualifier ("ved"));
+  _fork_ (p, argv, env);
 
   ifnot (SHELLLASTEXITSTATUS)
     runapp (["ved", GREPFILE], [proc->defenv (), "return_code=1"]);
@@ -505,7 +501,7 @@ private define execute (argv)
       tostdout (err + "\n");
       MSG.st_.st_size += strbytelen (err) + 1;
       SHELLLASTEXITSTATUS = 1;
-      _postexec_ (header, qualifier ("ved"));
+      _postexec_ (header);
       return;
       }
  
@@ -535,7 +531,7 @@ private define execute (argv)
   env = [env, "stdoutfile=" + stdoutfile, "stdoutflags=" + stdoutflags];
  
   ifnot (isbg)
-    _fork_ (p, argv, env, qualifier ("ved"));
+    _fork_ (p, argv, env);
   else
     {
     _forkbg_ (p, argv, env);
@@ -544,12 +540,12 @@ private define execute (argv)
 
   ifnot (NULL == isscratch)
     ifnot (SHELLLASTEXITSTATUS)
-      scratch (qualifier ("ved"));
+      scratch (SHELL_VED);
 
   ifnot (isbg)
     _getbgjobs_ ();
 
-  _postexec_ (header, qualifier ("ved"));
+  _postexec_ (header);
 }
 
 private define _builtinpre_ (argv)
@@ -558,7 +554,7 @@ private define _builtinpre_ (argv)
   shell_pre_header (argv);
 }
 
-private define _builtinpost_ (vd)
+private define _builtinpost_ ()
 {
   variable err = read_fd (ERRFD;pos = MSG.st_.st_size);
 
@@ -567,7 +563,7 @@ private define _builtinpost_ (vd)
 
   shell_post_header ();
 
-  draw (vd);
+  draw (SHELL_VED);
 }
 
 private define _echo_ (argv)
@@ -612,7 +608,7 @@ private define _echo_ (argv)
 
     if (-1 == retval)
       {
-      _builtinpost_ (qualifier ("ved"));
+      _builtinpost_ ();
       SHELLLASTEXITSTATUS = 1;
       return;
       }
@@ -620,7 +616,7 @@ private define _echo_ (argv)
     ifnot (retval)
       {
       tostdout (strjoin (argv, " ") + hasnewline);
-      _builtinpost_ (qualifier ("ved"));
+      _builtinpost_ ();
       return;
       }
 
@@ -646,7 +642,7 @@ private define _echo_ (argv)
       }
     }
  
-  _builtinpost_ (qualifier ("ved"));
+  _builtinpost_ ();
 }
 
 private define _cd_ (argv)
@@ -669,7 +665,7 @@ private define _cd_ (argv)
         }
     }
 
-  _builtinpost_ (qualifier ("ved"));
+  _builtinpost_ ();
 }
 
 private define _which_ (argv)
@@ -679,7 +675,7 @@ private define _which_ (argv)
   if (1 == length (argv))
     {
     tostderr ("argument is required\n");
-    _builtinpost_ (qualifier ("ved"));
+    _builtinpost_ ();
     return;
     }
 
@@ -694,15 +690,12 @@ private define _which_ (argv)
 
   SHELLLASTEXITSTATUS = NULL == path;
 
-  _builtinpost_ (qualifier ("ved"));
+  _builtinpost_ ();
 }
 
 private define _intro_ (argv)
 {
-  variable rl = qualifier ("rl");
-  variable vd = qualifier ("ved");
- 
-  intro (rl, vd);
+  intro (RLINE, SHELL_VED);
 }
 
 private define _kill_bg_job (argv)
@@ -712,7 +705,7 @@ private define _kill_bg_job (argv)
   if (1 == length (argv))
     {
     shell_post_header ();
-    draw (qualifier ("ved"));
+    draw (SHELL_VED);
     return;
     }
 
@@ -721,7 +714,7 @@ private define _kill_bg_job (argv)
   ifnot (assoc_key_exists (BGPIDS, pid))
     {
     shell_post_header ();
-    draw (qualifier ("ved"));
+    draw (SHELL_VED);
     return;
     }
 
@@ -729,7 +722,7 @@ private define _kill_bg_job (argv)
  
   tostdout (pid + ": killed\n");
   shell_post_header ();
-  draw (qualifier ("ved"));
+  draw (SHELL_VED);
 }
 
 private define _list_bg_jobs_ (argv)
@@ -743,7 +736,7 @@ private define _list_bg_jobs_ (argv)
   ifnot (length (pids))
     {
     shell_post_header ();
-    draw (qualifier ("ved"));
+    draw (SHELL_VED);
     return;
     }
  
@@ -754,7 +747,13 @@ private define _list_bg_jobs_ (argv)
 
   shell_post_header ();
 
-  draw (qualifier ("ved"));
+  draw (SHELL_VED);
+}
+
+private define _getline (argv)
+{
+  variable s = rline->getline ();
+  send_msg_dr (s, 0, NULL, NULL);
 }
 
 private define _rehash_ ();
@@ -835,6 +834,9 @@ private define init_commands ()
 
   a["eval"] = @Argvlist_Type;
   a["eval"].func = &_eval_;
+  
+  a["gl"] = @Argvlist_Type;
+  a["gl"].func = &_getline;
 
   return a;
 }
@@ -890,7 +892,7 @@ define rlineinit ()
 
 private define _rehash_ (argv)
 {
-  qualifier ("rl").argvlist = init_commands ();
+  RLINE.argvlist = init_commands ();
 }
 
 define runcom (argv, issudo)
@@ -905,5 +907,5 @@ define runcom (argv, issudo)
 
   rl.argv = argv;
 
-  (@rl.argvlist[argv[0]].func) (rl.argv;;struct {issudo = issudo, ved = VED, @__qualifiers ()});
+  (@rl.argvlist[argv[0]].func) (rl.argv;;struct {issudo = issudo, @__qualifiers ()});
 }

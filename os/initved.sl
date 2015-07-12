@@ -1,4 +1,5 @@
-VED_ROWS = [1:LINES - 3];
+loadfrom ("stdio", "getlines", NULL, &on_eval_err);
+
 ERR = init_ftype ("txt");
 txt_settype (ERR, STDERR, VED_ROWS, NULL);
 setbuf (ERR._absfname);

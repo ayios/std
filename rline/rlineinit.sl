@@ -123,7 +123,7 @@ static define set (s)
   s._state = 1;
   s._row = s._prow;
   s.ptr = [s._prow, 1];
-  s._col = 1;
+  s._col = strlen (s._pchar);
   s._lin = s._pchar;
   s._ind = 0;
   s._chr = 0;
@@ -242,7 +242,8 @@ static define parse_args (s)
  
   _for i (0, length (s.argv) - 1)
     {
-    s._lin = sprintf ("%s%s%s", s._lin, 1 < strlen (s._lin) ? " " : "", s.argv[i]);
+    %s._lin = sprintf ("%s%s%s", s._lin, 1 < strlen (s._lin) ? " " : "", s.argv[i]);
+    s._lin = sprintf ("%s%s%s", s._lin, i > 0 ? " " : "", s.argv[i]);
  
     if (NULL == s._ind)
       if (s._col <= strlen (s._lin))
@@ -275,7 +276,7 @@ private define delete_at (s)
   _for i (0, s._ind)
     {
     arglen = strlen (s.argv[i]);
-    len += arglen + 1;
+    len += arglen + strlen (s._pchar);
     }
  
   len = s._col - (len - arglen);
@@ -292,11 +293,12 @@ private define delete_at (s)
     ifnot (len)
       s.argv[i] = substr (s.argv[i], 2, -1);
     else
-      if (len + 1 == arglen)
+      if (len + strlen (s._pchar) == arglen)
         s.argv[i] = substr (s.argv[i], 1, len);
       else
         s.argv[i] = substr (s.argv[i], 1, len) +
           substr (s.argv[i], len + 2, -1);
+
 }
 
 private define insert_at (s)
@@ -312,13 +314,13 @@ private define insert_at (s)
   _for i (0, s._ind)
     {
     arglen = strlen (s.argv[i]);
-    len += arglen + 1;
+    len += arglen + strlen (s._pchar);;
     }
 
   len = s._col - (len - arglen);
-
+  
   if (s._col == len)
-    s.argv[i] += chr;
+    s.argv[i]+= chr;
   else
     ifnot (len)
       if (i > 0)
@@ -334,7 +336,7 @@ private define routine (s)
 {
   if (any (keys->rmap.backspace == s._chr))
     {
-    if (s._col > 1)
+    if (s._col > strlen (s._pchar))
       delete_at (s);
  
     return;
@@ -342,7 +344,7 @@ private define routine (s)
 
   if (any (keys->rmap.left == s._chr))
     {
-    if (s._col > 1)
+    if (s._col > strlen (s._pchar))
       {
       s._col--;
       smg->setrcdr (s._row, s._col);
@@ -364,7 +366,7 @@ private define routine (s)
 
   if (any (keys->rmap.home == s._chr))
     {
-    s._col = 1;
+    s._col = strlen (s._pchar);
     smg->setrcdr (s._row, s._col);
     return;
     }
@@ -1772,6 +1774,49 @@ private define _holdcommand_ (s)
   prompt (s, s._lin, s._col);
 }
 
+static define getline ()
+{
+  variable s = @Rline_Type;
+
+  s._pchar = qualifier ("pchar", "");;
+  s._prow = PROMPTROW;
+  s._pclr = qualifier ("clr", 0);
+  s.on_lang = &_Null;
+  s.on_lang_args = {};
+  s._lines = LINES;
+  s._columns = COLUMNS;
+  s._row = s._prow;
+  
+  set (s);
+   
+  if (strlen (s._lin))
+    prompt (s, s._lin, s._col);
+  else
+    smg->atrcaddnstrdr (" ", 0, PROMPTROW, 0, PROMPTROW, 0, COLUMNS); 
+
+  forever
+    {
+    s._chr = getch (;on_lang = s.on_lang, on_lang_args = s.on_lang_args);
+ 
+    if (033 == s._chr)
+      {
+      restore (s.cmp_lnrs, s.ptr, 1, s._columns);
+      return "";
+      }
+
+    if ('\r' == s._chr)
+      return strjoin (s.argv);
+ 
+    routine (s;insert_ws);
+
+    parse_args (s);
+    
+
+    
+    prompt (s, s._lin, s._col);
+    }
+}
+
 static define readline (s)
 {
   variable retval;
@@ -1896,6 +1941,7 @@ static define readline (s)
     routine (s);
 
     parse_args (s);
+
     prompt (s, s._lin, s._col);
     }
 }

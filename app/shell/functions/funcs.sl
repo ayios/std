@@ -1,15 +1,3 @@
-define tostdout (str)
-{
-  () = lseek (OUTFD, 0, SEEK_END);
-  () = write (OUTFD, str);
-}
-
-define tostderr (str)
-{
-  () = lseek (ERRFD, 0, SEEK_END);
-  () = write (ERRFD, str);
-}
-
 define shell_pre_header (argv)
 {
   iarg++;
@@ -20,8 +8,6 @@ define shell_post_header ()
 {
   tostdout ("[" + string (iarg) + "](" + getcwd + ")[" + string (SHELLLASTEXITSTATUS) + "]$ ");
 }
-
-define getlines ();
 
 define draw (s)
 {
@@ -67,7 +53,6 @@ define viewfile (s, type, pos, _i)
 {
   variable f = __get_reference ("setbuf");
   (@f) (s._absfname);
-  VED = s;
  
   topline (" -- pager -- (" + type + " BUF) --";row =  s.ptr[0], col = s.ptr[1]);
  
@@ -107,19 +92,22 @@ define scratch (ved)
 
   variable f = __get_reference ("setbuf");
   
-  (@f) (ved._absfname);
-  VED = ved;
-  ved.draw ();
+  SHELL_VED = ved;
+
+  (@f) (SHELL_VED._absfname);
+  SHELL_VED.draw ();
 }
 
 define _messages_ (argv)
 {
+  variable ved = @SHELL_VED;
+
   viewfile (MSG, "MSG", NULL, NULL);
  
   variable f = __get_reference ("setbuf");
-  variable ved = qualifier ("ved");
+  
+  SHELL_VED = ved;
 
-  (@f) (ved._absfname);
-  VED = ved;
-  ved.draw ();
+  (@f) (SHELL_VED._absfname);
+  SHELL_VED.draw ();
 }

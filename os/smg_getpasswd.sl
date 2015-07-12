@@ -1,10 +1,10 @@
 define getpasswd ()
 {
   variable passwd = "";
-  variable prompt = "password: ";
+  variable prompt = "password:";
   variable chr;
 
-  smg->atrcaddnstrdr (prompt, 0, MSGROW - 1, 0, MSGROW - 1, strlen (prompt), COLUMNS);
+  smg->atrcaddnstrdr (prompt, 0, MSGROW, 0, MSGROW, strlen (prompt), COLUMNS);
 
   while (chr = getch (), chr != '\r')
     {

@@ -4,8 +4,8 @@ define osloop ()
 
   forever
     {
-    rline->set (OSRL);
-    rline->readline (OSRL);
+    rline->set (RLINE);
+    rline->readline (RLINE);
     topline (" -- OS CONSOLE --" + " (depth " + string (_stkdepth ()) + ")");
     }
 }

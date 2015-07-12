@@ -1,14 +1,7 @@
 static define getloginname ()
 {
-  variable name;
-  variable prompt = "login: ";
+  variable name = rline->getline (;pchar = "login:");
   
-  smg->atrcaddnstrdr (prompt, 0, MSGROW - 2, 0, MSGROW - 2, strlen (prompt), COLUMNS);
-
-  () = fgets (&name, stdin);
-  
-  smg->atrcaddnstrdr (" ", 0, MSGROW - 2, 0, MSGROW - 2, strlen (prompt), COLUMNS);
-
   return strtrim_end (name);
 }
 

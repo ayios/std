@@ -5,12 +5,11 @@ define _exit_me_ (argv)
   ifnot (NULL == rl)
     rline->writehistory (rl.history, rl.histfile);
   
-  variable apps = assoc_get_keys (APPS);
   variable i;
 
-  _for i (0, length (apps) - 1)
+  _for i (0, length (_APPS_) - 1)
     {
-    variable app = apps[i];
+    variable app = _APPS_[i];
     variable pids = assoc_get_keys (APPS[app]);
     variable ii;
     _for ii (0, length (pids) - 1)
@@ -18,8 +17,8 @@ define _exit_me_ (argv)
       variable pid = pids[ii];
       variable s = APPS[app][pid];
 
-      () = sock->send_int (s._fd, 0);
-      s._status = s._status & ~IDLED;
+      sock->send_int (s._fd, 0);
+      s._state &= ~IDLED;
       () = os->app_atexit (s);
       }
     }

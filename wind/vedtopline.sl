@@ -1,6 +1,8 @@
 loadfrom ("string", "repeat", NULL, &on_eval_err);
 loadfrom ("wind", "topline", NULL, &on_eval_err);
 
+private variable clr = getuid () ? 16 : 1;
+
 define topline (str)
 {
   str += "(" + string (_stkdepth ()) + ")";
@@ -8,7 +10,7 @@ define topline (str)
     input->getmapname ());
 
   _topline_ (&str, COLUMNS);
-  smg->atrcaddnstr (str, 16, 0, 0, COLUMNS);
+  smg->atrcaddnstr (str, clr, 0, 0, COLUMNS);
 }
 
 define toplinedr (str)
@@ -18,5 +20,6 @@ define toplinedr (str)
     input->getmapname ());
 
   _topline_ (&str, COLUMNS);
-  smg->atrcaddnstrdr (str, 16, 0, 0, VED_CB.ptr[0], VED_CB.ptr[1], COLUMNS);
+  smg->atrcaddnstrdr (str, clr, 0, 0, VED_CB.ptr[0],
+    VED_CB.ptr[1], COLUMNS);
 }

@@ -5,8 +5,6 @@ private define _vedloopcallback_ (s)
 
 private define _vedloop_ (s)
 {
-  variable rl = rlineinit ();
- 
   forever
     {
     VEDCOUNT = -1;
@@ -33,8 +31,8 @@ private define _vedloop_ (s)
         RECORD = 0;
 
       topline (" -- command line --");
-      rline->set (rl);
-      rline->readline (rl;ved = s);
+      rline->set (RLINE);
+      rline->readline (RLINE;ved = s);
       topline (" -- pager --");
       smg->setrcdr (s.ptr[0], s.ptr[1]);
       }

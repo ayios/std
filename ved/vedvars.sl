@@ -32,8 +32,6 @@ public variable
 
 public variable VED_TEMPDIR = TEMPDIR;
 public variable VED_SCRATCH_BUF = VED_TEMPDIR + "/" + string (getpid ()) + "scratch.txt";
-public variable VED_STDERR = VED_TEMPDIR + "/" + string (getpid ()) + "vedstderr.txt";
-public variable VED_STDERRFD = open (VED_STDERR, O_RDWR|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR);
 
 private define _invalid ()
 {
