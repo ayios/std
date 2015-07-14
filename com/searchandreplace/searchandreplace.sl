@@ -4,11 +4,13 @@ loadfrom ("posix", "read_fd", NULL, &on_eval_err);
 loadfrom ("stdio", "writefile", NULL, &on_eval_err);
 loadfrom ("dir", "fswalk", NULL, &on_eval_err);
 loadfrom ("proc", "procInit", NULL, &on_eval_err);
+loadfrom ("file", "fileis", NULL, &on_eval_err);
 
 variable
   MAXDEPTH = 1,
   HIDDENDIRS = 0,
   HIDDENFILES = 0,
+  EXCLUDEDIRS = {},
   SUBSTITUTEARRAY = Any_Type[0],
   WHENSUBST = NULL,
   WHENWRITE = NULL,
@@ -67,16 +69,8 @@ private define sed (file, s)
     ar,
     err,
     undiff,
-    retval,
-    st = qualifier ("st", stat_file (file));
- 
-  ifnot (stat_is ("reg", st.st_mode))
-    {
-    tostderr (sprintf
-      ("cannot operate on special file `%s': Operation not permitted", file));
-    return;
-    }
- 
+    retval;
+  
   ar = readfile (file);
  
   ifnot (length (ar))
@@ -124,16 +118,48 @@ private define sed (file, s)
       }
 }
 
+private define sanitycheck (file, st)
+{
+  if (INPLACE)
+    if (-1 == access (file, W_OK))
+      {
+      tostderr (sprintf ("%s: Is not writable", file));
+      return -1;
+      }
+
+  ifnot (stat_is ("reg", st.st_mode))
+    {
+    tostderr (sprintf
+      ("cannot operate on special file `%s': Operation not permitted", file));
+    return -1;
+    }
+
+  if (1 == iself (file))
+    {
+    tostderr (sprintf
+      ("cannot operate on binary file `%s': Operation not permitted", file));
+    return -1;
+    }
+
+  return 0;
+}
+
 private define file_callback (file, st, type)
 {
   ifnot (HIDDENFILES)
     if ('.' == path_basename (file)[0])
       return 1;
- 
-  if (".so" == path_extname (file))
+  
+  if (-1 == access (file, R_OK))
+    {
+    tostderr (sprintf ("%s: Is not readable", file));
+    return 1;
+    }
+
+  if (-1 == sanitycheck (file, st))
     return 1;
 
-  sed (file, type;st = st);
+  sed (file, type);
 
   return 1;
 }
@@ -143,6 +169,9 @@ private define dir_callback (dir, st)
   ifnot (HIDDENDIRS)
     if ('.' == path_basename (dir)[0])
       return 0;
+
+  if (any (path_basename (dir) == EXCLUDEDIRS))
+    return 0;
 
   if (length (strtok (dir, "/")) > MAXDEPTH)
     return 0;
@@ -167,6 +196,7 @@ define main ()
   c.add ("hidden-files", &HIDDENFILES);
   c.add ("maxdepth", &maxdepth;type = "int");
   c.add ("rmspacesfromtheend", &assign_func, "rmspacesfromtheend");
+  c.add ("excludedir", &EXCLUDEDIRS;type = "string", append);
   c.add ("pat", &PAT;type = "string");
   c.add ("sub", &SUBSTITUTE;type = "string");
   c.add ("in-place", &INPLACE);
@@ -201,6 +231,8 @@ define main ()
     exit_me (1);
     }
 
+  EXCLUDEDIRS = list_to_array (EXCLUDEDIRS, String_Type);
+
   if (NULL == DIFFEXEC)
     if (NULL == WHENWRITE)
       tostderr ("diff executable couldn't be found, unified diff will be disabled");
@@ -230,13 +262,6 @@ define main ()
       continue;
       }
 
-    if (INPLACE)
-      if (-1 == access (files[i], W_OK))
-        {
-        tostderr (sprintf ("%s: Is not writable", files[i]));
-        continue;
-        }
-
     if (_isdirectory (files[i]))
       {
       fs = fswalk_new (&dir_callback, &file_callback;fargs = {type});
@@ -245,6 +270,11 @@ define main ()
 
       continue;
       }
+
+    variable st = lstat_file (files[i]);
+
+    if (-1 == sanitycheck (files[i], st))
+      continue;
 
     sed (files[i], type);
     }

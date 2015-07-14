@@ -1,6 +1,7 @@
 --pat=          pcrepattern  pcre pattern (required)
 --hidden-files  void hidden files also (off by default)
 --hidden-dirs   void hidden directories also (off by default)
+--excludedir=   string exclude directory
 --maxdepth=     int descend at most `levels' of directories
 --recursive     void search recursively
 --findfiles     void find files that match `pat'

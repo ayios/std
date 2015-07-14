@@ -150,10 +150,10 @@ loadfrom ("smg", "widg", "widg", &on_eval_err);
 loadfrom ("wind", app + "topline", NULL, &on_eval_err);
 
 if (VED_LIB)
-{
+  {
   loadfrom ("os", "appclientfuncs", NULL, &on_eval_err);
   loadfrom ("ved", "vedlib", NULL, &on_eval_err);
-}
+  }
 
 define init_stream (fname)
 {
@@ -198,4 +198,3 @@ loadfile ("Init", NULL, &on_eval_err);
 MSG = init_ftype ("txt");
 txt_settype (MSG, STDERR, VED_ROWS, NULL);
 RLINE = rlineinit ();
-

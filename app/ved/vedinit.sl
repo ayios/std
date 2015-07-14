@@ -10,7 +10,7 @@ define ved ()
 
   _log_ ("sockaddress: " + s._sockaddr, LOGALL);
 
-  if (-1 == os->doproc (s, argv))
+  if (-1 == os->doproc (s, argv;;__qualifiers ()))
     {
     _log_ ("ved: fork failed", LOGERR);
     return;

@@ -8,6 +8,7 @@ private variable
   RECURSIVE = 0,
   HIDDENDIRS = 0,
   HIDDENFILES = 0,
+  EXCLUDEDIRS = {},
   LINENRS = Integer_Type[0],
   COLS = Integer_Type[0],
   FNAMES = String_Type[0],
@@ -76,6 +77,9 @@ private define dir_callback_a (dir, st)
     if ('.' == path_basename (dir)[0])
       return 0;
 
+  if (any (path_basename (dir) == EXCLUDEDIRS))
+    return 0;
+
   if (length (strtok (dir, "/")) > MAXDEPTH)
     return 0;
 
@@ -133,6 +137,9 @@ private define dir_callback (dir, st)
   ifnot (HIDDENDIRS)
     if ('.' == path_basename (dir)[0])
       return 0;
+
+  if (any (path_basename (dir) == EXCLUDEDIRS))
+    return 0;
 
   if (length (strtok (dir, "/")) > MAXDEPTH)
     return 0;
@@ -210,6 +217,7 @@ define main ()
   c.add ("pat", &PAT;type="string");
   c.add ("hidden-dirs", &HIDDENDIRS);
   c.add ("hidden-files", &HIDDENFILES);
+  c.add ("excludedir", &EXCLUDEDIRS;type = "string", append);
   c.add ("maxdepth", &maxdepth;type = "int");
   c.add ("recursive", &RECURSIVE);
   c.add ("findfiles", &findfiles);
@@ -258,6 +266,8 @@ define main ()
       }
     }
 
+  EXCLUDEDIRS = list_to_array (EXCLUDEDIRS, String_Type);
+
   if (danglinglinks == NULL == findfiles)
     {
     files = __argv[[i:]];
@@ -299,7 +309,7 @@ define main ()
   else
     _for i (0, length (ar) - 1)
       array_map (Void_Type, &tostdout, array_map
-          (String_Type, &sprintf, "%s|0 col 0| 1", ar[i]));
+        (String_Type, &sprintf, "%s|0 col 0| 1", ar[i]));
 
   exit_me (0);
 }

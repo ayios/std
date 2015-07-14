@@ -1,6 +1,21 @@
+define iself (file)
+{
+  variable fd = open (file, O_RDONLY);
+  if (NULL == fd)
+    return -1;
+
+  variable b;
+  variable bts = read (fd, &b, 4);
+  if (bts < 4)
+    return 0;
+
+  if ("ELF" == b[[1:]])
+    return 1;
+}
+
 define isreg (file)
 {
-  variable st = qualifier ("st", stat_file (file));
+  variable st = qualifier ("st", lstat_file (file));
   return NULL != st && stat_is ("reg", st.st_mode);
 }
 
