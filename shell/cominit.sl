@@ -43,7 +43,7 @@ define shell_post_header ()
 
 define scratch (ved)
 {
-  viewfile (SCRATCH, "SCRATCH", [1, 0], 0);
+  viewfile (SCRATCH_VED, "SCRATCH", [1, 0], 0);
 
   variable f = __get_reference ("setbuf");
   
@@ -536,7 +536,7 @@ define execute (argv)
     isbg = 0;
     argv[isscratch] = NULL;
     argv = argv[wherenot (_isnull (argv))];
-    stdoutfile = SCRATCHBUF;
+    stdoutfile = SCRATCH;
     stdoutflags = ">|";
     }
   else
@@ -570,7 +570,7 @@ define execute (argv)
     (any (argv[2] == ["man"]) && NULL == is_arg ("--buildcache", argv)))
     {
     isbg = 0;
-    stdoutfile = SCRATCHBUF;
+    stdoutfile = SCRATCH;
     stdoutflags = ">|";
     isscratch = 1;
     }

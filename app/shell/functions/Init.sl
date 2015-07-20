@@ -27,7 +27,7 @@ define init_shell ()
 
   SHELL_VED = init_ftype ("ashell");
   OUTBG = init_ftype ("ashell");
-  STDOUTFDBG = init_stream (STDOUTBG);
+  STDOUTFDBG = initstream (STDOUTBG);
 
   if (-1 == access (STACKFILE, F_OK))
     writestring (STACKFILE, "STACK = {}");

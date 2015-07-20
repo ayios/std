@@ -27,7 +27,10 @@ define runapp (argv, env)
 
 define _shell_ (argv)
 {
+  shell_pre_header ("shell");
   runapp ([argv], NULL;;__qualifiers ());
+  shell_post_header ();
+  draw (VED_CB);
 }
 
 private define _exit_ ()
@@ -57,7 +60,7 @@ private define _ved_ (argv)
 {
   _precom_ ();
  
-  variable fname = 1 == length (argv) ? SCRATCHBUF : argv[1];
+  variable fname = 1 == length (argv) ? SCRATCH : argv[1];
  
   shell_pre_header ("ved " + fname);
 

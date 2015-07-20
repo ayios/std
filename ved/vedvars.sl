@@ -30,6 +30,7 @@ public variable
   MAPS = [EL_MAP, EN_MAP],
   WCHARS = array_map (String_Type, &char, [['0':'9'], EN_MAP, EL_MAP, '_']);
 
+public variable VEDDIR = STDDIR + "/app/ved/functions";
 public variable VED_TEMPDIR = TEMPDIR;
 public variable VED_SCRATCH_BUF = VED_TEMPDIR + "/" + string (getpid ()) + "scratch.txt";
 

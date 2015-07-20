@@ -1,19 +1,20 @@
-variable app = "ved";
-variable stdouttype = "txt";
-variable VED_LIB = 0;
-variable loaddir = path_dirname (__FILE__) + "/functions";
-variable SCRATCHBUF = NULL;
-variable SHELL_VED = 1;
+loadfrom ("api", "apiInit", 1, &on_eval_err);
 
-loaddir = loaddir + char (path_get_delimiter) + loaddir + "/share";
+APP = api->init (__FILE__;
+  stderr = 1,
+  stdout = 0,
+  scratch = 1,
+  stdouttype = NULL,
+  ved = 0,
+  shell = 1,
+  os = 1,
+  );
 
-define on_eval_err (err, code)
-{
-  () = array_map (Integer_Type, &fprintf, stderr, "%s\n", err);
-  exit (code);
-}
+public variable VED_CB;
 
-loadfrom ("os", "appclient", NULL, &on_eval_err);
+define init_ftype ();
+
+loadfrom ("api", "clientapi", NULL, &on_eval_err);
 
 define on_eval_err (err, code)
 {

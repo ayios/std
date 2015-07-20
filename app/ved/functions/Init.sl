@@ -1,4 +1,7 @@
-variable clinef = Assoc_Type[Ref_Type];
+%variable clinef = Assoc_Type[Ref_Type];
+
+VED_RLINE = 1;
+VED_ISONLYPAGER = 0;
 
 private define quit (t)
 {
