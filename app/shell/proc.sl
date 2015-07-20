@@ -2,6 +2,8 @@ variable app = "shell";
 variable stdouttype = "ashell";
 variable loaddir = path_dirname (__FILE__) + "/functions";
 variable VED_LIB = 1;
+variable SCRATCHBUF = 1;
+variable SHELL_VED = 1;
 
 define on_eval_err (err, code)
 {

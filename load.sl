@@ -37,6 +37,7 @@ public variable LCLDATADIR = LCLDIR + "/share/data";
 public variable HISTDIR    = LCLDIR + "/share/history";
 
 public variable FILE_FLAGS = Assoc_Type[Integer_Type];
+
 FILE_FLAGS[">"]    = O_WRONLY|O_CREAT;
 FILE_FLAGS[">|"]   = O_WRONLY|O_TRUNC|O_CREAT;
 FILE_FLAGS[">>"]   = O_WRONLY|O_APPEND;
@@ -48,6 +49,7 @@ FILE_FLAGS["<>>"]  = O_RDWR|O_APPEND;
 FILE_FLAGS["<>>|"] =  O_RDWR|O_APPEND|O_CREAT;
 
 public variable PERM = Assoc_Type[Integer_Type];
+
 PERM["PRIVATE"]  = S_IRWXU;                          %0700
 PERM["_PRIVATE"] = S_IRUSR|S_IWUSR;                  %0600
 PERM["STATIC"]   = PERM["PRIVATE"]|S_IRWXG;          %0770

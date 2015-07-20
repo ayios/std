@@ -1,6 +1,8 @@
 variable stdouttype = "txt";
 variable VED_LIB = 0;
 variable loaddir = path_dirname (__FILE__) + "/functions";
+variable SCRATCHBUF = NULL;
+variable SHELL_VED = 1;
 
 loaddir = loaddir + char (path_get_delimiter) + loaddir + "/share";
 

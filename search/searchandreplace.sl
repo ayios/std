@@ -205,7 +205,7 @@ static define search_and_replace (s, ar)
            switch (retval)
 
              {
-             case 'n' || case 033: break;
+             case 'n': break;
              }
 
              {

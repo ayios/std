@@ -10,8 +10,8 @@ variable PPID = getenv ("PPID");
 variable BG = getenv ("BG");
 variable BGPIDFILE;
 variable BGX = 0;
-variable WRFIFO = TEMPDIR + "/" + string (PPID) + "SRV_FIFO.fifo";
-variable RDFIFO = TEMPDIR + "/" + string (PPID) + "CLNT_FIFO.fifo";
+variable WRFIFO = TEMPDIR + "/" + string (PPID) + "_SRV_FIFO.fifo";
+variable RDFIFO = TEMPDIR + "/" + string (PPID) + "_CLNT_FIFO.fifo";
 variable RDFD = NULL;
 variable WRFD = NULL;
 variable stdoutfile = getenv ("stdoutfile");
@@ -24,6 +24,11 @@ define sigalrm_handler (sig)
     WRFD = open (WRFIFO, O_WRONLY);
 
   () = write (WRFD, "exit");
+
+  variable ref = __get_reference ("input->at_exit");
+  ifnot (NULL == ref)
+    (@ref);
+
   exit (BGX);
 }
 

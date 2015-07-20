@@ -11,22 +11,26 @@ private define mainloop ()
 define shell ()
 {
   ashell_settype (SHELL_VED, STDOUT, VED_ROWS, NULL);
-  ashell_settype (SCRATCH, SCRATCHFILE, VED_ROWS, NULL);
   ashell_settype (OUTBG, STDOUTBG, VED_ROWS, NULL);
+  
+  VED_CB = SHELL_VED;
 
-  setbuf (SHELL_VED._absfname);
+  VED_CB._fd = STDOUTFD;
+  OUTBG._fd = STDOUTFDBG;
+
+  setbuf (VED_CB._absfname);
   
   ifnot (fileexists (TEMPDIR + "/" + strftime ("%m_%d-intro")))
     {
     runcom (["intro"], NULL);
-    writestring (TEMPDIR + "/" + strftime ("%m_%d-intro"), "ok");
+    () = writestring (TEMPDIR + "/" + strftime ("%m_%d-intro"), "ok");
     }
 
   topline (" -- shell --");
 
   shell_post_header ();
  
-  draw (SHELL_VED);
+  draw (VED_CB);
  
   mainloop ();
 }
@@ -42,7 +46,7 @@ define on_eval_err (err, code)
 
   shell_post_header ();
 
-  draw (SHELL_VED);
+  draw (VED_CB);
 
   mainloop ();
 }

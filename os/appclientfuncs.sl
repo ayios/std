@@ -1,6 +1,6 @@
 define draw (s)
 {
-  variable st = fstat (OUTFD);
+  variable st = fstat (s._fd);
  
   if (s.st_.st_size)
     if (st.st_atime == s.st_.st_atime && st.st_size == s.st_.st_size)
@@ -31,4 +31,41 @@ define draw (s)
     s._i = s._len + 1 <= len ? 0 : s._len + 1 - len;
 
   s.draw ();
+}
+
+define viewfile (s, type, pos, _i)
+{
+  variable f = __get_reference ("setbuf");
+  (@f) (s._absfname);
+ 
+  topline (" -- pager -- (" + type + " BUF) --";row =  s.ptr[0], col = s.ptr[1]);
+ 
+  ifnot (NULL == pos)
+    (s.ptr[0] = pos[0], s.ptr[1] = pos[1]);
+
+  draw (s;pos = pos, _i = _i);
+ 
+  forever
+    {
+    VEDCOUNT = -1;
+    s._chr = getch (;disable_langchange);
+
+    if ('1' <= s._chr <= '9')
+      {
+      VEDCOUNT = "";
+ 
+      while ('0' <= s._chr <= '9')
+        {
+        VEDCOUNT += char (s._chr);
+        s._chr = getch (;disable_langchange);
+        }
+
+      VEDCOUNT = integer (VEDCOUNT);
+      }
+ 
+    (@pagerf[string (s._chr)]) (s);
+ 
+    if (':' == s._chr || 'q' == s._chr)
+      break;
+    }
 }

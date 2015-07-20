@@ -81,6 +81,9 @@ private define _execline_ (s)
     return;
     }
 
+  ifnot (any (assoc_get_keys (s.argvlist) == s.argv[0]))
+    return;
+
   variable _addhistory = 1;
 
   if (1 < length (s.argv))
@@ -1202,7 +1205,7 @@ private define commandcmp (s, commands)
     if (any ([' ', '\r'] == chr) || 0 == ('!' <= chr <= 'z'))
       {
       restore (s.cmp_lnrs, '\r' == chr ? s.ptr : [s._row, s._col], 1, s._columns);
-      return, " ", '\r' == chr;
+      return '\r' == chr;
       }
 
     s.argv[0] += char (chr);
@@ -1657,7 +1660,7 @@ private define argcompletion (s)
 static define argroutine (s)
 {
   ifnot (s._ind)
-    return;
+    return 0;
 
   variable arg = strchop (s.argv[s._ind], '=', 0);
  
@@ -1810,8 +1813,6 @@ static define getline ()
     routine (s;insert_ws);
 
     parse_args (s);
-    
-
     
     prompt (s, s._lin, s._col);
     }

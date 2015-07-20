@@ -37,7 +37,7 @@ static define runapp ()
     list_append (args, argv[i]);
 
   smg->reset ();
-  
+ 
   loadfrom ("app/" + app, APPSINFO[app].init, app, &on_eval_err);
   
   variable ref = __get_reference (app + "->" + app);

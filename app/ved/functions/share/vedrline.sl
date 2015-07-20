@@ -117,7 +117,7 @@ private define write_quit ()
 private define messages ()
 {
   variable keep = VED_CB;
-  variable s = MSG;
+  variable s = ERR_VED;
   VED_ISONLYPAGER = 1;
   setbuf (s._absfname);
  

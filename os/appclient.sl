@@ -10,14 +10,20 @@ variable SOCKADDR   = getenv ("SOCKADDR");
 variable HASHEDDATA = NULL;
 variable STDOUT     = TEMPDIR + "/" + string (PID) + app + "stdout." + stdouttype;
 variable STDERR     = TEMPDIR + "/" + string (PID) + app + "stderr.txt";
-variable OUTFD;
-variable ERRFD;
-variable MSG;
+variable SCRATCH;
+variable SCRATCHFD;
+variable STDOUTFD;
+variable STDERRFD;
+variable ERR_VED;
 variable SOCKET;
 variable RLINE = NULL;
 
+ifnot (NULL == SCRATCHBUF)
+  SCRATCHBUF = TEMPDIR + "/" + string (PID) + app +  "scratch.txt";
+
 define on_eval_err (err, code)
 {
+  $1 = open (TEMPDIR + "/_" + app + "_.initerr", O_WRONLY|O_CREAT, S_IRWXU);
   () = array_map (Integer_Type, &fprintf, stderr, "%s\n", err);
   exit (code);
 }
@@ -65,10 +71,14 @@ putenv ("GROUP=" + GROUP);
 
 importfrom ("std", "socket",  NULL, &on_eval_err);
 
+$1 = open (TEMPDIR + "/_" + app + "_.init", O_WRONLY|O_CREAT, S_IRWXU);
+
 $1 = socket (PF_UNIX, SOCK_STREAM, 0);
 bind ($1, SOCKADDR);
 listen ($1, 1);
 SOCKET = accept (__tmp ($1));
+
+() = remove (TEMPDIR + "/_" + app + "_.init");
 
 loadfrom ("sock", "sockInit", 1, &on_eval_err);
 
@@ -180,21 +190,31 @@ define init_stream (fname)
 
 define tostdout (str)
 {
-  () = lseek (OUTFD, 0, SEEK_END);
-  () = write (OUTFD, str);
+  () = lseek (STDOUTFD, 0, SEEK_END);
+  () = write (STDOUTFD, str);
 }
 
 define tostderr (str)
 {
-  () = lseek (ERRFD, 0, SEEK_END);
-  () = write (ERRFD, str);
+  () = lseek (STDERRFD, 0, SEEK_END);
+  () = write (STDERRFD, str);
 }
 
-OUTFD = init_stream (STDOUT);
-ERRFD = init_stream (STDERR);
+STDOUTFD = init_stream (STDOUT);
+STDERRFD = init_stream (STDERR);
 
 loadfile ("Init", NULL, &on_eval_err);
 
-MSG = init_ftype ("txt");
-txt_settype (MSG, STDERR, VED_ROWS, NULL);
+ERR_VED = init_ftype ("txt");
+
+ifnot (NULL == SCRATCHBUF)
+  {
+  SCRATCH = init_ftype ("txt");
+  txt_settype (SCRATCH, SCRATCHBUF, VED_ROWS, NULL);
+  SCRATCH._fd = init_stream (SCRATCHBUF);
+  }
+  
+txt_settype (ERR_VED, STDERR, VED_ROWS, NULL);
+ERR_VED._fd = STDERRFD;
+
 RLINE = rlineinit ();

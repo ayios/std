@@ -82,19 +82,41 @@ private define rmfile (file)
   return 1;
 }
 
+private define ignore (obj, excl, type)
+{
+    variable lobj;
+    variable i;
+    variable ii;
+    variable ignobj;
+    variable cmpnts;
+    
+    _for i (0, length (excl) - 1)
+      {
+      ignobj = strchopr (excl[i], '/', 0);
+      cmpnts = length (ignobj);
+      lobj = strchopr (obj, '/', 0);
+
+      if (cmpnts > length (lobj))
+        continue;
+
+      _for ii (0, cmpnts - 1)
+        ifnot (ignobj[ii] == lobj[ii])
+          continue 2;
+
+      tostdout ("ignored " + type + ": " + obj);
+      return 1;
+      }
+
+    return 0;
+}
+
 private define file_callback_a (file, st, s, cur, other, exit_code)
 {
   variable newfile = strreplace (file, other, cur);
  
   ifnot (NULL == s.ignorefileonremove)
-    {
-    variable lfile = strtok (file, "/");
-    if (any (lfile[-1] == s.ignorefileonremove))
-      {
-      tostdout (sprintf ("ignored file: %s", file));
+    if (ignore (file, s.ignorefileonremove, "file"))
       return 1;
-      }
-    }
 
   if (-1 == access (newfile, F_OK) && 0 == access (file, F_OK))
     if (-1 == rmfile (file))
@@ -111,14 +133,8 @@ private define dir_callback_a (dir, st, s, dirs, cur, other)
   variable newdir = strreplace (dir, other, cur);
 
   ifnot (NULL == s.ignoredironremove)
-    {
-    variable ldir = strtok (newdir, "/");
-    if (any (ldir[-1] == s.ignoredironremove))
-      {
-      tostdout (sprintf ("ignored dir: %s", dir));
+    if (ignore (dir, s.ignoredironremove, "dir"))
       return 0;
-      }
-    }
 
   if (-1 == access (newdir, F_OK) && 0 == access (dir, F_OK))
     list_append (dirs, dir);
@@ -138,6 +154,8 @@ private define rm_extra (s, cur, other)
     Accept_All_As_Yes = 0;
   else
     Accept_All_As_Yes = 1;
+
+  tostdout ("Removing ...");
 
   fs.walk (other);
 
@@ -356,14 +374,8 @@ private define file_callback (file, st, s, source, dest, exit_code)
     return -1;
 
   ifnot (NULL == s.ignorefile)
-    {
-    variable lfile = strtok (file, "/");
-    if (any (lfile[-1] == s.ignorefile))
-      {
-      tostdout (sprintf ("ignored file: %s", file));
+    if (ignore (file, s.ignorefile, "file"))
       return 1;
-      }
-    }
 
   (dest, ) = strreplace (file, source, dest, 1);
  
@@ -411,14 +423,8 @@ private define dir_callback (dir, st, s, source, dest, exit_code)
     return -1;
 
   ifnot (NULL == s.ignoredir)
-    {
-    variable ldir = strtok (dir, "/");
-    if (any (ldir[-1] == s.ignoredir))
-      {
-      tostdout (sprintf ("ignored dir: %s", dir));
+    if (ignore (dir, s.ignoredir, "dir"))
       return 0;
-      }
-    }
 
   (dest, ) = strreplace (dir, source, dest, 1);
 
@@ -477,6 +483,8 @@ private define _sync (s, source, dest)
     return exit_code;
     }
  
+  tostdout ("Syncing ...");
+
   variable
     fs = fswalk_new (&dir_callback, &file_callback;
     dargs = {s, source, dest, &exit_code}, fargs = {s, source, dest, &exit_code});

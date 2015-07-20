@@ -11,6 +11,8 @@ define iself (file)
 
   if ("ELF" == b[[1:]])
     return 1;
+
+  return 0;
 }
 
 define isreg (file)

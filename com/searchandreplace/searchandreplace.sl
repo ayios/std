@@ -1,5 +1,7 @@
 loadfrom ("search", "searchandreplace", "search", &on_eval_err);
+
 importfrom ("std", "fork", NULL, &on_eval_err);
+
 loadfrom ("posix", "read_fd", NULL, &on_eval_err);
 loadfrom ("stdio", "writefile", NULL, &on_eval_err);
 loadfrom ("dir", "fswalk", NULL, &on_eval_err);
@@ -94,12 +96,12 @@ private define sed (file, s)
       if (NULL == WHENWRITE)
         {
         undiff = unified_diff (ar, file);
-        undiff = NULL == undiff ? NULL : strchop (undiff, '\n', 0);
+        undiff = NULL == undiff ? "No diff available" :
+          ["    UNIFIED DIFF", repeat ("_", COLUMNS), strchop (undiff, '\n', 0)];
  
         retval = ask ([
-          sprintf ("@write changes to `%s' ? y/n", file),
-          NULL == undiff ? "No diff available"
-                         : ["    UNIFIED DIFF", repeat ("_", COLUMNS), undiff]
+          sprintf ("@write changes to `%s' ? y[es]/n[o]", file),
+          undiff,
           ], ['y', 'n']);
  
         if ('n' == retval)

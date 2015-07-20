@@ -4,21 +4,21 @@ __set_argc_argv (__argv[[1:]]);
 
 () = evalfile (path_dirname (__FILE__) + "/../load");
 
-define on_eval_err ()
+define exit_me (code)
 {
-  exit (1);
+  exit (code);
 }
 
-try
-  loadfrom ("stdio", "ar_to_fp", NULL, NULL);
-catch ParseError:
-  on_eval_err ();
-
-define on_eval_err (msg, err)
+define tostderr (str)
 {
-  () = ar_to_fp (msg, "%s\n", stderr);
-  exit (err);
+  () = fprintf (stderr, "%s\n", str);
 }
- 
+
+define on_eval_err (err, code)
+{
+  () = array_map (Integer_Type, &fprintf, stderr, "%s\n", err);
+  exit (code);
+}
+
 % for now NULL
 loadfile (file, NULL, &on_eval_err);

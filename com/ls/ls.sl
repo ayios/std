@@ -542,7 +542,7 @@ define main ()
   variable
     opts = struct
       {
-      executablesonly, %bad programming (make an option to match `mode bits') but cheap
+      executablesonly, %bad but cheap programming (make an option to match `mode bits')
       find,
       ignore,
       match,
@@ -615,7 +615,7 @@ define main ()
     {
     if (access (dir[i], R_OK))
       {
-      tostdout (dir[i] + ": " + errno_string (errno));
+      tostderr (dir[i] + ": " + errno_string (errno));
       EXIT_CODE = 1;
       continue;
       }

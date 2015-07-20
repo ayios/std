@@ -81,8 +81,9 @@ static define app_atexit (s)
     variable status = waitpid (s.p_.pid, 0);
 
     s.p_.atexit ();
-
-    () = close (s._fd);
+    
+    ifnot (NULL == s._fd)
+      () = close (s._fd);
     
     assoc_delete_key (APPS[s._appname], string (s.p_.pid));
     
@@ -130,6 +131,24 @@ static define apploop (s)
 
 static define connect_to_child (s)
 {
+  while (-1 == access (TEMPDIR + "/_" + s._appname + "_.init", F_OK))
+    {
+    ifnot (access (TEMPDIR + "/_" + s._appname + "_.initerr", F_OK))
+      {
+      () = remove (TEMPDIR + "/_" + s._appname + "_.initerr");
+
+      s.p_.atexit ();
+
+      () = kill (s.p_.pid, SIGKILL);
+    
+      _log_ (s._appname +": evaluation err", LOGERR);
+    
+      array_map (&tostderr, readfile (s.p_.stderr.file));
+      
+      return;
+      }
+    }
+
   s._fd = s.p_.connect (s._sockaddr);
 
   if (NULL == s._fd)
