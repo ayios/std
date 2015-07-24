@@ -1,6 +1,6 @@
 private define _vedloopcallback_ (s)
 {
-  (@pagerf[string (s._chr)]) (s);
+  (@VED_PAGER[string (s._chr)]) (s);
 }
 
 private define _vedloop_ (s)
@@ -25,14 +25,22 @@ private define _vedloop_ (s)
 
     s.vedloopcallback ();
  
-    if (':' == s._chr)
+    if (':' == s._chr && 0 == VED_ISONLYPAGER)
       {
       if (RECORD)
         RECORD = 0;
 
       topline (" -- command line --");
       rline->set (RLINE);
-      rline->readline (RLINE;ved = s);
+      rline->readline (RLINE;
+        ved = s, draw = SCRATCH == s._absfname ? 0 : 1);
+
+      if ('!' == RLINE.argv[0][0] && SCRATCH == s._absfname)
+        {
+        draw (s);
+        continue;
+        }
+
       topline (" -- pager --");
       smg->setrcdr (s.ptr[0], s.ptr[1]);
       }

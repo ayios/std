@@ -3,15 +3,15 @@ private define _invalid (s)
   return;
 }
  
-variable list_pagerf = Assoc_Type[Ref_Type, &_invalid];
+variable list_VED_PAGER = Assoc_Type[Ref_Type, &_invalid];
 
 loadfile ("initfunctions", NULL, &on_eval_err);
 
 private define _vedloopcallback_ (s)
 {
-  (@pagerf[string (s._chr)]) (s);
+  (@VED_PAGER[string (s._chr)]) (s);
 
-  (@list_pagerf[string (s._chr)]) (s);
+  (@list_VED_PAGER[string (s._chr)]) (s);
 }
 
 private variable
@@ -192,11 +192,11 @@ private define myquit ()
   exit_me (0);
 }
 
-clinef["q"] = &myquit;
-clinef["q!"] = &myquit;
+VED_CLINE["q"] = &myquit;
+VED_CLINE["q!"] = &myquit;
 
-list_pagerf[string ('\r')] = &drawfile;
-list_pagerf[string (keys->CTRL_w)] = &chframe;
+list_VED_PAGER[string ('\r')] = &drawfile;
+list_VED_PAGER[string (keys->CTRL_w)] = &chframe;
 
 define list_set (s, mys)
 {

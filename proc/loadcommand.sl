@@ -103,7 +103,6 @@ proc->getdefenv ();
 
 loadfrom ("sock", "sockInit", NULL, &on_eval_err);
 loadfrom ("input", "inputInit", NULL, &on_eval_err);
-loadfrom ("stdio", "readfile", NULL, &on_eval_err);
 loadfrom ("parse", "cmdopt", NULL, &on_eval_err);
 
 define verboseon ()

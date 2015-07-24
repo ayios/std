@@ -1136,7 +1136,7 @@ private define commandcmp (s, commands)
     ar = commands[[indices]];
 
     ifnot (NULL == s.filtercommands)
-      ar = (@s.filtercommands) (ar);
+      ar = (@s.filtercommands) (s, ar);
 
     ifnot (length (ar))
       {
@@ -1502,9 +1502,9 @@ private define argcompletion (s)
 
       if (-1 == access (file, F_OK|R_OK))
         return 0;
- 
-      ar = readfile (file);
       }
+
+    ar = readfile (file);
     }
 
   if (NULL == ar || 0 == length (ar))
@@ -1526,7 +1526,7 @@ private define argcompletion (s)
       return 0;
 
   ifnot (NULL == s.filterargs)
-    (args, type, desc) = (@s.filterargs) (args, type, desc);
+    (args, type, desc) = (@s.filterargs) (s, args, type, desc);
 
   variable bar = array_sort (args);
   args = args[bar];

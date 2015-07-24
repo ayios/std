@@ -1,20 +1,19 @@
 loadfrom ("api", "apiInit", 1, &on_eval_err);
 
 APP = api->init (__FILE__;
-  stderr = 1,
+  vedrline = 1,
   stdout = 0,
-  stdouttype = "txt",
-  ved = 0,
-  scratch = 1,
-  shell = 1,
+  vedlib = 0,
+  excom = 1,
   os = 0,
   );
 
-public variable VED_CB;
-
-define init_ftype ();
-
 loadfrom ("api", "clientapi", NULL, &on_eval_err);
+
+define tostdout (str)
+{
+  tostderr (str);
+}
 
 define on_eval_err (err, code)
 {
@@ -42,7 +41,7 @@ define on_eval_err (err, code)
 variable fname;
 
 if (1 == __argc)
-  fname = VED_SCRATCH_BUF;
+  fname = SCRATCH;
 else
   fname = __argv[-1];
 

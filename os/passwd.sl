@@ -1,11 +1,6 @@
 loadfrom ("crypt", "cryptInit", NULL, &on_eval_err);
 loadfrom ("rand", "randInit", NULL, &on_eval_err);
 
-ifnot (is_defined ("SMGINITED"))
-  loadfrom ("os", "getpasswd", NULL, &on_eval_err);
-else
-  loadfrom ("os", "smg_getpasswd", NULL, &on_eval_err);
-
 static define encryptpasswd (passwd)
 {
   passwd = NULL == passwd ? getpasswd () : passwd;

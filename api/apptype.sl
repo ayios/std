@@ -1,12 +1,21 @@
 typedef struct
   {
   appname,
-  stderr,
+  loaddir,
   stdout,
   stdouttype,
-  loaddir,
-  ved,
-  scratch,
-  shell,
+  vedlib,
+  vedrline,
+  realshell,
+  excom,
   os,
   } Api_Type;
+
+typedef struct
+  {
+  scratch,
+  edit,
+  messages,
+  ved,
+  eval,
+  } Excom_Type;

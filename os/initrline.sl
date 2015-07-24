@@ -96,7 +96,7 @@ private define reconnect_toapp (argv)
 
   smg->init ();
 
-  osdraw (ERR);
+  draw (ERR);
 }
 
 define init_commands ()

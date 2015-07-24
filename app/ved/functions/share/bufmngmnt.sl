@@ -122,6 +122,7 @@ define initbuf (s, fname, rows, lines, t)
   s.undoset = {};
 
   s._i = 0;
+  s._ii = 0;
 
   addbuf (s);
 }

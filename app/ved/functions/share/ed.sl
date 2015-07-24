@@ -589,7 +589,7 @@ private define toggle_case (s)
   if (s._index - s._indent == v_linlen (s, s.ptr[0]) - 1)
     draw_tail (s);
   else
-    (@pagerf[string ('l')]) (s);
+    (@VED_PAGER[string ('l')]) (s);
 }
 
 %private define record ()
@@ -610,24 +610,24 @@ private define toggle_case (s)
 %  RECORDS[CRECORD] = {};
 %}
 
-pagerf[string ('~')] = &toggle_case;
-pagerf[string ('P')] = &Put;
-pagerf[string ('p')] = &put;
-pagerf[string ('o')] = &newline;
-pagerf[string ('O')] = &newline;
-pagerf[string ('c')] = &change;
-pagerf[string ('d')] = &del;
-pagerf[string ('x')] = &del_chr;
-pagerf[string ('X')] = &del_chr;
-pagerf[string (keys->rmap.delete[0])] = &del_chr;
+VED_PAGER[string ('~')] = &toggle_case;
+VED_PAGER[string ('P')] = &Put;
+VED_PAGER[string ('p')] = &put;
+VED_PAGER[string ('o')] = &newline;
+VED_PAGER[string ('O')] = &newline;
+VED_PAGER[string ('c')] = &change;
+VED_PAGER[string ('d')] = &del;
+VED_PAGER[string ('x')] = &del_chr;
+VED_PAGER[string ('X')] = &del_chr;
+VED_PAGER[string (keys->rmap.delete[0])] = &del_chr;
 if (2 == length (keys->rmap.delete))
-  pagerf[string (keys->rmap.delete[1])] = &del_chr;
-pagerf[string ('D')] = &del_to_end;
-pagerf[string ('C')] = &edit_line;
-pagerf[string ('i')] = &edit_line;
-pagerf[string ('a')] = &edit_line;
-pagerf[string ('A')] = &edit_line;
-pagerf[string ('r')] = &chang_chr;
-pagerf[string ('J')] = &join_line;
-pagerf[string ('>')] = &indent_out;
-pagerf[string ('<')] = &indent_in;
+  VED_PAGER[string (keys->rmap.delete[1])] = &del_chr;
+VED_PAGER[string ('D')] = &del_to_end;
+VED_PAGER[string ('C')] = &edit_line;
+VED_PAGER[string ('i')] = &edit_line;
+VED_PAGER[string ('a')] = &edit_line;
+VED_PAGER[string ('A')] = &edit_line;
+VED_PAGER[string ('r')] = &chang_chr;
+VED_PAGER[string ('J')] = &join_line;
+VED_PAGER[string ('>')] = &indent_out;
+VED_PAGER[string ('<')] = &indent_in;

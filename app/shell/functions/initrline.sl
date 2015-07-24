@@ -1,30 +1,3 @@
-loadfrom ("shell", "cominit", NULL, &on_eval_err);
-
-define runapp (argv, env)
-{
-  smg->suspend ();
-  
-  argv[0] = ROOTDIR + "/bin/" + argv[0];
-
-  variable issudo = qualifier ("issudo");
-  
-  variable p = proc->init (issudo, 0, 0);
-  if (issudo)
-    {
-    p.stdin.in = qualifier ("passwd");
-    argv = [SUDO_BIN, "-S", "-E", "-p", "", argv];
-    }
-  
-  variable status;
-  
-  ifnot (NULL == env)
-    status = p.execve (argv, env, NULL);
-  else
-    status = p.execv (argv, NULL);
-
-  smg->resume ();
-}
-
 define _shell_ (argv)
 {
   shell_pre_header ("shell");
@@ -54,21 +27,6 @@ define _idle_ (argv)
     }
 
   _exit_ (;;__qualifiers  ());
-}
-
-private define _ved_ (argv)
-{
-  _precom_ ();
- 
-  variable fname = 1 == length (argv) ? SCRATCH : argv[1];
- 
-  shell_pre_header ("ved " + fname);
-
-  runapp (["ved", fname], proc->defenv ();;__qualifiers ());
- 
-  shell_post_header ();
- 
-  draw (VED_CB);
 }
 
 private define _search_ (argv)
@@ -244,9 +202,6 @@ private define my_commands ()
   a["echo"] = @Argvlist_Type;
   a["echo"].func = &_echo_;
 
-  a["ved"] = @Argvlist_Type;
-  a["ved"].func = &_ved_;
- 
   a["search"] = @Argvlist_Type;
   a["search"].func = &_search_;
   a["search"].dir = STDDIR + "/com/search";
@@ -272,13 +227,13 @@ private define my_commands ()
   return a;
 }
 
-private define filtercommands (ar)
+private define filtercommands (s, ar)
 {
   ar = ar[where (1 < strlen (ar))];
   return ar;
 }
 
-private define filterargs (args, type, desc)
+private define filterargs (s, args, type, desc)
 {
   return [args, "--sudo", "--pager"], [type, "void", "void"],
     [desc, "execute command as superuser", "viewoutput in a scratch buffer"];

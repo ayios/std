@@ -9,8 +9,6 @@ define ved (s, fname)
 
   list_set (s, mys);
 
-  clear (s, 1, LINES);
-
   smg->hlregion (VED_INFOCLRBG, s.rows[0] - 1, 0, 1, COLUMNS);
  
   s.draw ();

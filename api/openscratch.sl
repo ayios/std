@@ -1,6 +1,8 @@
-variable SCRATCH = TEMPDIR + "/" + string (PID) + "_" + APP.appname +  "_scratch.txt";
-variable SCRATCHFD =  initstream (SCRATCH);
-variable SCRATCH_VED = "";
+define toscratch (str)
+{
+  () = lseek (SCRATCHFD, 0, SEEK_END);
+  () = write (SCRATCHFD, str);
+}
 
 if (is_defined ("init_ftype"))
   {

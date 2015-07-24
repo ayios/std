@@ -401,5 +401,5 @@ private define vis_mode (s)
   vs.at_exit (s, draw);
 }
 
-pagerf[string ('v')] = &vis_mode;
-pagerf[string ('V')] = &vis_mode;
+VED_PAGER[string ('v')] = &vis_mode;
+VED_PAGER[string ('V')] = &vis_mode;

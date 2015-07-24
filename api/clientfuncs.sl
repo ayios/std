@@ -1,7 +1,14 @@
 define draw (s)
 {
-  variable st = fstat (s._fd);
- 
+  variable st = NULL == s._fd ? lstat_file (s._absfname) : fstat (s._fd);
+  
+  if (NULL == st)
+    {
+    s._i = s._ii;
+    s.draw ();
+    return;
+    }
+
   if (s.st_.st_size)
     if (st.st_atime == s.st_.st_atime && st.st_size == s.st_.st_size)
       {
@@ -63,7 +70,7 @@ define viewfile (s, type, pos, _i)
       VEDCOUNT = integer (VEDCOUNT);
       }
  
-    (@pagerf[string (s._chr)]) (s);
+    (@VED_PAGER[string (s._chr)]) (s);
  
     if (':' == s._chr || 'q' == s._chr)
       break;

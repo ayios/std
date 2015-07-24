@@ -53,6 +53,6 @@ private define _bdelete ()
   bufdelete (s, bufname, 0);
 }
 
-clinef["e"] = &_edit_other;
-clinef["b"] = &_edit_other;
-clinef["bd"] = &_bdelete;
+VED_CLINE["e"] = &_edit_other;
+VED_CLINE["b"] = &_edit_other;
+VED_CLINE["bd"] = &_bdelete;

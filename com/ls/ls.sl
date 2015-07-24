@@ -2,7 +2,6 @@ importfrom ("std", "pcre", NULL, &on_eval_err);
 
 loadfrom ("array", "arrayfuncs", NULL, &on_eval_err);
 loadfrom ("dir", "fswalk", NULL, &on_eval_err);
-loadfrom ("stdio", "readfile", NULL, &on_eval_err);
 loadfrom ("dir", "evaldir", NULL, &on_eval_err);
 
 verboseon ();

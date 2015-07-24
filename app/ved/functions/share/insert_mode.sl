@@ -521,7 +521,7 @@ private define cr (is, s, line)
 
     s._chr = 'o';
  
-    (@pagerf[string ('o')]) (s;modified);
+    (@VED_PAGER[string ('o')]) (s;modified);
 
     return;
     }

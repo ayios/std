@@ -120,5 +120,5 @@ private define redo (s)
   s.draw ();
 }
 
-pagerf[string ('u')] = &undo;
-pagerf[string (keys->CTRL_r)] = &redo;
+VED_PAGER[string ('u')] = &undo;
+VED_PAGER[string (keys->CTRL_r)] = &redo;

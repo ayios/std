@@ -1,11 +1,12 @@
 private variable func = [&smg->setrcdr, &smg->setrc];
 
-private define draw (s)
+private define _draw_ (s)
 {
   if (-1 == s._len)
     {
     s.lins = [" "];
     s.lnrs = [0];
+    s._ii = 0;
  
     smg->aratrcaddnstrdr ([repeat (" ", COLUMNS), tail (s)], [0, VED_INFOCLRFG],
       [s.rows[0], s.rows[-1]], [0, 0], s.rows[0], 0, COLUMNS);
@@ -91,7 +92,7 @@ define deftype ()
     _autochdir = 1,
     _autoindent = 0,
     autoindent = &autoindent,
-    draw = &draw,
+    draw = &_draw_,
     lexicalhl = &lexicalhl,
     vedloop = &_vedloop_,
     vedloopcallback = &_vedloopcallback_,

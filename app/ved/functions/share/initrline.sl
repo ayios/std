@@ -1,13 +1,14 @@
-private define init_commands ()
+private define my_commands ()
 {
   variable i;
-  variable a = Assoc_Type[Argvlist_Type, @Argvlist_Type];
-  variable keys = assoc_get_keys (clinef);
+  variable a = (@__get_reference ("init_commands")) (;ex);
+  variable keys = assoc_get_keys (VED_CLINE);
 
   _for i (0, length (keys) - 1)
     {
     a[keys[i]] = @Argvlist_Type;
-    a[keys[i]].func = clinef[keys[i]];
+    a[keys[i]].func = VED_CLINE[keys[i]];
+    a[keys[i]].type = "Func_Type";
     }
 
   return a;
@@ -28,17 +29,16 @@ define rlineinit ()
 {
   variable rl;
 
-  if (VED_EDITOTHER)
-    rl = rline->init (&init_commands;
+   rl = rline->init (&my_commands;;struct {
       histfile = HISTDIR + "/" + string (getuid ()) + "vedhistory",
       historyaddforce = 1,
       tabhook = &tabhook,
-      totype = "Func_Type");
-  else
-    rl = rline->init (&init_commands;
-      histfile = HISTDIR + "/" + string (getuid ()) + "vedhistory",
-      historyaddforce = 1,
-      totype = "Func_Type");
+      %totype = "Func_Type",
+      @__qualifiers
+      }
+      );
+
+  (@__get_reference ("iarg")) = length (rl.history);
 
   return rl;
 }

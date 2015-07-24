@@ -114,7 +114,7 @@ private define write_quit ()
   s.quit (1, __push_list (args));
 }
 
-private define messages ()
+private define _messages_ ()
 {
   variable keep = VED_CB;
   variable s = ERR_VED;
@@ -123,7 +123,7 @@ private define messages ()
  
   topline (" -- pager -- ( MESSAGES BUF) --";row = s.ptr[0], col = s.ptr[1]);
  
-  variable st = lstat_file (s._absfname);
+  variable st = fstat (s._fd);
  
   if (s.st_.st_size)
     if (st.st_atime == s.st_.st_atime && st.st_size == s.st_.st_size)
@@ -177,14 +177,14 @@ private define _idle_ ()
   quit (;;__qualifiers  ());
 }
 
-clinef["&"] = &_idle_;
-clinef["w"] = &write_file;
-clinef["W"] = &write_file;
-clinef["w!"] = &write_file;
-clinef["q"] = &quit;
-clinef["Q"] = &quit;
-clinef["q!"] = &quit;
-clinef["wq"] = &write_quit;
-clinef["Wq"] = &write_quit;
-clinef["r"] = &_read;
-clinef["messages"] = &messages;
+VED_CLINE["&"] = &_idle_;
+VED_CLINE["w"] = &write_file;
+VED_CLINE["W"] = &write_file;
+VED_CLINE["w!"] = &write_file;
+VED_CLINE["q"] = &quit;
+VED_CLINE["Q"] = &quit;
+VED_CLINE["q!"] = &quit;
+VED_CLINE["wq"] = &write_quit;
+VED_CLINE["Wq"] = &write_quit;
+VED_CLINE["r"] = &_read;
+VED_CLINE["messages"] = &_messages_;

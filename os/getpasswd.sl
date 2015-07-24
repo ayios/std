@@ -1,10 +1,10 @@
 define getpasswd ()
 {
   variable passwd = "";
+  variable prompt = "password:";
   variable chr;
-  
-  () = fputs ("password: ", stdout);
-  () = fflush (stdout);
+
+  smg->atrcaddnstrdr (prompt, 0, MSGROW, 0, MSGROW, strlen (prompt), COLUMNS);
 
   while (chr = getch (), chr != '\r')
     {
@@ -13,6 +13,9 @@ define getpasswd ()
     else
       passwd+= char (chr);
     }
- 
+  
+  send_msg (" ", 0);
+
   return passwd;
 }
+

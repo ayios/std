@@ -45,5 +45,5 @@ static define runapp ()
 
   smg->init ();
   
-  osdraw (ERR);
+  draw (ERR);
 }

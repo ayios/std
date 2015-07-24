@@ -10,15 +10,7 @@ private define mainloop ()
 
 define shell ()
 {
-  ashell_settype (SHELL_VED, STDOUT, VED_ROWS, NULL);
-  ashell_settype (OUTBG, STDOUTBG, VED_ROWS, NULL);
-  
-  VED_CB = SHELL_VED;
-
-  VED_CB._fd = STDOUTFD;
-  OUTBG._fd = STDOUTFDBG;
-
-  setbuf (VED_CB._absfname);
+  setbuf (OUT_VED._absfname);
   
   ifnot (fileexists (TEMPDIR + "/" + strftime ("%m_%d-intro")))
     {
@@ -30,7 +22,7 @@ define shell ()
 
   shell_post_header ();
  
-  draw (VED_CB);
+  draw (OUT_VED);
  
   mainloop ();
 }

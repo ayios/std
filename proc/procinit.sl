@@ -14,7 +14,7 @@ typedef struct
   execve,
   atexit,
   connect,
-  loadfile,
+  loadproc,
   loadcommand,
   } Proc_Type;
 
@@ -261,9 +261,9 @@ private define _execve (s, argv, env, bg)
   return s.pid;
 }
 
-private define loadfile ()
+private define loadproc ()
 {
-  return path_dirname (__FILE__) + "/loadfile.sl";
+  return path_dirname (__FILE__) + "/loadproc.sl";
 }
 
 private define loadcommand ()
@@ -287,7 +287,7 @@ define init (in, out, err)
 
   p.atexit = &atexit;
   p.connect = &connect_to_socket;
-  p.loadfile = loadfile ();
+  p.loadproc = loadproc ();
   p.loadcommand = loadcommand ();
   p.execve = &_execve;
   p.execv = &_execv;

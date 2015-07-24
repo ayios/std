@@ -107,14 +107,14 @@ define _eval_ (argv)
         addh = _assign_ (substr (line, 2, -1));
       
       if (1 == addh)
-        history = [history, line];
+        history = [line, history];
 
       line = "";
       addh = 1;
       continue;
       }
 
-    line += char (chr);
+    line+= char (chr);
 
     ifnot (strlen (line))
       continue;

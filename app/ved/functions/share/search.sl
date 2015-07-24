@@ -425,7 +425,7 @@ private define search_word (s)
     }
 }
 
-pagerf[string ('#')] = &search_word;
-pagerf[string ('*')] = &search_word;
-pagerf[string (keys->BSLASH)] = &search;
-pagerf[string (keys->QMARK)] = &search;
+VED_PAGER[string ('#')] = &search_word;
+VED_PAGER[string ('*')] = &search_word;
+VED_PAGER[string (keys->BSLASH)] = &search;
+VED_PAGER[string (keys->QMARK)] = &search;

@@ -1,6 +1,5 @@
 loadfrom ("dir", "fswalk", NULL, &on_eval_err);
-loadfrom ("stdio", "readfile", NULL, &on_eval_err);
-
+ 
 variable
   CHANGEREF = NULL,
   EXIT_CODE = 0;

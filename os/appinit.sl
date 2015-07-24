@@ -61,7 +61,7 @@ static define init_app (name, dir, argv)
 
 static define getargvenv (p, s, argv)
 {
-  argv = [SLSH_BIN, p.loadfile, s._procfile, argv];
+  argv = [SLSH_BIN, p.loadproc, s._procfile, argv];
 
   variable env = [proc->defenv (), sprintf ("SOCKADDR=%s", s._sockaddr)];
 

@@ -44,7 +44,6 @@ typedef struct
 importfrom ("std", "pcre", NULL, &on_eval_err);
 
 loadfrom ("dir", "evaldir", NULL, &on_eval_err);
-loadfrom ("stdio", "readfile", NULL, &on_eval_err);
 loadfrom ("keys", "keysInit", 1, &on_eval_err);
 loadfrom ("input", "inputInit", 1, &on_eval_err);
 loadfrom ("smg", "widg", "widg", &on_eval_err);

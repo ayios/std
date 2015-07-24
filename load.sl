@@ -41,12 +41,12 @@ public variable FILE_FLAGS = Assoc_Type[Integer_Type];
 FILE_FLAGS[">"]    = O_WRONLY|O_CREAT;
 FILE_FLAGS[">|"]   = O_WRONLY|O_TRUNC|O_CREAT;
 FILE_FLAGS[">>"]   = O_WRONLY|O_APPEND;
-FILE_FLAGS[">>|"]  =  O_WRONLY|O_APPEND|O_CREAT;
+FILE_FLAGS[">>|"]  = O_WRONLY|O_APPEND|O_CREAT;
 FILE_FLAGS["<"]    = O_RDONLY;
 FILE_FLAGS["<>"]   = O_RDWR|O_CREAT;
 FILE_FLAGS["<>|"]  = O_RDWR|O_TRUNC|O_CREAT;
 FILE_FLAGS["<>>"]  = O_RDWR|O_APPEND;
-FILE_FLAGS["<>>|"] =  O_RDWR|O_APPEND|O_CREAT;
+FILE_FLAGS["<>>|"] = O_RDWR|O_APPEND|O_CREAT;
 
 public variable PERM = Assoc_Type[Integer_Type];
 
@@ -60,8 +60,8 @@ PERM["_PUBLIC"]  = PERM["_STATIC"]|S_IROTH|S_IXOTH;  %0755
 PERM["__PUBLIC"] = PERM["__STATIC"]|S_IROTH;         %0644
 PERM["___PUBLIC"]= PERM["_PRIVATE"]|S_IWGRP|S_IWOTH; %0622 
 
+public variable PATH = getenv ("PATH");
 public variable TERM;
-public variable PATH;
 public variable LANG;
 public variable HOME;
 public variable LINES;
@@ -337,4 +337,19 @@ define which (executable)
     return path[ar][0];
   else
     return NULL;
+}
+
+define readfile (file)
+{
+  variable
+    end = qualifier ("end", NULL),
+    fp = fopen (file, "r");
+
+  if (NULL == fp)
+    return NULL;
+
+  ifnot (NULL == end)
+    return array_map (String_Type, &strtrim_end, fgetslines (fp, end), "\n");
+
+  return array_map (String_Type, &strtrim_end, fgetslines (fp), "\n");
 }

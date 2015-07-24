@@ -1,4 +1,4 @@
-loadfrom ("shell", "eval", NULL, &on_eval_err);
+loadfrom ("api", "eval", NULL, &on_eval_err);
 
 variable redirexists = NULL;
 variable licom = 0;
@@ -7,22 +7,22 @@ private variable issmg = 0;
 variable icom = 0;
 variable iarg;
 variable SHELLLASTEXITSTATUS = 0;
-variable RDFIFO = TEMPDIR + "/" + string (PID) +  "_SRV_FIFO.fifo";
-variable WRFIFO = TEMPDIR + "/" + string (PID) +  "_CLNT_FIFO.fifo";
-variable STDOUTBG = TEMPDIR + "/" + string (PID) + "_stdoutbg.ashell";
-variable BGDIR    = TEMPDIR + "/" + string (PID) + "_procs";
-variable BGPIDS   = Assoc_Type[Struct_Type];
-variable OUTBG;
-variable STDOUTFDBG;
+variable RDFIFO   = TEMPDIR + "/" + string (PID) +  "_SRV_FIFO.fifo";
+variable WRFIFO   = TEMPDIR + "/" + string (PID) +  "_CLNT_FIFO.fifo";
 
 ifnot (access (RDFIFO, F_OK))
-  () = remove (RDFIFO);
+  if (-1 == remove (RDFIFO))
+    on_eval_err ([RDFIFO + ": cannot remove " + errno_string (errno)], 1);
 
 ifnot (access (WRFIFO, F_OK))
-  () = remove (WRFIFO);
+  if (-1 == remove (WRFIFO))
+    on_eval_err ([WRFIFO + ": cannot remove, " + errno_string (errno)], 1);
 
-() = mkfifo (RDFIFO, 0644);
-() = mkfifo (WRFIFO, 0644);
+if (-1 == mkfifo (RDFIFO, 0644))
+  on_eval_err ([RDFIFO + ": cannot create, " + errno_string (errno)], 1);
+
+if (-1 == mkfifo (WRFIFO, 0644))
+  on_eval_err ([WRFIFO + ": cannot create, " + errno_string (errno)], 1);
 
 define _precom_ ()
 {
@@ -33,24 +33,14 @@ define _precom_ ()
 define shell_pre_header (argv)
 {
   iarg++;
-  tostdout (strjoin (argv, " ") + "\n");
+  if (APP.realshell)
+    tostdout (strjoin (argv, " ") + "\n");
 }
 
 define shell_post_header ()
 {
-  tostdout ("[" + string (iarg) + "](" + getcwd + ")[" + string (SHELLLASTEXITSTATUS) + "]$ ");
-}
-
-define scratch (ved)
-{
-  viewfile (SCRATCH_VED, "SCRATCH", [1, 0], 0);
-
-  variable f = __get_reference ("setbuf");
-  
-  VED_CB = ved;
-
-  (@f) (VED_CB._absfname);
-  VED_CB.draw ();
+  if (APP.realshell)
+    tostdout ("[" + string (iarg) + "](" + getcwd + ")[" + string (SHELLLASTEXITSTATUS) + "]$ ");
 }
 
 private define write_file (s, overwrite, ptr, argv)
@@ -104,15 +94,11 @@ define _write_ (argv)
     }
 }
 
-define _edit_ (argv)
-{
-  _precom_ ();
-
-  viewfile (VED_CB, "STDOUT", VED_CB.ptr, VED_CB._ii);
-}
-
 define _postexec_ (header)
 {
+  if (qualifier_exists ("draw") && qualifier ("draw") == 0)
+    return;
+
   if (header)
     shell_post_header ();
 
@@ -363,7 +349,7 @@ define parse_redir (lastarg, file, flags)
 define parse_argv (argv, isbg)
 {
   variable flags = ">>|";
-  variable file = isbg ? STDOUTBG : STDOUT;
+  variable file = isbg ? STDOUTBG : APP.realshell ? (@__get_reference ("STDOUT")) : SCRATCH;
   variable retval = parse_redir (argv[-1], &file, &flags);
  
   return file, flags, retval;
@@ -451,10 +437,18 @@ define _getbgstatus_ (pid)
   variable out = read_fd (STDOUTFDBG;pos = OUTBG.st_.st_size);
 
   ifnot (NULL == out)
-    tostdout ("\n" + pid + ": " + strjoin (BGPIDS[pid].argv, " ") + "\n" +  out);
+    if (APP.realshell)
+      tostdout ("\n" + pid + ": " + strjoin (BGPIDS[pid].argv, " ") + "\n" +  out);
+    else
+      toscratch ("\n" + pid + ": " + strjoin (BGPIDS[pid].argv, " ") + "\n" +  out);
+
 
   ifnot (force)
-    tostdout (pid + ": exit status " + string (status.exit_status) + "\n");
+    if (APP.realshell)
+      tostdout (pid + ": exit status " + string (status.exit_status) + "\n");
+    else
+      toscratch (pid + ": exit status " + string (status.exit_status) + "\n");
+      
 
   BGPIDS[pid].atexit ();
 
@@ -491,7 +485,10 @@ define _forkbg_ (p, argv, env)
  
   BGPIDS[string (pid)] = p;
  
-  tostdout ("forked " + string (pid) + " &\n");
+  if (APP.realshell)
+    tostdout ("forked " + string (pid) + " &\n");
+  else
+    send_msg_dr ("forked " + string (pid) + " &", 0, PROMPTROW, 1);
 }
 
 define _fork_ (p, argv, env)
@@ -505,7 +502,15 @@ define _fork_ (p, argv, env)
   variable err = read_fd (errfd;pos = ERR_VED.st_.st_size);
 
   ifnot (NULL == err)
-    tostdout (err);
+    if (APP.realshell)
+      tostdout (err);
+    else
+      toscratch (err);
+}
+
+define _scratch_ ()
+{
+  pop ();
 }
 
 define execute (argv)
@@ -551,7 +556,11 @@ define execute (argv)
       {
       variable err = read_fd (STDERRFD;pos = ERR_VED.st_.st_size);
  
-      tostdout (err + "\n");
+      if (APP.realshell)
+        tostdout (err + "\n");
+      else
+        toscratch (err + "\n");
+
       ERR_VED.st_.st_size += strbytelen (err) + 1;
       SHELLLASTEXITSTATUS = 1;
       _postexec_ (header);
@@ -591,14 +600,17 @@ define execute (argv)
     isscratch = NULL;
     }
 
-  ifnot (NULL == isscratch)
+  if (NULL != isscratch || 0 == APP.realshell)
     ifnot (SHELLLASTEXITSTATUS)
-      scratch (VED_CB);
+      _scratch_ (VED_CB;;__qualifiers ());
+    else
+      ifnot (APP.realshell)
+        _scratch_ (VED_CB;;__qualifiers ());
 
   ifnot (isbg)
     _getbgjobs_ ();
 
-  _postexec_ (header);
+  _postexec_ (header;;__qualifiers ());
 }
 
 define _builtinpost_ ()
@@ -606,12 +618,32 @@ define _builtinpost_ ()
   variable err = read_fd (STDERRFD;pos = ERR_VED.st_.st_size);
 
   ifnot (NULL == err)
-    tostdout (err + "\n");
+    if (APP.realshell)
+      tostdout (err + "\n");
+    else
+      tostdout (err + "\n");
 
   shell_post_header ();
 
   draw (VED_CB);
 }
+
+ifnot (NULL == APP.excom)
+  {
+  loadfrom ("api", "clientfuncs", NULL, &on_eval_err);
+
+  if (APP.excom.scratch)
+    loadfrom ("api", "exscratch", NULL, &on_eval_err);
+  
+  if (APP.excom.edit)
+    loadfrom ("api", "exedit", NULL, &on_eval_err);
+  
+  if (APP.excom.messages)
+    loadfrom ("api", "exmessages", NULL, &on_eval_err);
+
+  if (APP.excom.ved)
+    loadfrom ("api", "exved", NULL, &on_eval_err);
+  }
 
 define _builtinpre_ (argv)
 {
@@ -641,7 +673,11 @@ define _kill_bg_job (argv)
 
   _getbgstatus_ (pid;force);
  
-  tostdout (pid + ": killed\n");
+  if (APP.realshell)
+    tostdout (pid + ": killed\n");
+  else
+    send_msg_dr (pid + ": killed", 0, PROMPTROW, 1);
+
   shell_post_header ();
   draw (VED_CB);
 }
@@ -671,18 +707,29 @@ define _list_bg_jobs_ (argv)
   draw (VED_CB);
 }
 
-define _messages_ (argv)
+define runapp (argv, env)
 {
-  variable ved = @VED_CB;
-
-  viewfile (ERR_VED, "MSG", NULL, NULL);
- 
-  variable f = __get_reference ("setbuf");
+  smg->suspend ();
   
-  VED_CB = ved;
+  argv[0] = ROOTDIR + "/bin/" + argv[0];
 
-  (@f) (VED_CB._absfname);
-  VED_CB.draw ();
+  variable issudo = qualifier ("issudo");
+  
+  variable p = proc->init (issudo, 0, 0);
+  if (issudo)
+    {
+    p.stdin.in = qualifier ("passwd");
+    argv = [SUDO_BIN, "-S", "-E", "-p", "", argv];
+    }
+  
+  variable status;
+  
+  ifnot (NULL == env)
+    status = p.execve (argv, env, NULL);
+  else
+    status = p.execv (argv, NULL);
+
+  smg->resume ();
 }
 
 private define _build_comlist (a)
@@ -715,11 +762,33 @@ define init_commands ()
  
   _build_comlist (a;;__qualifiers ());
 
-  a["@"] = @Argvlist_Type;
-  a["@"].func = &_edit_;
+  ifnot (NULL == APP.excom)
+    {
+    if (APP.excom.scratch)
+      {
+      a["@"] = @Argvlist_Type;
+      a["@"].func = __get_reference ("scratch");
+      }
 
-  a["edit"] = @Argvlist_Type;
-  a["edit"].func = &_edit_;
+    if (APP.excom.edit)
+      {
+      a["edit"] = @Argvlist_Type;
+      a["edit"].func = __get_reference ("_edit_");
+      }
+
+    if (APP.excom.messages)
+      {
+      a["messages"] = @Argvlist_Type;
+      a["messages"].func = __get_reference ("_messages_");
+      }
+
+    if (APP.excom.ved)
+      {
+      a["ved"] = @Argvlist_Type;
+      a["ved"].func = __get_reference ("_ved_");
+      }
+    }
+ 
 
   a["w"] = @Argvlist_Type;
   a["w"].func = &_write_;
@@ -727,9 +796,6 @@ define init_commands ()
   a["w!"] = @Argvlist_Type;
   a["w!"].func = &_write_;
 
-  a["messages"] = @Argvlist_Type;
-  a["messages"].func = &_messages_;
- 
   a["bgjobs"] = @Argvlist_Type;
   a["bgjobs"].func = &_list_bg_jobs_;
 
