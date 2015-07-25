@@ -61,18 +61,17 @@ PERM["__PUBLIC"] = PERM["__STATIC"]|S_IROTH;         %0644
 PERM["___PUBLIC"]= PERM["_PRIVATE"]|S_IWGRP|S_IWOTH; %0622 
 
 public variable PATH = getenv ("PATH");
-public variable TERM;
-public variable LANG;
-public variable HOME;
+public variable TERM = getenv ("TERM");
+public variable LANG = getenv ("LANG");
+public variable HOME = getenv ("HOME");
+public variable DISPLAY    = getenv ("DISPLAY");
+public variable XAUTHORITY = getenv ("XAUTHORITY");
 public variable LINES;
 public variable COLUMNS;
 public variable SLSH_LIB_DIR;
 public variable SLANG_MODULE_PATH;
-public variable DISPLAY;
-public variable XAUTHORITY;
 public variable SLSH_BIN;
 public variable SUDO_BIN;
-public variable PWD;
 public variable GROUP;
 public variable USER;
 

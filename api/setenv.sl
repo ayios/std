@@ -1,5 +1,3 @@
-proc->getdefenv ();
-
 private variable pw = getpwuid (getuid ());
 
 if (NULL == pw)
