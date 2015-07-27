@@ -7,6 +7,7 @@ static define runapp ()
   APP_NEW = NULL;
   APP_CON_OTH = NULL;
 
+  variable pids;
   variable argv = __pop_list (_NARGS);
 
   argv = list_to_array (argv, String_Type);
@@ -67,24 +68,10 @@ static define runapp ()
   ifnot (NULL == APP_NEW)
     {
     REC_CALLS++;
-
+    
     runapp (;argv0 = APP_NEW);
     
-    s._state &= ~IDLED;
-    
-    sock->send_int (s._fd, RECONNECT);
- 
-    _log_ (s._appname + ": reconnected", LOGNORM);
-
-    () = os->apploop (s);
-
-    () = os->app_atexit (s);
-    }
-
-  ifnot (NULL == APP_CON_OTH)
-    {
-    () = (@__get_reference ("_reconnect_app_")) (APP_CON_OTH, 0);
-    variable pids = (@__get_reference ("_get_connected_app")) (s._appname);
+    pids = (@__get_reference ("_get_connected_app")) (s._appname);
     if (length (pids))
       if (any (pid == pids))
         {
@@ -92,7 +79,26 @@ static define runapp ()
     
         sock->send_int (s._fd, RECONNECT);
  
-        _log_ (s._appname + ": reconnected", LOGNORM);
+        _log_ (s._appname + ": bwith pid :" + string (s.p_.pid) + " reconnected", LOGNORM);
+
+        () = os->apploop (s);
+
+        () = os->app_atexit (s);
+        }
+    }
+
+  ifnot (NULL == APP_CON_OTH)
+    {
+    () = (@__get_reference ("_reconnect_app_")) (APP_CON_OTH, 0);
+    pids = (@__get_reference ("_get_connected_app")) (s._appname);
+    if (length (pids))
+      if (any (pid == pids))
+        {
+        s._state &= ~IDLED;
+    
+        sock->send_int (s._fd, RECONNECT);
+ 
+        _log_ (s._appname + ": awith pid :" + string (s.p_.pid) + " reconnected", LOGNORM);
 
         () = os->apploop (s);
 

@@ -83,7 +83,7 @@ define _reconnect_app_ (appl, reset)
 
   sock->send_int (s._fd, RECONNECT);
  
-  _log_ (s._appname + ": reconnected", LOGNORM);
+  _log_ (s._appname + ": with pid :" + string (s.p_.pid) + " reconnected", LOGNORM);
 
   () = os->apploop (s);
 

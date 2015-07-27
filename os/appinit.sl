@@ -74,6 +74,22 @@ static define getargvenv (p, s, argv)
   return argv, env;
 }
 
+private define write_con_apps ()
+{
+  variable pids = (@__get_reference ("_get_all_connected_apps"));
+  variable fp = fopen (COAPPSFILE, "w");
+  variable i;
+  variable pid;
+
+  _for i (0, length (pids) - 1)
+    {
+    pid = pids[i];
+    () = fprintf (fp, "%s::%d\n", pid[0], APPS[pid[0]][pid[1]].p_.pid);  
+    }
+
+  () = fclose (fp); 
+}
+
 static define app_atexit (s)
 {
   ifnot (s._state & IDLED)
@@ -88,6 +104,8 @@ static define app_atexit (s)
     assoc_delete_key (APPS[s._appname], string (s.p_.pid));
  
     _log_ (s._appname + ": exited", LOGERR);
+
+    write_con_apps ();
 
     return 0;
     }
@@ -137,22 +155,6 @@ static define apploop (s)
       return 0;
       }
     }
-}
-
-private define write_con_apps ()
-{
-  variable pids = (@__get_reference ("_get_all_connected_apps"));
-  variable fp = fopen (COAPPSFILE, "w");
-  variable i;
-  variable pid;
-
-  _for i (0, length (pids) - 1)
-    {
-    pid = pids[i];
-    () = fprintf (fp, "%s::%d\n", pid[0], APPS[pid[0]][pid[1]].p_.pid);  
-    }
-
-  () = fclose (fp); 
 }
 
 static define connect_to_child (s)
