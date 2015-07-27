@@ -8,3 +8,7 @@ define get_int (fd)
   return sock->get_int (fd);
 }
 
+define send_str (fd, str)
+{
+  sock->send_str (fd, str);
+}

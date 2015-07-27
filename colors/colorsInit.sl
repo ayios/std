@@ -1,1 +1,15 @@
-loadfrom ("colors", "colorsinit", NULL, &on_eval_err);
+variable COLOR = struct
+  {
+  normal = "white",
+  error = "brightred",
+  success = "brightgreen",
+  warn = "brightmagenta",
+  prompt = "yellow",
+  border = "brightred",
+  focus = "brightcyan",
+  hlchar = "blackonyellow",
+  hlregion = "white",
+  topline = "blackonbrown",
+  infofg = "blue",
+  infobg = "brown",
+  };

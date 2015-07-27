@@ -1,7 +1,7 @@
 define setgrname (gid, msg)
 {
   variable gr = getgrgid (gid);
-  
+ 
   if (NULL == gr)
     {
     if (errno)
@@ -18,7 +18,7 @@ define setgrname (gid, msg)
 define setpwname (uid, msg)
 {
   variable pw =getpwuid (uid);
-  
+ 
   if (NULL == pw)
     {
     if (errno)
@@ -46,4 +46,4 @@ define setpwuidgid (user, msg)
     }
 
   return pw.pw_uid, pw.pw_gid;
-} 
+}

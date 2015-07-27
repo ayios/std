@@ -1,3 +1,11 @@
+define _osappnew_ (s)
+{
+}
+
+define _osapprec_ (s)
+{
+}
+
 define go_idled ()
 {
   at_exit ();

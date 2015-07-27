@@ -2,14 +2,31 @@ variable SOCKET;
 variable SOCKADDR   = getenv ("SOCKADDR");
 variable GO_ATEXIT  = 0x0C8;
 variable GO_IDLED   = 0x012c;
+variable APP_CON_NEW = 0x1f4;
+variable APP_RECON_OTH = 0x258;
 variable RECONNECT  = 0x0190;
+
+define con_to_oth (app, what)
+{
+  smg->suspend ();
+  input->at_exit ();
+  send_int (SOCKET, what);
+  () = get_int (SOCKET);
+  send_str (SOCKET, app);
+
+  variable retval = get_int (SOCKET);
+  if (RECONNECT == retval)
+    smg->resume ();
+  else
+    (@__get_reference ("_exit_")) (;;__qualifiers  ());
+}
 
 define go_idled ()
 {
   send_int (SOCKET, GO_IDLED);
 
   variable retval = get_int (SOCKET);
-  
+ 
   if (RECONNECT == retval)
     return 0;
 

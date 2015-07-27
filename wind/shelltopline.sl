@@ -1,4 +1,3 @@
-loadfrom ("string", "repeat", NULL, &on_eval_err);
 loadfrom ("wind", "topline", NULL, &on_eval_err);
 
 private variable clr = getuid () ? 2 : 1;

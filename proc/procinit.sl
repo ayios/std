@@ -202,7 +202,7 @@ private define _execv (s, argv, bg)
           return NULL;
           }
         }
-    
+ 
     if (-1 == execv (argv[0], argv))
       return NULL;
     }

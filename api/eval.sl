@@ -3,7 +3,7 @@ private define _assign_ (line)
   variable _v_ = strchop (line, '=', 0);
   if (1 == length (_v_))
     return -1;
-  
+ 
   _v_ = _v_[0];
 
   try
@@ -13,7 +13,7 @@ private define _assign_ (line)
     }
   catch AnyError:
     send_msg (__get_exception_info.message, 0);
-  
+ 
   return 1;
 }
 
@@ -55,7 +55,7 @@ define _eval_ (argv)
     {
     rline->prompt (rl, ">" + line, strlen (line) + 1);
     chr = getch ();
-    
+ 
     if (any (keys->rmap.histup == chr))
       {
       ifnot (length (history))
@@ -86,7 +86,7 @@ define _eval_ (argv)
 
     if (chr == 033)
       break;
-    
+ 
     if (any (keys->rmap.backspace == chr))
       {
       ifnot (strlen (line))
@@ -105,7 +105,7 @@ define _eval_ (argv)
       {
       if ('=' == line[0])
         addh = _assign_ (substr (line, 2, -1));
-      
+ 
       if (1 == addh)
         history = [line, history];
 

@@ -5,13 +5,13 @@ private define _isdirectory_ (dir, st)
 {
   ifnot (fileexists (dir))
     return 0;
-  
+ 
   ifnot (istype (st.st_mode, "dir"))
     return -1;
-  
+ 
   return 1;
 }
-  
+ 
 define makedir (dir, perm)
 {
   variable

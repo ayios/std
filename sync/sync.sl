@@ -89,7 +89,7 @@ private define ignore (obj, excl, type)
     variable ii;
     variable ignobj;
     variable cmpnts;
-    
+ 
     _for i (0, length (excl) - 1)
       {
       ignobj = strchopr (excl[i], '/', 0);

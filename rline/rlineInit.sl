@@ -31,6 +31,8 @@ typedef struct
   execline,
   onnolength,
   onnolengthargs,
+  osappnew,
+  osapprec,
   } Rline_Type;
 
 typedef struct

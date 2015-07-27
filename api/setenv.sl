@@ -18,5 +18,5 @@ if (NULL == GROUP)
 putenv ("USER=" + USER);
 putenv ("LOGNAME=" + USER);
 putenv ("USERNAME=" + USER);
-putenv ("HOME=/home/" + USER); 
+putenv ("HOME=/home/" + USER);
 putenv ("GROUP=" + GROUP);

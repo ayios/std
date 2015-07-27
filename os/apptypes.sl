@@ -18,5 +18,5 @@ typedef struct
   init,
   help,
   info,
-  }AppInfo_Type; 
+  }AppInfo_Type;
 

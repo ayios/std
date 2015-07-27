@@ -159,6 +159,8 @@ static define init (getcommands)
   rl._columns = qualifier ("columns", COLUMNS);
   rl.onnolength = qualifier ("onnolength");
   rl.onnolengthargs = qualifier ("onnolengthargs");
+  rl.osappnew = qualifier ("osappnew");
+  rl.osapprec = qualifier ("osapprec"); 
  
   if (0 == length (rl.history) && NULL != rl.histfile)
     rl.history = readhistory (rl.histfile);
@@ -321,7 +323,7 @@ private define insert_at (s)
     }
 
   len = s._col - (len - arglen);
-  
+ 
   if (s._col == len)
     s.argv[i]+= chr;
   else
@@ -1109,7 +1111,7 @@ private define fnamecmp (s, start)
     }
 }
 
-private define commandcmp (s, commands)
+static define commandcmp (s, commands)
 {
   variable
     i,
@@ -1361,7 +1363,7 @@ private define getpattern (s, pat)
     len = length (ar),
     lines = s._lines - (strlen (s._lin) / s._columns) - 3,
     prow = s._prow - (strlen (s._lin) / s._columns) - (len > lines ? lines : len) - 1;
-   
+ 
   () = printout (rl, ar, strlen (rl.argv[0]), &len;lines = lines, _prow = s._prow,
      _lin = s._lin, header = strlen (@pat) ? @pat : " ", headerclr = 7);
 
@@ -1789,13 +1791,13 @@ static define getline ()
   s._lines = LINES;
   s._columns = COLUMNS;
   s._row = s._prow;
-  
+ 
   set (s);
-   
+ 
   if (strlen (s._lin))
     prompt (s, s._lin, s._col);
   else
-    smg->atrcaddnstrdr (" ", 0, PROMPTROW, 0, PROMPTROW, 0, COLUMNS); 
+    smg->atrcaddnstrdr (" ", 0, PROMPTROW, 0, PROMPTROW, 0, COLUMNS);
 
   forever
     {
@@ -1813,7 +1815,7 @@ static define getline ()
     routine (s;insert_ws);
 
     parse_args (s);
-    
+ 
     prompt (s, s._lin, s._col);
     }
 }
@@ -1839,6 +1841,20 @@ static define readline (s)
       {
       send_msg_dr (" ", 0, s._prow, s._col);
       initdone = 1;
+      }
+    
+    if (any (keys->rmap.osappnew == s._chr))
+      ifnot (NULL == s.osappnew)
+      {
+      s.osappnew ();
+      continue;
+      }
+
+    if (any (keys->rmap.osapprec == s._chr))
+      ifnot (NULL == s.osapprec)
+      {
+      s.osapprec ();
+      continue;
       }
 
     if (033 == s._chr)

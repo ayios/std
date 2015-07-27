@@ -72,7 +72,7 @@ private define sed (file, s)
     err,
     undiff,
     retval;
-  
+ 
   ar = readfile (file);
  
   ifnot (length (ar))
@@ -151,7 +151,7 @@ private define file_callback (file, st, type)
   ifnot (HIDDENFILES)
     if ('.' == path_basename (file)[0])
       return 1;
-  
+ 
   if (-1 == access (file, R_OK))
     {
     tostderr (sprintf ("%s: Is not readable", file));

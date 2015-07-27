@@ -4,7 +4,7 @@ define _exit_me_ (argv)
 
   ifnot (NULL == rl)
     rline->writehistory (rl.history, rl.histfile);
-  
+ 
   variable i;
 
   _for i (0, length (_APPS_) - 1)
@@ -26,20 +26,17 @@ define _exit_me_ (argv)
   exit_me (0);
 }
 
-private define _get_connected_app (app)
+define _get_connected_app (app)
 {
   ifnot (any (app == _APPS_))
-    return NULL;
+    return String_Type[0];
 
   variable pids = assoc_get_keys (APPS[app]);
-
-  ifnot (length (pids))
-    return NULL;
 
   return pids;
 }
 
-private define _get_all_connected_apps ()
+define _get_all_connected_apps ()
 {
   variable i;
   variable ii;
@@ -49,50 +46,59 @@ private define _get_all_connected_apps ()
     {
     variable app = _APPS_[i];
     variable pids = _get_connected_app (app);
-    ifnot (NULL == pids)
+    if (length (pids))
       _for ii (0, length (pids) - 1)
         list_append (apps, [app, pids[ii]]);
     }
-  
+ 
   return list_to_array (apps, Array_Type);
+}
+
+define _reconnect_app_ (appl, reset)
+{
+  variable pid = NULL;
+ 
+  variable args = strtok (appl, "::");
+ 
+  variable app = args[0];
+ 
+  if (1 < length (args))
+    pid = args[1];
+
+  variable pids = _get_connected_app (app);
+
+  ifnot (length (pids))
+    return -1;
+
+  ifnot (NULL == pid)
+    ifnot (any (pid == pids))
+      return -1;
+
+  variable s = APPS[app][pid == NULL ? pids[0] : pid];
+ 
+  s._state &= ~IDLED;
+
+  if (reset)
+    smg->reset ();
+
+  sock->send_int (s._fd, RECONNECT);
+ 
+  _log_ (s._appname + ": reconnected", LOGNORM);
+
+  () = os->apploop (s);
+
+  () = os->app_atexit (s);
+
+  return 0;
 }
 
 private define reconnect_toapp (argv)
 {
   if (1 == length (argv))
     return;
-
-  variable pid = NULL;
   
-  variable args = strtok (argv[1], "::");
-  
-  variable app = args[0];
-  
-  if (1 < length (args))
-    pid = args[1];
-
-  variable pids = _get_connected_app (app);
-
-  if (NULL == pids)
+  if (-1 == _reconnect_app_ (argv[1]), 1)
     return;
-
-  ifnot (NULL == pid)
-    ifnot (any (pid == pids))
-      return;
-
-  variable s = APPS[app][pid == NULL ? pids[0] : pid];
-  
-  s._state &= ~IDLED;
-
-  smg->reset ();
-
-  sock->send_int (s._fd, RECONNECT);
-  
-  _log_ (s._appname + ": reconnected", LOGNORM);
-
-  os->apploop (s);
-
-  () = os->app_atexit (s);
 
   smg->init ();
 
@@ -123,7 +129,7 @@ define init_commands ()
 
   a["eval"] = @Argvlist_Type;
   a["eval"].func = &_eval_;
-  
+ 
   a["messages"] = @Argvlist_Type;
   a["messages"].func = &_messages_;
 
@@ -137,12 +143,12 @@ private define tabhook (s)
 
   ifnot (any (s.argv[0] == ["reconnect"]))
     return -1;
-  
+ 
   variable pids = _get_all_connected_apps ();
-  
+ 
   ifnot (length (pids))
     return -1;
-  
+ 
   variable i;
   variable arg;
   variable args = String_Type[0];
@@ -150,7 +156,7 @@ private define tabhook (s)
   _for i (0, length (pids) - 1)
     {
     arg = pids[i];
-    args = [args, arg[0] +  "::" + string (APPS[arg[0]][arg[1]].p_.pid) + " void " + 
+    args = [args, arg[0] +  "::" + string (APPS[arg[0]][arg[1]].p_.pid) + " void " +
     strjoin (APPS[arg[0]][arg[1]].argv, " ") + " connect to application"];
     }
 

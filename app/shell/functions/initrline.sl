@@ -6,27 +6,12 @@ define _shell_ (argv)
   draw (VED_CB);
 }
 
-private define _exit_ ()
+define _exit_ ()
 {
   ifnot (NULL == RLINE)
     rline->writehistory (RLINE.history, RLINE.histfile);
 
   exit_me (0);
-}
-
-define _idle_ (argv)
-{
-  smg->suspend ();
-
-  variable retval = go_idled ();
-  
-  ifnot (retval)
-    {
-    smg->resume ();
-    return;
-    }
-
-  _exit_ (;;__qualifiers  ());
 }
 
 private define _search_ (argv)
@@ -196,9 +181,6 @@ private define my_commands ()
 {
   variable a = init_commands ();
  
-  a["&"] = @Argvlist_Type;
-  a["&"].func = &_idle_;
-
   a["echo"] = @Argvlist_Type;
   a["echo"].func = &_echo_;
 
@@ -261,7 +243,9 @@ private define tabhook (s)
 
 define rlineinit ()
 {
-  variable rl = rline->init (&my_commands;
+  variable rl = rline->init (&my_commands;;struct
+    {
+    @__qualifiers (),
     histfile = HISTDIR + "/" + string (getuid ()) + "shellhistory",
     filtercommands = &filtercommands,
     filterargs = &filterargs,
@@ -269,7 +253,8 @@ define rlineinit ()
     onnolength = &toplinedr,
     onnolengthargs = {""},
     on_lang = &toplinedr,
-    on_lang_args = " -- shell --");
+    on_lang_args = " -- shell --"
+    });
  
   iarg = length (rl.history);
 

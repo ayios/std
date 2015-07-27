@@ -64,7 +64,7 @@ define exit_me (x)
 
   ifnot (NULL == BG)
     exit_me_bg (x);
-  
+ 
   variable buf;
 
   () = write (WRFD, "exit");

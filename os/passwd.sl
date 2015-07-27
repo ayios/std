@@ -1,5 +1,4 @@
 loadfrom ("crypt", "cryptInit", NULL, &on_eval_err);
-loadfrom ("rand", "randInit", NULL, &on_eval_err);
 
 static define encryptpasswd (passwd)
 {

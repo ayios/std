@@ -12,4 +12,4 @@ if (is_defined ("init_ftype"))
 
 if (is_defined ("txt_settype"))
   txt_settype (SCRATCH_VED, SCRATCH, VED_ROWS, NULL);
-  
+ 

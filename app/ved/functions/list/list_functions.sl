@@ -117,7 +117,7 @@ private define drawfile (s)
 
   if (NULL == l)
     return;
-  
+ 
   if (".list" == path_extname (l.fname))
     return;
 

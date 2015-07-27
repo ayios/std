@@ -13,7 +13,7 @@ private define _getpasswd_ ()
   else
     {
     passwd = getpasswd ();
-   
+ 
     if (-1 == os->authenticate (USER, passwd))
       passwd = NULL;
 

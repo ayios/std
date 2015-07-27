@@ -1,7 +1,7 @@
 define draw (s)
 {
   variable st = NULL == s._fd ? lstat_file (s._absfname) : fstat (s._fd);
-  
+ 
   if (NULL == st)
     {
     s._i = s._ii;

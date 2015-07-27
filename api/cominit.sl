@@ -43,6 +43,26 @@ define shell_post_header ()
     tostdout ("[" + string (iarg) + "](" + getcwd + ")[" + string (SHELLLASTEXITSTATUS) + "]$ ");
 }
 
+ifnot (NULL == APP.excom)
+  {
+  loadfrom ("api", "clientfuncs", NULL, &on_eval_err);
+
+  if (APP.excom.scratch)
+    loadfrom ("api", "exscratch", NULL, &on_eval_err);
+ 
+  if (APP.excom.edit)
+    loadfrom ("api", "exedit", NULL, &on_eval_err);
+ 
+  if (APP.excom.messages)
+    loadfrom ("api", "exmessages", NULL, &on_eval_err);
+
+  if (APP.excom.ved)
+    loadfrom ("api", "exved", NULL, &on_eval_err);
+
+  if (APP.excom.eval)
+    loadfrom ("api", "eval", NULL, &on_eval_err);
+  }
+
 private define write_file (s, overwrite, ptr, argv)
 {
   variable file;
@@ -240,7 +260,7 @@ define _preexec_ (argv, header, issudo, env)
 
   if (@header)
     shell_pre_header (argv);
-  
+ 
   if ('!' == argv[0][0])
     argv[0] = substr (argv[0], 2, -1);
 
@@ -371,7 +391,7 @@ define _getpasswd_ ()
   else
     {
     passwd = getpasswd ();
-    
+ 
     if (-1 == os->authenticate (USER, passwd))
       passwd = NULL;
 
@@ -420,7 +440,7 @@ define _getbgstatus_ (pid)
       tostderr (pid + ": " + errno_string (errno) + "\n");
       return;
       }
-  
+ 
   if (isnotsudo || (isnotsudo == 0 == UID))
     {
     variable rdfd = open (RDFIFO, O_RDONLY);
@@ -448,7 +468,7 @@ define _getbgstatus_ (pid)
       tostdout (pid + ": exit status " + string (status.exit_status) + "\n");
     else
       toscratch (pid + ": exit status " + string (status.exit_status) + "\n");
-      
+ 
 
   BGPIDS[pid].atexit ();
 
@@ -506,11 +526,6 @@ define _fork_ (p, argv, env)
       tostdout (err);
     else
       toscratch (err);
-}
-
-define _scratch_ ()
-{
-  pop ();
 }
 
 define execute (argv)
@@ -628,23 +643,6 @@ define _builtinpost_ ()
   draw (VED_CB);
 }
 
-ifnot (NULL == APP.excom)
-  {
-  loadfrom ("api", "clientfuncs", NULL, &on_eval_err);
-
-  if (APP.excom.scratch)
-    loadfrom ("api", "exscratch", NULL, &on_eval_err);
-  
-  if (APP.excom.edit)
-    loadfrom ("api", "exedit", NULL, &on_eval_err);
-  
-  if (APP.excom.messages)
-    loadfrom ("api", "exmessages", NULL, &on_eval_err);
-
-  if (APP.excom.ved)
-    loadfrom ("api", "exved", NULL, &on_eval_err);
-  }
-
 define _builtinpre_ (argv)
 {
   _precom_ ();
@@ -710,20 +708,20 @@ define _list_bg_jobs_ (argv)
 define runapp (argv, env)
 {
   smg->suspend ();
-  
+ 
   argv[0] = ROOTDIR + "/bin/" + argv[0];
 
   variable issudo = qualifier ("issudo");
-  
+ 
   variable p = proc->init (issudo, 0, 0);
   if (issudo)
     {
     p.stdin.in = qualifier ("passwd");
     argv = [SUDO_BIN, "-S", "-E", "-p", "", argv];
     }
-  
+ 
   variable status;
-  
+ 
   ifnot (NULL == env)
     status = p.execve (argv, env, NULL);
   else
@@ -787,8 +785,16 @@ define init_commands ()
       a["ved"] = @Argvlist_Type;
       a["ved"].func = __get_reference ("_ved_");
       }
+
+    if (APP.excom.eval)
+      {
+      a["eval"] = @Argvlist_Type;
+      a["eval"].func = __get_reference ("_eval_");
+      }
     }
  
+  a["&"] = @Argvlist_Type;
+  a["&"].func = &_idle_;
 
   a["w"] = @Argvlist_Type;
   a["w"].func = &_write_;
@@ -802,8 +808,5 @@ define init_commands ()
   a["killbgjob"] = @Argvlist_Type;
   a["killbgjob"].func = &_kill_bg_job;
 
-  a["eval"] = @Argvlist_Type;
-  a["eval"].func = &_eval_;
-  
   return a;
 }

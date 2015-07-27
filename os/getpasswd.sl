@@ -13,7 +13,7 @@ define getpasswd ()
     else
       passwd+= char (chr);
     }
-  
+ 
   send_msg (" ", 0);
 
   return passwd;

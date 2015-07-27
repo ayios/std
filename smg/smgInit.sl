@@ -8,7 +8,6 @@ public variable MSGROW;
 importfrom ("std", "slsmg", "smg", &on_eval_err);
 
 loadfrom ("colors", "colorsInit", NULL, &on_eval_err);
-loadfrom ("string", "repeat", NULL, &on_eval_err);
 loadfrom ("smg",  "smginit", 1, &on_eval_err);
 loadfrom ("smg",  "getscreensize", NULL, &on_eval_err);
 

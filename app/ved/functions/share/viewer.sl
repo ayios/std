@@ -273,7 +273,7 @@ private define page_down (s)
 {
   if (s._i + s._avlins > s._len)
     return;
-  
+ 
   markbacktick (s);
 
   s._is_wrapped_line = 0;
@@ -329,7 +329,7 @@ private define eos (s)
     s._findex = s._indent;
     s._index = linlen - 1 + s._indent;
     }
-  
+ 
   draw_tail (s);
 }
 
@@ -516,20 +516,20 @@ define gotomark (s)
     s._i = keep._i;
     s.ptr = keep.ptr;
 
-    s.draw ();  
+    s.draw ();
     }
 }
 
 define mark (s)
 {
   variable mark = getch (;disable_langchange);
-  
+ 
   if ('a' <= mark <= 'z')
     {
     mark = string (mark);
-    
+ 
     ifnot (assoc_key_exists (MARKS, mark))
-      MARKS[mark] = @Mark_Type;  
+      MARKS[mark] = @Mark_Type;
 
     MARKS[mark]._i = s._ii;
     MARKS[mark].ptr = s.ptr;

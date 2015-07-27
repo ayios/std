@@ -15,7 +15,7 @@ define ved ()
     _log_ ("ved: fork failed", LOGERR);
     return;
     }
-  
+ 
   _log_ ("ved pid: " + string (s.p_.pid), LOGNORM);
 
   os->connect_to_child (s);

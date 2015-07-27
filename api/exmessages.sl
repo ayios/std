@@ -5,7 +5,7 @@ define _messages_ (argv)
   viewfile (ERR_VED, "MSG", NULL, NULL);
  
   variable f = __get_reference ("setbuf");
-  
+ 
   VED_CB = ved;
 
   (@f) (VED_CB._absfname);

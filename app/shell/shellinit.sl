@@ -15,7 +15,7 @@ define shell ()
     _log_ ("shell: fork failed", LOGERR);
     return -1;
     }
-  
+ 
   _log_ ("shell pid: " + string (s.p_.pid), LOGNORM);
 
   os->connect_to_child (s);

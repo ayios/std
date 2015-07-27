@@ -5,7 +5,7 @@ loadfrom ("api", "apptype", NULL, &on_eval_err);
 static define init (dir)
 {
   variable s = @Api_Type;
-  
+ 
   dir = path_dirname (dir);
 
   s.appname    = path_basename (dir);

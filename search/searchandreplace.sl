@@ -1,5 +1,4 @@
 importfrom ("std", "pcre", NULL, &on_eval_err);
-loadfrom ("string", "repeat", NULL, &on_eval_err);
 
 typedef struct
   {

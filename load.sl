@@ -58,7 +58,7 @@ PERM["__STATIC"] = PERM["_PRIVATE"]|S_IRGRP;         %0640
 PERM["PUBLIC"]   = PERM["STATIC"]|S_IRWXO;           %0777
 PERM["_PUBLIC"]  = PERM["_STATIC"]|S_IROTH|S_IXOTH;  %0755
 PERM["__PUBLIC"] = PERM["__STATIC"]|S_IROTH;         %0644
-PERM["___PUBLIC"]= PERM["_PRIVATE"]|S_IWGRP|S_IWOTH; %0622 
+PERM["___PUBLIC"]= PERM["_PRIVATE"]|S_IWGRP|S_IWOTH; %0622
 
 public variable PATH = getenv ("PATH");
 public variable TERM = getenv ("TERM");
@@ -146,7 +146,7 @@ private define _findns_ (ns, lns, lib)
   _for i (0, length (nss) - 1)
     {
     @lns =  nss[i]+ "/" + ns;
-    
+ 
     ifnot (access (@lns, F_OK))
       foundns = 1;
 
@@ -170,7 +170,7 @@ private define _findns_ (ns, lns, lib)
 private define _loadfrom_ (ns, lib, dons)
 {
   variable lns;
- 
+
   _findns_ (ns, &lns, lib);
  
   ns = NULL == dons
@@ -179,13 +179,13 @@ private define _loadfrom_ (ns, lib, dons)
       ? 1 == dons
         ? ns
         : NULL
-      : String_Type == typeof (dons)
+      : String_Type == typeof (dons) || BString_Type == typeof (dons)
         ? dons
         : NULL;
 
   try
     {
-    () = _load_ (lns + "/" + lib, ns;fun = "");
+    () = _load_ (lns + "/" + lib, ns;;struct {fun = "", @__qualifiers ()});
     }
   catch AnyError:
     throw AnyError, " ", __get_exception_info ();
@@ -269,7 +269,7 @@ public define getreffrom (ns, lib, dons, errfunc)
   try
     {
     _findns_ (ns, &lns, lib);
-    return _load_ (lns + "/" + lib, ns;fun = fun);
+    return _load_ (lns + "/" + lib, ns;;struct {fun = fun, @__qualifiers ()});
     }
   catch AnyError:
     {
@@ -301,7 +301,7 @@ public define loadfile (file, ns, errfunc)
  
   try
     {
-    () = _load_ (file, ns;fun = "");
+    () = _load_ (file, ns;;struct {fun = "", @__qualifiers ()});
     }
   catch AnyError:
     {
@@ -320,9 +320,8 @@ define which (executable)
   variable
     ar,
     st,
-    path;
+    path = PATH;
 
-  path = PATH;
   if (NULL == path)
     return NULL;
 

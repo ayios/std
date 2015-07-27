@@ -609,7 +609,7 @@ private define linecompletion (s, line)
     col = s._index - 1,
     iwchars = [MAPS, ['0':'9'], '_'];
  
-  ifnot (strlen (@line))
+  ifnot (origlen)
     return;
 
   forever

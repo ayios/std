@@ -20,7 +20,6 @@ loadfrom ("parse", "is_arg", NULL, &on_eval_err);
 loadfrom ("rline", "rlineInit", NULL, &on_eval_err);
 loadfrom ("proc", "procInit", NULL, &on_eval_err);
 loadfrom ("smg", "smgInit", NULL, &on_eval_err);
-loadfrom ("string", "repeat", NULL, &on_eval_err);
 loadfrom ("smg", "widg", "widg", &on_eval_err);
 loadfrom ("sock", "sockInit", 1, &on_eval_err);
 loadfrom ("api", "sockfuncs", NULL, &on_eval_err);
@@ -44,6 +43,7 @@ if (APP.os)
   loadfrom ("api", "setenv", NULL, &on_eval_err);
   loadfrom ("api", "connect", NULL, &on_eval_err);
   loadfrom ("api", "osstdfuncs", NULL, &on_eval_err);
+  loadfrom ("api", "osapprl", NULL, &on_eval_err);
   }
 else
   loadfrom ("api", "stdfuncs", NULL, &on_eval_err);
@@ -53,6 +53,8 @@ loadfrom ("api", "openscratch", NULL, &on_eval_err);
 
 if (APP.stdout)
   loadfrom ("api", "openstdout", NULL, &on_eval_err);
+
+loadfrom ("api", "idle", NULL, &on_eval_err);
 
 ifnot (NULL == APP.excom)
   {
@@ -68,8 +70,13 @@ loadfile ("Init", NULL, &on_eval_err);
 
 ifnot (NULL == APP.excom)
   RLINE = rlineinit (;
+    osappnew = __get_reference ("_osappnew_"),
+    osapprec = __get_reference ("_osapprec_"),
     filterargs = __get_reference ("filterexargs"),
     filtercommands = __get_reference ("filterexcom"));
 else
-  RLINE = rlineinit ();
+  RLINE = rlineinit (;
+    oscompl = __get_reference ("_osappnew_"),
+    osapprec = __get_reference ("_osapprec_"),
+    );
  

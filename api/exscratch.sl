@@ -5,7 +5,7 @@ define scratch (argv)
   viewfile (SCRATCH_VED, "SCRATCH", [1, 0], 0);
 
   variable f = __get_reference ("setbuf");
-  
+ 
   VED_CB = ved;
 
   (@f) (VED_CB._absfname);
@@ -20,7 +20,7 @@ define _scratch_ (ved)
   viewfile (SCRATCH_VED, "SCRATCH", [1, 0], 0);
 
   variable f = __get_reference ("setbuf");
-  
+ 
   VED_CB = ved;
 
   (@f) (VED_CB._absfname);

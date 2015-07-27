@@ -162,12 +162,17 @@ private define _messages_ ()
   keep.vedloop ();
 }
 
+define _exit_ ()
+{
+  quit (;;__qualifiers  ());
+}
+
 private define _idle_ ()
 {
   smg->suspend ();
 
   variable retval = go_idled ();
-  
+ 
   ifnot (retval)
     {
     smg->resume ();

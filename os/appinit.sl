@@ -25,9 +25,9 @@ static define apptable ()
         continue;
 
       APPSINFO[app] = @AppInfo_Type;
-      
+ 
       APPSINFO[app].init = app + "Init";
-      
+ 
       ifnot (access (dir + "/app/" + app + "help.txt", F_OK))
         APPSINFO[app].help = dir + "/app/" + app + "/help.txt";
 
@@ -81,18 +81,18 @@ static define app_atexit (s)
     variable status = waitpid (s.p_.pid, 0);
 
     s.p_.atexit ();
-    
+ 
     ifnot (NULL == s._fd)
       () = close (s._fd);
-    
+ 
     assoc_delete_key (APPS[s._appname], string (s.p_.pid));
-    
-    _log_ (s._appname +": exited", LOGERR);
+ 
+    _log_ (s._appname + ": exited", LOGERR);
 
     return 0;
     }
-  
-  _log_ (s._appname +": is in idled state", LOGERR);
+ 
+  _log_ (s._appname + ": is in idled state", LOGERR);
 
   return 1;
 }
@@ -107,26 +107,52 @@ static define apploop (s)
  
     ifnot (Integer_Type == typeof (retval))
       {
-      _log_ (s._appname + "loop: expected Integer_Type, received " + string (typeof (retval)), LOGERR);
-      break;
+      _log_ (s._appname + " loop: expected Integer_Type, received " + string (typeof (retval)), LOGERR);
+      return -1; %don't handled
       }
 
     if (retval == GO_ATEXIT)
       {
       s._state &= ~CONNECTED;
-      break;
+      return 0;
       }
 
     if (retval == GO_IDLED)
       {
-      ifnot (ALLOWIDLED)
-        sock->send_int (s._fd, 0);
-      else
-        s._state |= IDLED;
+      s._state |= IDLED;
+      return 0;
+      }
 
-      break;
+    if (retval == APP_CON_NEW)
+      {
+      APP_NEW = sock->send_bit_get_str (s._fd, 1);
+      s._state |= IDLED;
+      return 0;
+      }
+
+    if (retval == APP_RECON_OTH)
+      {
+      APP_CON_OTH = sock->send_bit_get_str (s._fd, 1);
+      s._state |= IDLED;
+      return 0;
       }
     }
+}
+
+private define write_con_apps ()
+{
+  variable pids = (@__get_reference ("_get_all_connected_apps"));
+  variable fp = fopen (COAPPSFILE, "w");
+  variable i;
+  variable pid;
+
+  _for i (0, length (pids) - 1)
+    {
+    pid = pids[i];
+    () = fprintf (fp, "%s::%d\n", pid[0], APPS[pid[0]][pid[1]].p_.pid);  
+    }
+
+  () = fclose (fp); 
 }
 
 static define connect_to_child (s)
@@ -140,11 +166,11 @@ static define connect_to_child (s)
       s.p_.atexit ();
 
       () = kill (s.p_.pid, SIGKILL);
-    
+ 
       _log_ (s._appname +": evaluation err", LOGERR);
-    
+ 
       array_map (&tostderr, readfile (s.p_.stderr.file));
-      
+ 
       return;
       }
     }
@@ -156,19 +182,22 @@ static define connect_to_child (s)
     s.p_.atexit ();
 
     () = kill (s.p_.pid, SIGKILL);
-    
+ 
     _log_ (s._appname +": failed to connect to socket", LOGERR);
-    
+ 
     return;
     }
  
   s._state |= CONNECTED;
-  
+ 
   _log_ (s._appname + ": connected to socket", LOGNORM);
 
   APPS[s._appname][string (s.p_.pid)] = s;
   
-  apploop (s);
+  write_con_apps ();
+
+  % Has to handle -1
+  () = apploop (s);
 }
 
 static define doproc (s, argv)
@@ -181,7 +210,7 @@ static define doproc (s, argv)
   addflags (p, s);
 
   (argv, env) = getargvenv (p, s, argv);
-  
+ 
   s.p_ = p;
 
   if (NULL == p.execve (argv, env, 1))

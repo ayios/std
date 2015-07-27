@@ -5,7 +5,7 @@ define filterexcom (s, ar)
       ar = ar[where (strncmp (ar, "!", 1))];
 
   return ar;
-} 
+}
 
 define filterexargs (s, args, type, desc)
 {
