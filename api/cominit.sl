@@ -109,7 +109,7 @@ define _write_ (argv)
 {
   if ("w" == argv[0] || "w!" == argv[0])
     {
-    write_file (VED_CB, "w!" == argv[0], [PROMPTROW, 1], argv[[1:]]);
+    write_file (get_cur_buf (), "w!" == argv[0], [PROMPTROW, 1], argv[[1:]]);
     return;
     }
 }
@@ -122,7 +122,7 @@ define _postexec_ (header)
   if (header)
     shell_post_header ();
 
-  draw (VED_CB);
+  draw (get_cur_buf ());
 }
 
 private define _ask_ (cmp_lnrs, wrfd, rdfd)
@@ -369,7 +369,7 @@ define parse_redir (lastarg, file, flags)
 define parse_argv (argv, isbg)
 {
   variable flags = ">>|";
-  variable file = isbg ? STDOUTBG : APP.realshell ? (@__get_reference ("STDOUT")) : SCRATCH;
+  variable file = isbg ? STDOUTBG : APP.realshell ? get_cur_buf()._absfname : SCRATCH;
   variable retval = parse_redir (argv[-1], &file, &flags);
  
   return file, flags, retval;
@@ -617,10 +617,10 @@ define execute (argv)
 
   if (NULL != isscratch || 0 == APP.realshell)
     ifnot (SHELLLASTEXITSTATUS)
-      _scratch_ (VED_CB;;__qualifiers ());
+      _scratch_ (get_cur_buf ();;__qualifiers ());
     else
       ifnot (APP.realshell)
-        _scratch_ (VED_CB;;__qualifiers ());
+        _scratch_ (get_cur_buf;;__qualifiers ());
 
   ifnot (isbg)
     _getbgjobs_ ();
@@ -640,7 +640,7 @@ define _builtinpost_ ()
 
   shell_post_header ();
 
-  draw (VED_CB);
+  draw (get_cur_buf ());
 }
 
 define _builtinpre_ (argv)
@@ -656,7 +656,7 @@ define _kill_bg_job (argv)
   if (1 == length (argv))
     {
     shell_post_header ();
-    draw (VED_CB);
+    draw (get_cur_buf ());
     return;
     }
 
@@ -665,7 +665,7 @@ define _kill_bg_job (argv)
   ifnot (assoc_key_exists (BGPIDS, pid))
     {
     shell_post_header ();
-    draw (VED_CB);
+    draw (get_cur_buf ());
     return;
     }
 
@@ -677,7 +677,7 @@ define _kill_bg_job (argv)
     send_msg_dr (pid + ": killed", 0, PROMPTROW, 1);
 
   shell_post_header ();
-  draw (VED_CB);
+  draw (get_cur_buf ());
 }
 
 define _list_bg_jobs_ (argv)
@@ -691,7 +691,7 @@ define _list_bg_jobs_ (argv)
   ifnot (length (pids))
     {
     shell_post_header ();
-    draw (VED_CB);
+    draw (get_cur_buf ());
     return;
     }
  
@@ -702,7 +702,7 @@ define _list_bg_jobs_ (argv)
 
   shell_post_header ();
 
-  draw (VED_CB);
+  draw (get_cur_buf ());
 }
 
 define runapp (argv, env)

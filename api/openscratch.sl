@@ -4,12 +4,9 @@ define toscratch (str)
   () = write (SCRATCHFD, str);
 }
 
-if (is_defined ("init_ftype"))
-  {
-  SCRATCH_VED = init_ftype ("txt");
-  SCRATCH_VED._fd = SCRATCHFD;
-  }
+SCRATCH_VED = init_ftype ("txt");
+SCRATCH_VED._fd = SCRATCHFD;
 
-if (is_defined ("txt_settype"))
-  txt_settype (SCRATCH_VED, SCRATCH, VED_ROWS, NULL);
- 
+txt_settype (SCRATCH_VED, SCRATCH, VED_ROWS, NULL);
+
+UNDELETABLE = [UNDELETABLE, SCRATCH];

@@ -320,7 +320,6 @@ private define right (is, s, line)
 {
   variable len = strlen (@line);
 
-  send_msg_dr (string (len) + " " + string (s._index), 1, s.ptr[0], s.ptr[1]);
   if (s._index + 1 > len || 0 == len)
     return;
 

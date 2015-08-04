@@ -1,12 +1,14 @@
 define setbuf (key)
 {
-  ifnot (any (key == VED_BUFNAMES))
+  variable w = get_cur_wind ();
+  
+  ifnot (any (key == w.bufnames))
     return;
  
-  VED_CB = VED_BUFFERS[key];
- 
-  variable s = VED_CB;
+  variable s = w.buffers[key];
 
+  w.frame_names[w.cur_frame] = key;
+ 
   if (s._autochdir && 0 == VED_ISONLYPAGER)
     () = chdir (s._dir);
 }
@@ -18,17 +20,23 @@ define addbuf (s)
   else
     s._absfname = s._fname;
 
-  if (any (s._absfname == VED_BUFNAMES))
-    return;
+  variable w = get_cur_wind ();
 
-  VED_BUFFERS[s._absfname] = s;
-  VED_BUFNAMES = [VED_BUFNAMES,  s._absfname];
-  VED_BUFFERS[s._absfname]._dir = realpath (path_dirname (s._absfname));
+  if (any (s._absfname == w.bufnames))
+    return;
+  
+  w.buffers[s._absfname] = s;
+  w.bufnames = [w.bufnames,  s._absfname];
+  w.buffers[s._absfname]._dir = realpath (path_dirname (s._absfname));
 }
 
 define bufdelete (s, bufname, force)
 {
-  ifnot (any (s._absfname == VED_BUFNAMES))
+  if (any (bufname == UNDELETABLE))
+    return;
+
+  variable w = get_cur_wind ();
+  ifnot (any (s._absfname == w.bufnames))
     return;
  
   if (s._flags & VED_MODIFIED && force)
@@ -38,36 +46,41 @@ define bufdelete (s, bufname, force)
       send_msg_dr (errno_string (retval), 1, NULL, NULL);
     }
 
-  assoc_delete_key (VED_BUFFERS, bufname);
+  variable isatframe = wherefirst (w.frame_names == bufname);
+
+  assoc_delete_key (w.buffers, bufname);
  
-  variable index = wherefirst (bufname == VED_BUFNAMES);
+  variable index = wherefirst (bufname == w.frame_names);
+  
+  w.bufnames[index] = NULL;
+  w.bufnames = w.bufnames[wherenot (_isnull (w.bufnames))];
  
-  VED_BUFNAMES[index] = NULL;
-  VED_BUFNAMES = VED_BUFNAMES[wherenot (_isnull (VED_BUFNAMES))];
+  variable winds = assoc_get_keys (VED_WIND);
+
+  ifnot (length (w.bufnames))
+    if (1 == length (winds))
+      s.quit (0);
+    else
+      {
+      assoc_delete_key (VED_WIND, VED_CUR_WIND);
+      winds = assoc_get_keys (VED_WIND);
+      VED_CUR_WIND = winds[0];
+      w = get_cur_wind ();
+      s = get_cur_buf ();
+      setbuf (s._absfname);
+      draw_wind ();
+      return;
+      }
  
-  ifnot (length (VED_BUFNAMES))
-    s.quit (0);
+  ifnot (NULL == isatframe)
+    del_frame (isatframe);
+
+  index = index ? index - 1 : length (w.bufnames) - 1;
  
-  index = index ? index - 1 : length (VED_BUFNAMES) - 1;
+  setbuf (w.bufnames[index]);
  
-  setbuf (VED_BUFNAMES[index]);
- 
-  s = VED_CB;
- 
+  s = get_cur_buf ();
   s.draw ();
-  s.vedloop ();
-}
-
-define initrowsbuffvars (s, rows)
-{
-  s.cols = Integer_Type[length (s.rows)];
-  s.cols[*] = 0;
-
-  s.clrs = Integer_Type[length (s.rows)];
-  s.clrs[*] = 0;
-  s.clrs[-1] = VED_INFOCLRFG;
- 
-  s._avlins = length (s.rows) - 2;
 }
 
 define initbuf (s, fname, rows, lines, t)
@@ -109,7 +122,7 @@ define initbuf (s, fname, rows, lines, t)
 
   s._len = length (s.lines) - 1;
  
-  initrowsbuffvars (s, rows);
+  initrowsbuffvars (s);
 
   s.ptr[0] = s.rows[0];
   s.ptr[1] = s._indent;
@@ -126,3 +139,4 @@ define initbuf (s, fname, rows, lines, t)
 
   addbuf (s);
 }
+

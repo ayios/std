@@ -15,7 +15,10 @@ private define _getpasswd_ ()
     passwd = getpasswd ();
  
     if (-1 == os->authenticate (USER, passwd))
+      {
+      send_msg_dr ("Authentication error", 1, NULL, NULL);
       passwd = NULL;
+      }
 
     ifnot (NULL == passwd)
       {

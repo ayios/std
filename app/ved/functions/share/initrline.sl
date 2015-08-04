@@ -20,7 +20,8 @@ private define tabhook (s)
     return -1;
  
   variable v = qualifier ("ved");
-  variable bufnames = VED_BUFNAMES[wherenot (v._absfname == VED_BUFNAMES)];
+  variable w = get_cur_wind ();
+  variable bufnames = w.bufnames[wherenot (v._absfname == w.bufnames)];
   variable args = array_map (String_Type, &sprintf, "%s void ", bufnames);
   return rline->argroutine (s;args = args, accept_ws);
 }

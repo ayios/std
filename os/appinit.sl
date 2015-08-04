@@ -1,3 +1,181 @@
+static define runapp ()
+{
+  variable argv = __pop_list (_NARGS);
+
+  argv = list_to_array (argv, String_Type);
+
+  variable app = qualifier ("argv0");
+
+  ifnot (any (app == _APPS_))
+    {
+    tostderr (app + ": No such application");
+    return;
+    }
+ 
+  variable setid = @Setid_Type;
+
+  variable issu = is_arg ("--su", argv);
+  ifnot (NULL == issu)
+    {
+    setid.uid = 0;
+    setid.gid = 0;
+    setid.user = "root";
+    argv[issu] = NULL;
+    argv = argv[wherenot (_isnull (argv))];
+    }
+
+  variable args = {};
+  variable i;
+
+  _for i (0, length (argv) - 1)
+    list_append (args, argv[i]);
+
+  smg->reset ();
+ 
+  loadfrom ("app/" + app, APPSINFO[app].init, app, &on_eval_err;force);
+ 
+  variable ref = __get_reference (app + "->" + app);
+  () = (@ref) (__push_list (args);;setid);
+  
+  smg->init ();
+ 
+  draw (ERR);
+}
+
+static define app_atexit (s)
+{
+  ifnot (s._state & IDLED)
+    {
+    variable status = waitpid (s.p_.pid, 0);
+
+    s.p_.atexit ();
+    
+    ifnot (NULL == s._fd)
+      () = close (s._fd);
+    
+    variable pid = s.p_.pid;
+
+    assoc_delete_key (APPS[s._appname], string (s.p_.pid));
+    
+    variable ind = wherefirst_eq (CONNECTED_PIDS, pid);
+
+    CONNECTED_PIDS[ind] = 0; 
+    CONNECTED_APPS[ind] = NULL;
+    CONNECTED_PIDS = CONNECTED_PIDS[where (CONNECTED_PIDS)];
+    CONNECTED_APPS = CONNECTED_APPS[wherenot (_isnull (CONNECTED_APPS))];
+    CUR_IND = 0 == CUR_IND
+      ? length (CONNECTED_APPS)
+        ? length (CONNECTED_APPS) - 1
+        : -1
+      : CUR_IND - 1;
+
+    _log_ (s._appname + ": exited, EXIT_STATUS: " + string (status.exit_status), LOGERR);
+
+    return 0;
+    }
+ 
+  _log_ (s._appname + ": is in idled state", LOGERR);
+
+  return 1;
+}
+
+private define _get_s_ ()
+{
+  variable pid = string (CONNECTED_PIDS[CUR_IND]);
+  variable app = CONNECTED_APPS[CUR_IND];
+  return APPS[app][pid];
+}
+
+static define apploop (s)
+{
+  variable retval;
+  variable app;
+
+  forever
+    {
+    retval = sock->get_int (s._fd);
+ 
+    ifnot (Integer_Type == typeof (retval))
+      {
+      _log_ (sprintf ("%s loop: expected Integer_Type, received %S", s._appname, typeof (retval)), LOGERR);
+      return; %don't handled, but it should never happen
+      }
+    
+    if (retval == APP_GET_ALL)
+      {
+      sock->send_str (s._fd, strjoin (_APPS_, "\n"));
+      continue;
+      }
+
+    if (retval == APP_GET_CONNECTED)
+      {
+      sock->send_str (s._fd, __get_con_apps ());
+      continue;
+      }
+
+    if (retval == GO_ATEXIT)
+      {
+      s._state &= ~CONNECTED;
+      
+      if (1 == length (CONNECTED_APPS))
+        {
+        app_atexit (s);
+        return;
+        }
+      
+      app_atexit (s);
+      
+      s = _get_s_ ();
+
+      __send_reconnect (s);
+      continue;
+      }
+
+    if (retval == GO_IDLED)
+      {
+      __set_idled (s);
+      return;
+      }
+
+    if (retval == APP_CON_NEW)
+      {
+      app = sock->send_bit_get_str (s._fd, 1);
+
+      __set_idled (s);
+      
+      s = __new_app (app);
+      
+      ifnot (NULL == s)
+        continue;
+      
+      s = _get_s_ ();
+
+      __send_reconnect (s);
+      continue;
+      }
+
+    if (retval == APP_RECON_OTH)
+      {
+      app = sock->send_bit_get_str (s._fd, 1);
+      
+      __set_idled (s);
+      
+      s = __reconnect_to_app (app);
+
+      if (NULL == s)
+        {
+        s = _get_s_ ();
+
+        __send_reconnect (s);
+        continue;
+        }
+
+      __send_reconnect (s);
+      continue;
+      }
+    }
+}
+
 static define apptable ()
 {
   variable i;
@@ -56,6 +234,8 @@ static define init_app (name, dir, argv)
   s.argv = argv;
   s._sockaddr = TEMPDIR + "/" + string (PID) + name + ".sock";
 
+  _log_ ("initing " + s._appname + ", sockaddress: " + s._sockaddr, LOGALL);
+
   return s;
 }
 
@@ -74,132 +254,12 @@ static define getargvenv (p, s, argv)
   return argv, env;
 }
 
-private define write_con_apps ()
-{
-  variable pids = (@__get_reference ("_get_all_connected_apps"));
-  variable fp = fopen (COAPPSFILE, "w");
-  variable i;
-  variable pid;
-
-  _for i (0, length (pids) - 1)
-    {
-    pid = pids[i];
-    () = fprintf (fp, "%s::%d\n", pid[0], APPS[pid[0]][pid[1]].p_.pid);  
-    }
-
-  () = fclose (fp); 
-}
-
-static define app_atexit (s)
-{
-  ifnot (s._state & IDLED)
-    {
-    variable status = waitpid (s.p_.pid, 0);
-
-    s.p_.atexit ();
- 
-    ifnot (NULL == s._fd)
-      () = close (s._fd);
- 
-    assoc_delete_key (APPS[s._appname], string (s.p_.pid));
- 
-    _log_ (s._appname + ": exited", LOGERR);
-
-    write_con_apps ();
-
-    return 0;
-    }
- 
-  _log_ (s._appname + ": is in idled state", LOGERR);
-
-  return 1;
-}
-
-static define apploop (s)
-{
-  variable retval;
-
-  forever
-    {
-    retval = sock->get_int (s._fd);
- 
-    ifnot (Integer_Type == typeof (retval))
-      {
-      _log_ (s._appname + " loop: expected Integer_Type, received " + string (typeof (retval)), LOGERR);
-      return -1; %don't handled
-      }
-
-    if (retval == GO_ATEXIT)
-      {
-      s._state &= ~CONNECTED;
-      return 0;
-      }
-
-    if (retval == GO_IDLED)
-      {
-      s._state |= IDLED;
-      return 0;
-      }
-
-    if (retval == APP_CON_NEW)
-      {
-      APP_NEW = sock->send_bit_get_str (s._fd, 1);
-      s._state |= IDLED;
-      return 0;
-      }
-
-    if (retval == APP_RECON_OTH)
-      {
-      APP_CON_OTH = sock->send_bit_get_str (s._fd, 1);
-      s._state |= IDLED;
-      return 0;
-      }
-    }
-}
-
 static define connect_to_child (s)
 {
-  while (-1 == access (TEMPDIR + "/_" + s._appname + "_.init", F_OK))
-    {
-    ifnot (access (TEMPDIR + "/_" + s._appname + "_.initerr", F_OK))
-      {
-      () = remove (TEMPDIR + "/_" + s._appname + "_.initerr");
-
-      s.p_.atexit ();
-
-      () = kill (s.p_.pid, SIGKILL);
- 
-      _log_ (s._appname +": evaluation err", LOGERR);
- 
-      array_map (&tostderr, readfile (s.p_.stderr.file));
- 
-      return;
-      }
-    }
-
-  s._fd = s.p_.connect (s._sockaddr);
-
-  if (NULL == s._fd)
-    {
-    s.p_.atexit ();
-
-    () = kill (s.p_.pid, SIGKILL);
- 
-    _log_ (s._appname +": failed to connect to socket", LOGERR);
- 
+  if (-1 == __connect_to_app (s))
     return;
-    }
- 
-  s._state |= CONNECTED;
- 
-  _log_ (s._appname + ": connected to socket", LOGNORM);
 
-  APPS[s._appname][string (s.p_.pid)] = s;
-  
-  write_con_apps ();
-
-  % Has to handle -1
-  () = apploop (s);
+  apploop (s);
 }
 
 static define doproc (s, argv)
@@ -207,7 +267,10 @@ static define doproc (s, argv)
   variable p, env;
 
   if (p = proc->init (0, 0, 1;;__qualifiers ()), p == NULL)
-    return NULL;
+    {
+    _log_ (s._appname + ": inited failed", LOGERR);
+    return -1;
+    }
 
   addflags (p, s);
 
@@ -216,7 +279,12 @@ static define doproc (s, argv)
   s.p_ = p;
 
   if (NULL == p.execve (argv, env, 1))
+    {
+    _log_ (s._appname + ": fork failed", LOGERR);
     return -1;
+    }
 
+  _log_ (s._appname  + " pid: " + string (s.p_.pid), LOGNORM);
+  
   return 0;
 }

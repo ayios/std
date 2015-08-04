@@ -12,5 +12,5 @@ define _ved_ (argv)
  
   shell_post_header ();
  
-  draw (VED_CB);
+  draw (get_cur_buf ());
 }

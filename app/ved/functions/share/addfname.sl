@@ -11,22 +11,32 @@ define addfname (fname)
   if (_isdirectory (fname))
     return;
 
-  ifnot (any (VED_BUFNAMES == absfname))
-    {
-    s = init_ftype (get_ftype (fname));
+  variable w = get_cur_wind ();
 
-    s.ved (fname);
-    }
-  else
+  ifnot (any (w.bufnames == absfname))
     {
-    s = VED_BUFFERS[absfname];
- 
+    variable ft = get_ftype (fname);
+    s = init_ftype (ft);
+    variable func = __get_reference (sprintf ("%s_settype", ft));
+    (@func) (s, fname, w.frame_rows[get_cur_frame ()], NULL);
     setbuf (s._absfname);
 
     write_prompt (" ", 0);
 
     s.draw ();
-    s.vedloop ();
+
+    w.frame_names[get_cur_frame ()] = s._absfname;
+    }
+  else
+    {
+    s = w.buffers[absfname];
+ 
+    w.frame_names[get_cur_frame ()] = s._absfname;
+    setbuf (s._absfname);
+
+    write_prompt (" ", 0);
+    s._i = s._ii;
+    s.draw ();
     }
 }
 

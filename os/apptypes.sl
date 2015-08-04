@@ -20,3 +20,10 @@ typedef struct
   info,
   }AppInfo_Type;
 
+variable Setid_Type = struct
+    {
+    setid = 1,
+    uid = UID,
+    gid = GID,
+    user = USER
+    };

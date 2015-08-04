@@ -1,14 +1,13 @@
 define _messages_ (argv)
 {
-  variable ved = @VED_CB;
+  variable ved = @get_cur_buf ();
 
   viewfile (ERR_VED, "MSG", NULL, NULL);
  
   variable f = __get_reference ("setbuf");
- 
-  VED_CB = ved;
 
-  (@f) (VED_CB._absfname);
-  VED_CB.draw ();
+  (@f) (ved._absfname);
+
+  draw_wind ();
 }
 

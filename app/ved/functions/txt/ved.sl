@@ -1,6 +1,7 @@
 define ved (s, fname)
 {
-  txt_settype (s, fname, VED_ROWS, NULL);
+  ifnot (SCRATCH == fname)
+    txt_settype (s, fname, VED_ROWS, NULL);
  
   setbuf (s._absfname);
  

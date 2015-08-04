@@ -70,17 +70,58 @@ private define lexicalhl ()
     pop ();
 }
 
-private define _vedloop_ (s)
-{
-  pop ();
-}
-
 private define _vedloopcallback_ (s)
 {
-  pop ();
+  (@VED_PAGER[string (s._chr)]) (s);
 }
 
-define initvedloop ();
+private define _vedloop_ (s)
+{
+  forever
+    {
+    s = get_cur_buf ();
+    VEDCOUNT = -1;
+    s._chr = getch ();
+ 
+    if ('0' <= s._chr <= '9')
+      {
+      VEDCOUNT = "";
+ 
+      while ('0' <= s._chr <= '9')
+        {
+        VEDCOUNT += char (s._chr);
+        s._chr = getch ();
+        }
+
+      VEDCOUNT = integer (VEDCOUNT);
+      }
+
+    s.vedloopcallback ();
+ 
+    if (':' == s._chr && 0 == VED_ISONLYPAGER && VED_RLINE)
+      {
+      if (RECORD)
+        RECORD = 0;
+
+      topline (" -- command line --");
+      rline->set (RLINE);
+      rline->readline (RLINE;
+        ved = s, draw = (@__get_reference ("SCRATCH")) == s._absfname ? 0 : 1);
+
+      if ('!' == RLINE.argv[0][0] && (@__get_reference ("SCRATCH")) == s._absfname)
+        {
+        (@__get_reference ("draw")) (s);
+        continue;
+        }
+
+      topline (" -- pager --");
+      smg->setrcdr (s.ptr[0], s.ptr[1]);
+      }
+
+    if ('q' == s._chr && VED_ISONLYPAGER)
+      break;
+    }
+}
 
 define deftype ()
 {
@@ -97,14 +138,6 @@ define deftype ()
     vedloop = &_vedloop_,
     vedloopcallback = &_vedloopcallback_,
     };
-
-  if (VED_RLINE)
-    {
-    loadfile ("vedloop", NULL, &on_eval_err);
-    variable loopfuncs = initvedloop ();
-    type.vedloop = loopfuncs.vedloop;
-    type.vedloopcallback = loopfuncs.vedloopcallback;
-    }
 
   return type;
 }

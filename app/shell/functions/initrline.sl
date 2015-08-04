@@ -3,7 +3,7 @@ define _shell_ (argv)
   shell_pre_header ("shell");
   runapp ([argv], NULL;;__qualifiers ());
   shell_post_header ();
-  draw (VED_CB);
+  draw (get_cur_buf ());
 }
 
 define _exit_ ()
@@ -37,10 +37,10 @@ private define _search_ (argv)
   _fork_ (p, argv, env);
 
   ifnot (SHELLLASTEXITSTATUS)
-    runapp (["ved", GREPFILE], [proc->defenv (), "return_code=1"]);
+    runapp (["ved", GREPFILE], proc->defenv ());
  
   shell_post_header ();
-  draw (VED_CB);
+  draw (get_cur_buf ());
 }
 
 private define _echo_ (argv)
@@ -172,7 +172,7 @@ private define _which_ (argv)
 
 private define _intro_ (argv)
 {
-  intro (RLINE, VED_CB);
+  intro (RLINE, get_cur_buf ());
 }
 
 private define _rehash_ ();

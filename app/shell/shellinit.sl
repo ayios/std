@@ -4,21 +4,15 @@ define shell ()
 
   argv = list_to_array (argv, String_Type);
 
-  _log_ ("running shell", LOGALL);
-
   variable s = os->init_app ("shell", path_dirname (__FILE__), argv);
 
-  _log_ ("sockaddress: " + s._sockaddr, LOGALL);
-
   if (-1 == os->doproc (s, argv;;__qualifiers ()))
-    {
-    _log_ ("shell: fork failed", LOGERR);
-    return -1;
-    }
+    return NULL;
  
-  _log_ ("shell pid: " + string (s.p_.pid), LOGNORM);
+  if (qualifier_exists ("dont_connect"))
+    return s;
 
   os->connect_to_child (s);
 
-  return os->app_atexit (s);
+  return 0;
 }

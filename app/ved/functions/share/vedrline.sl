@@ -116,7 +116,7 @@ private define write_quit ()
 
 private define _messages_ ()
 {
-  variable keep = VED_CB;
+  variable keep = get_cur_buf ();
   variable s = ERR_VED;
   VED_ISONLYPAGER = 1;
   setbuf (s._absfname);
@@ -153,13 +153,7 @@ private define _messages_ ()
 
   setbuf (keep._absfname);
  
-  topline (" -- pager --");
- 
-  keep._i = keep._ii;
-
-  keep.draw ();
- 
-  keep.vedloop ();
+  draw_wind ();
 }
 
 define _exit_ ()
@@ -167,22 +161,6 @@ define _exit_ ()
   quit (;;__qualifiers  ());
 }
 
-private define _idle_ ()
-{
-  smg->suspend ();
-
-  variable retval = go_idled ();
- 
-  ifnot (retval)
-    {
-    smg->resume ();
-    return;
-    }
-
-  quit (;;__qualifiers  ());
-}
-
-VED_CLINE["&"] = &_idle_;
 VED_CLINE["w"] = &write_file;
 VED_CLINE["W"] = &write_file;
 VED_CLINE["w!"] = &write_file;

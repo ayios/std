@@ -16,3 +16,5 @@ else
 OUTBG = init_ftype ("ashell");
 ashell_settype (OUTBG, STDOUTBG, VED_ROWS, NULL);
 OUTBG._fd = STDOUTFDBG;
+
+UNDELETABLE = [UNDELETABLE, STDOUTBG];

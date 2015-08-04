@@ -38,7 +38,7 @@ define on_eval_err (err, code)
 
   shell_post_header ();
 
-  draw (VED_CB);
+  draw (get_cur_buf ());
 
   mainloop ();
 }

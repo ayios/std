@@ -1,15 +1,13 @@
 define scratch (argv)
 {
-  variable ved = @VED_CB;
+  variable ved = @get_cur_buf ();
 
   viewfile (SCRATCH_VED, "SCRATCH", [1, 0], 0);
 
   variable f = __get_reference ("setbuf");
  
-  VED_CB = ved;
-
-  (@f) (VED_CB._absfname);
-  VED_CB.draw ();
+  (@f) (ved._absfname);
+  ved.draw ();
 }
 
 define _scratch_ (ved)
@@ -21,8 +19,7 @@ define _scratch_ (ved)
 
   variable f = __get_reference ("setbuf");
  
-  VED_CB = ved;
-
-  (@f) (VED_CB._absfname);
-  VED_CB.draw ();
+  (@f) (ved._absfname);
+  ved.draw ();
 }
+

@@ -30,23 +30,22 @@ define on_eval_err (err, code)
     msg = substr (err, 1, COLUMNS);
 
   tostderr (err);
-
-  if (__is_initialized (&VED_CB))
+  
+  variable b = get_cur_buf ();
+  
+  ifnot (NULL == b)
     {
     send_msg_dr (msg, 1, NULL, NULL);
-    VED_CB.vedloop ();
+    b.vedloop ();
     }
   else
     exit_me (code);
 }
 
-variable fname;
-
 if (1 == __argc)
-  fname = SCRATCH;
+  SCRATCH_VED.ved (SCRATCH);
 else
-  fname = __argv[-1];
-
-private variable s_ = init_ftype (get_ftype (fname));
-
-s_.ved (fname);
+  {
+  variable fname = __argv[-1];
+  init_ftype (get_ftype (fname)).ved (fname);
+  }

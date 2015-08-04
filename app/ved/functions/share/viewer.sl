@@ -536,6 +536,55 @@ define mark (s)
     }
 }
 
+define _change_frame_ (s)
+{
+  change_frame ();
+  s = get_cur_buf ();
+}
+
+define _new_frame_ (s)
+{ 
+  new_frame (TEMPDIR + "/" + string (_time) + ".noname");
+  s = get_cur_buf ();
+}
+
+define _del_frame_ (s)
+{
+  del_frame ();
+  s = get_cur_buf ();
+}
+
+define handle_w (s)
+{
+  variable chr = getch ();
+ 
+  if (any (['w', 's', keys->CTRL_w, 'd'] == chr))
+    {
+    if (any (['w', keys->CTRL_w, keys->DOWN] == chr))
+      {
+      _change_frame_ (s);
+      return;
+      }
+    
+    if ('s' == chr)
+      {
+      _new_frame_ (s);
+      return;
+      }
+
+    if ('d' == chr)
+      {
+      _del_frame_ (s);
+      return;
+      }
+    }
+}
+
+define on_cariage_return (s)
+{
+}
+
+VED_PAGER[string ('\r')] = &on_cariage_return;
 VED_PAGER[string ('m')] = &mark;
 VED_PAGER[string ('`')] = &gotomark;
 VED_PAGER[string (keys->CTRL_l)] = &reread;
@@ -547,6 +596,7 @@ VED_PAGER[string (keys->UP)] = &up;
 VED_PAGER[string ('G')]= &eof;
 VED_PAGER[string (keys->HOME)] = &bof;
 VED_PAGER[string ('g')]= &_g_;
+VED_PAGER[string (' ')]= &page_down;
 VED_PAGER[string (keys->NPAGE)] = &page_down;
 VED_PAGER[string (keys->CTRL_f)] = &page_down;
 VED_PAGER[string (keys->CTRL_b)] = &page_up;
@@ -560,3 +610,4 @@ VED_PAGER[string (keys->END)] = &eol;
 VED_PAGER[string ('$')] = &eol;
 VED_PAGER[string ('^')] = &bolnblnk;
 VED_PAGER[string ('0')] = &bol;
+VED_PAGER[string (keys->CTRL_w)] = &handle_w;

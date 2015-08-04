@@ -123,6 +123,7 @@ define getpage (page)
     p.stdout.file = outfn;
  
     status = p.execv ([groff, "-Tutf8", "-m", "man", "-I", MYMANDIR, fname], NULL);
+
     _for i (0, length (manpages) - 1)
       {
       page = manpages[i];
@@ -141,6 +142,7 @@ define getpage (page)
   status = p.execv ([col, "-b"], NULL);
  
   () = remove (outfn);
+  () = remove (fname);
 
   return 0;
 }

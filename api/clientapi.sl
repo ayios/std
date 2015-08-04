@@ -22,7 +22,6 @@ loadfrom ("proc", "procInit", NULL, &on_eval_err);
 loadfrom ("smg", "smgInit", NULL, &on_eval_err);
 loadfrom ("smg", "widg", "widg", &on_eval_err);
 loadfrom ("sock", "sockInit", 1, &on_eval_err);
-loadfrom ("api", "sockfuncs", NULL, &on_eval_err);
 loadfrom ("api", "vedlib", NULL, &on_eval_err);
 loadfrom ("wind", APP.appname + "topline", NULL, &on_eval_err);
 
@@ -65,6 +64,9 @@ ifnot (NULL == APP.excom)
   loadfrom ("api", "cominit", NULL, &on_eval_err);
   loadfrom ("api", "filterexcom", NULL, &on_eval_err);
   }
+
+ifnot (APP.vedrline)
+  loadfrom ("api", "framefuncs", NULL, &on_eval_err);
 
 loadfile ("Init", NULL, &on_eval_err);
 

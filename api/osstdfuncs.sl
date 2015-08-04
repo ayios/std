@@ -1,6 +1,6 @@
 define send_exit ()
 {
-  send_int (SOCKET, GO_ATEXIT);
+  sock->send_int (SOCKET, GO_ATEXIT);
 }
 
 define exit_me (exit_code)

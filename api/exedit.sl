@@ -2,5 +2,7 @@ define _edit_ (argv)
 {
   _precom_ ();
 
-  viewfile (VED_CB, "STDOUT", VED_CB.ptr, VED_CB._ii);
+  variable b = get_cur_buf ();
+  
+  viewfile (b, b._fname, b.ptr, b._ii);
 }

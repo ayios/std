@@ -1,95 +1,32 @@
-define _exit_me_ (argv)
+private define _exit_me_ (argv)
 {
+  variable i;
+  variable s;
+  variable ii;
+  variable pid;
+  variable app;
+  variable pids;
   variable rl = qualifier ("rl");
 
   ifnot (NULL == rl)
     rline->writehistory (rl.history, rl.histfile);
- 
-  variable i;
 
   _for i (0, length (_APPS_) - 1)
     {
-    variable app = _APPS_[i];
-    variable pids = assoc_get_keys (APPS[app]);
-    variable ii;
+    app = _APPS_[i];
+    pids = assoc_get_keys (APPS[app]);
     _for ii (0, length (pids) - 1)
       {
-      variable pid = pids[ii];
-      variable s = APPS[app][pid];
+      pid = pids[ii];
+      s = APPS[app][pid];
 
       sock->send_int (s._fd, 0);
       s._state &= ~IDLED;
-      () = os->app_atexit (s);
+      os->app_atexit (s);
       }
     }
 
   exit_me (0);
-}
-
-define _get_connected_app (app)
-{
-  ifnot (any (app == _APPS_))
-    return String_Type[0];
-
-  variable pids = assoc_get_keys (APPS[app]);
-
-  return pids;
-}
-
-define _get_all_connected_apps ()
-{
-  variable i;
-  variable ii;
-  variable apps = {};
-
-  _for i (0, length (_APPS_) - 1)
-    {
-    variable app = _APPS_[i];
-    variable pids = _get_connected_app (app);
-    if (length (pids))
-      _for ii (0, length (pids) - 1)
-        list_append (apps, [app, pids[ii]]);
-    }
- 
-  return list_to_array (apps, Array_Type);
-}
-
-define _reconnect_app_ (appl, reset)
-{
-  variable pid = NULL;
- 
-  variable args = strtok (appl, "::");
- 
-  variable app = args[0];
- 
-  if (1 < length (args))
-    pid = args[1];
-
-  variable pids = _get_connected_app (app);
-
-  ifnot (length (pids))
-    return -1;
-
-  ifnot (NULL == pid)
-    ifnot (any (pid == pids))
-      return -1;
-
-  variable s = APPS[app][pid == NULL ? pids[0] : pid];
- 
-  s._state &= ~IDLED;
-
-  if (reset)
-    smg->reset ();
-
-  sock->send_int (s._fd, RECONNECT);
- 
-  _log_ (s._appname + ": with pid :" + string (s.p_.pid) + " reconnected", LOGNORM);
-
-  () = os->apploop (s);
-
-  () = os->app_atexit (s);
-
-  return 0;
 }
 
 private define reconnect_toapp (argv)
@@ -97,15 +34,23 @@ private define reconnect_toapp (argv)
   if (1 == length (argv))
     return;
   
-  if (-1 == _reconnect_app_ (argv[1]), 1)
+  variable s = __reconnect_to_app (argv[1]);
+
+  if (NULL == s)
     return;
+
+  smg->reset ();
+
+  __send_reconnect (s);
+
+  os->apploop (s);
 
   smg->init ();
 
   draw (ERR);
 }
 
-define init_commands ()
+private define init_commands ()
 {
   variable
     i,
@@ -144,7 +89,7 @@ private define tabhook (s)
   ifnot (any (s.argv[0] == ["reconnect"]))
     return -1;
  
-  variable pids = _get_all_connected_apps ();
+  variable pids = __get_all_connected_apps ();
  
   ifnot (length (pids))
     return -1;
