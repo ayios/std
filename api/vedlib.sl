@@ -72,6 +72,7 @@ typedef struct
   frames,
   buffers,
   bufnames,
+  rline,
   } Wind_Type;
 
 public variable
@@ -87,7 +88,8 @@ public variable
 
 public variable
   VED_WIND = Assoc_Type[Wind_Type],
-  VED_CUR_WIND,
+  VED_CUR_WIND = NULL,
+  VED_PREV_WIND,
   VED_MAXFRAMES = 3;
 
 public variable
@@ -188,6 +190,22 @@ define framesize (frames)
   return ff;
 }
 
+define set_clr_fg (b, set)
+{
+  b.clrs[-1] = VED_INFOCLRFG;
+  SMGIMG[b.rows[-1]][1] = VED_INFOCLRFG;
+  if (set)
+    smg->hlregion (VED_INFOCLRFG, b.rows[-1], 0, 1, COLUMNS);
+}
+
+define set_clr_bg (b, set)
+{
+  b.clrs[-1] = VED_INFOCLRBG;
+  SMGIMG[b.rows[-1]][1] = VED_INFOCLRBG;
+  if (set)
+    smg->hlregion (VED_INFOCLRBG, b.rows[-1], 0, 1, COLUMNS);
+}
+
 define initrowsbuffvars (s)
 {
   s.cols = Integer_Type[length (s.rows)];
@@ -220,7 +238,7 @@ define get_cur_buf ()
 
 define get_frame_buf (frame)
 {
-  variable w = _NARGS ? () : get_cur_wind ();
+  variable w = get_cur_wind ();
   if (frame >= w.frames)
     return NULL;
 
@@ -230,6 +248,11 @@ define get_frame_buf (frame)
 define get_cur_frame ()
 {
   return VED_WIND[VED_CUR_WIND].cur_frame;
+}
+
+define get_cur_rline ()
+{
+  return VED_WIND[VED_CUR_WIND].rline;
 }
 
 define draw_wind ()
@@ -250,8 +273,7 @@ define draw_wind ()
       }
 
     s._i = s._ii;
-    s.clrs[-1] = VED_INFOCLRBG;
-    SMGIMG[s.rows[-1]][1] = VED_INFOCLRBG;
+    set_clr_bg (s, NULL);
     s.draw (;dont_draw);
     }
  
@@ -267,17 +289,13 @@ define change_frame ()
   variable b = w.frame_names[w.cur_frame];
   variable s = w.buffers[b];
 
-  s.clrs[-1] = VED_INFOCLRBG;
-  smg->hlregion (VED_INFOCLRBG, s.rows[-1], 0, 1, COLUMNS);
-  SMGIMG[s.rows[-1]][1] = VED_INFOCLRBG;
+  set_clr_bg (s, 1);
 
   w.cur_frame = w.cur_frame == w.frames - 1 ? 0 : w.cur_frame + 1;
 
   s = get_cur_buf ();
 
-  s.clrs[-1] = VED_INFOCLRFG;
-  smg->hlregion (VED_INFOCLRFG, s.rows[-1], 0, 1, COLUMNS);
-  SMGIMG[s.rows[-1]][1] = VED_INFOCLRFG;
+  set_clr_fg (s, 1);
   
   (@__get_reference ("setbuf")) (s._absfname);
 
@@ -305,7 +323,7 @@ define del_frame ()
   
   variable cur_fr = get_cur_frame ();
   
-  if (frame - 1 == w.frames || cur_fr > frame)
+  if (frame == w.frames || cur_fr > frame)
     w.cur_frame--;
 
   variable i;
@@ -320,15 +338,9 @@ define del_frame ()
     s._i = s._ii;
 
     if (i == w.cur_frame)
-      {
-      s.clrs[-1] = VED_INFOCLRFG;
-      SMGIMG[s.rows[-1]][1] = VED_INFOCLRFG;
-      }
+      set_clr_fg (s, NULL);
     else
-      {
-      s.clrs[-1] = VED_INFOCLRBG;
-      SMGIMG[s.rows[-1]][1] = VED_INFOCLRBG;
-      }
+      set_clr_bg (s, NULL);
 
     s.ptr[0] = s.rows[0];
     s.ptr[1] = s._indent;
@@ -385,10 +397,80 @@ define new_frame (fn)
   draw_wind ();
 }
 
+define del_wind (name)
+{
+  if (1 == length (VED_WIND))
+    return;
+
+  variable winds = assoc_get_keys (VED_WIND);
+  
+  ifnot (any (name == winds))
+    return;
+  
+  winds = winds[array_sort (winds)];
+
+  variable i = wherefirst (name == winds);
+
+  assoc_delete_key (VED_WIND, name);
+
+  if (name == VED_CUR_WIND)
+    {
+    VED_CUR_WIND = i ? winds[i-1] : winds[-1];
+    draw_wind ();
+    }
+}
+
+define on_wind_change (w)
+{
+}
+
+define wind_change (to)
+{
+  variable winds = assoc_get_keys (VED_WIND);
+  winds = winds[array_sort (winds)];
+
+  variable w;
+  variable i;
+  
+  if (Integer_Type == typeof (to))
+    if (length (winds) - 1 < to)
+      return;
+    else
+      w = winds[to];
+  else
+    ifnot (any ([",", "."] == to))
+      return;
+    else
+      if (to == ",")
+        w = winds[wherefirst (winds == VED_CUR_WIND) - 1];
+      else
+        {
+        i = wherefirst (winds == VED_CUR_WIND);
+        i = i == length (winds) - 1 ? 0 : i + 1;
+        w = winds[i];
+        }
+
+  if (w == VED_CUR_WIND)
+    return;
+
+  VED_PREV_WIND = VED_CUR_WIND;
+  VED_CUR_WIND = w;
+
+  w = VED_WIND[w];
+  
+  on_wind_change (w);
+  
+  draw_wind ();
+}
+
+define on_wind_new (w)
+{
+}
+
 define wind_init (name, frames)
 {
   if (any (name == assoc_get_keys (VED_WIND)) && 0 == qualifier_exists ("force"))
-    return NULL;
+    return;
 
   variable setframesize = qualifier ("framesize_func", &framesize);
 
@@ -403,6 +485,9 @@ define wind_init (name, frames)
   VED_WIND[name].cur_frame = 0;
   VED_WIND[name].buffers = Assoc_Type[Ftype_Type];
   VED_WIND[name].bufnames = String_Type[0];
+
+  if (qualifier_exists ("on_wind_new"))
+    on_wind_new (VED_WIND[name]);
 }
 
 define new_wind ()
@@ -426,10 +511,17 @@ define new_wind ()
         return;
       }
   
-  VED_CUR_WIND = name;
-  wind_init (VED_CUR_WIND, 1);
+  ifnot (qualifier_exists ("in_bg")) 
+    {
+    ifnot (NULL == VED_CUR_WIND)
+      VED_PREV_WIND = VED_CUR_WIND;
+    VED_CUR_WIND = name;
+    }
+  
+  wind_init (name, 1;;__qualifiers ());
+
+  if (qualifier_exists ("draw_wind"))
+    draw_wind ();
 }
 
 new_wind ();
-%VED_CUR_WIND = "a";
-%wind_init (VED_CUR_WIND, 1);

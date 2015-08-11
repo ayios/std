@@ -30,7 +30,7 @@ define draw (s)
   ifnot (NULL == pos)
     (s.ptr[0] = pos[0], s.ptr[1] = pos[1]);
   else
-    (s.ptr[1] = 0, s.ptr[0] = s._len + 1 <= len ? s._len + 1 : s.rows[-2]);
+    (s.ptr[1] = 0, s.ptr[0] = s._len + 1 <= len ? s.rows[0] : s.rows[-2]);
  
   ifnot (NULL == _i)
     s._i = _i;

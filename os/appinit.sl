@@ -71,12 +71,10 @@ static define app_atexit (s)
 
     _log_ (s._appname + ": exited, EXIT_STATUS: " + string (status.exit_status), LOGERR);
 
-    return 0;
+    return;
     }
  
   _log_ (s._appname + ": is in idled state", LOGERR);
-
-  return 1;
 }
 
 private define _get_s_ ()

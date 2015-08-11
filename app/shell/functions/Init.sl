@@ -1,12 +1,42 @@
 loadfile ("vars", NULL, &on_eval_err);
 
 loadfrom ("crypt", "cryptInit", NULL, &on_eval_err);
-loadfrom ("dir", "are_same_files", NULL, &on_eval_err);
 
 define __on_err (err, code)
 {
   % A TABLE ERR
   array_map (&tostderr, err);
+}
+
+define on_wind_change (w)
+{
+  topline (" -- shell --");
+  setbuf (w.frame_names[w.cur_frame]);
+  STDOUTFD = get_cur_buf._fd;
+}
+
+define on_wind_new (w)
+{
+  variable o = TEMPDIR + "/" + string (PID) + "_" + APP.appname +
+    string (_time)[[5:]] + "_stdout.shell";
+  
+  variable oved =init_ftype (APP.stdouttype);
+
+  oved._fd = initstream (o);
+
+  (@__get_reference (APP.stdouttype + "_settype")) (oved, o, VED_ROWS, NULL);
+
+  setbuf (o);
+ 
+  STDOUTFD = oved._fd;
+
+  topline (" -- shell --");
+
+  shell_post_header ();
+ 
+  (@__get_reference ("__initrline"));
+
+  draw (oved);
 }
 
 define _change_frame_ (s)

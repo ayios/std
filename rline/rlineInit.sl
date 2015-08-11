@@ -33,6 +33,7 @@ typedef struct
   onnolengthargs,
   osappnew,
   osapprec,
+  wind_mang,
   } Rline_Type;
 
 typedef struct

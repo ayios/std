@@ -53,7 +53,7 @@ private define _edit_other ()
 private define _bdelete ()
 {
   variable bufname;
-  variable s = qualifier ("ved");
+  variable s = get_cur_buf ();
 
   ifnot (_NARGS)
     bufname = s._absfname;

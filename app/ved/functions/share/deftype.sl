@@ -104,11 +104,11 @@ private define _vedloop_ (s)
         RECORD = 0;
 
       topline (" -- command line --");
-      rline->set (RLINE);
-      rline->readline (RLINE;
+      rline->set (get_cur_rline ());
+      rline->readline (get_cur_rline ();
         ved = s, draw = (@__get_reference ("SCRATCH")) == s._absfname ? 0 : 1);
 
-      if ('!' == RLINE.argv[0][0] && (@__get_reference ("SCRATCH")) == s._absfname)
+      if ('!' == get_cur_rline ().argv[0][0] && (@__get_reference ("SCRATCH")) == s._absfname)
         {
         (@__get_reference ("draw")) (s);
         continue;

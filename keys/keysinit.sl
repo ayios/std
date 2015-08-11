@@ -61,7 +61,8 @@ ifnot (strncmp ("st-", getenv ("TERM"), 3))
 variable rmap = struct
   {
   osappnew = [F2, 0x10065], % Esc_f
-  osapprec = [F1, 0x10076], %Esc_w
+  osapprec = [F1, 0x1006f], %Esc_p
+  windmenu = [F3, 0x10076], %Esc_w
   battery = [F9, 0x10061], % Esc_b
   changelang = [F10, 0x1006b], % Esc_l
   % navigation

@@ -6,43 +6,6 @@ define _shell_ (argv)
   draw (get_cur_buf ());
 }
 
-define _exit_ ()
-{
-  ifnot (NULL == RLINE)
-    rline->writehistory (RLINE.history, RLINE.histfile);
-
-  exit_me (0);
-}
-
-private define _search_ (argv)
-{
-  _precom_ ();
-
-  variable header, issudo, env, stdoutfile, stdoutflags;
-
-  variable p = _preexec_ (argv, &header, &issudo, &env;;__qualifiers ());
-
-  if (NULL == p)
-    return;
-
-  argv = ();
-
-  stdoutfile = GREPFILE;
-  stdoutflags = ">|";
-  p.stderr.file = STDERR;
-  p.stderr.wr_flags = ">>|";
- 
-  env = [env, "stdoutfile=" + stdoutfile, "stdoutflags=" + stdoutflags];
-
-  _fork_ (p, argv, env);
-
-  ifnot (SHELLLASTEXITSTATUS)
-    runapp (["ved", GREPFILE], proc->defenv ());
- 
-  shell_post_header ();
-  draw (get_cur_buf ());
-}
-
 private define _echo_ (argv)
 {
   _builtinpre_ (argv);
@@ -122,57 +85,9 @@ private define _echo_ (argv)
   _builtinpost_ ();
 }
 
-private define _cd_ (argv)
-{
-  _builtinpre_ (argv);
-
-  if (1 == length (argv))
-    {
-    ifnot (getcwd () == "$HOME/"$)
-      () = chdir ("$HOME"$);
-    }
-  else
-    {
-    variable dir = evaldir (argv[1]);
-    ifnot (are_same_files (getcwd (), dir))
-      if (-1 == chdir (dir))
-        {
-        tostderr (errno_string (errno) + "\n");
-        SHELLLASTEXITSTATUS = 1;
-        }
-    }
-
-  _builtinpost_ ();
-}
-
-private define _which_ (argv)
-{
-  _builtinpre_ (argv);
-
-  if (1 == length (argv))
-    {
-    tostderr ("argument is required\n");
-    _builtinpost_ ();
-    return;
-    }
-
-  variable com = argv[1];
-
-  variable path = which (com);
-
-  ifnot (NULL == path)
-    tostdout (path + "\n");
-  else
-    tostdout (com + " hasn't been found in PATH\n");
-
-  SHELLLASTEXITSTATUS = NULL == path;
-
-  _builtinpost_ ();
-}
-
 private define _intro_ (argv)
 {
-  intro (RLINE, get_cur_buf ());
+  intro (get_cur_rline (), get_cur_buf ());
 }
 
 private define _rehash_ ();
@@ -183,19 +98,6 @@ private define my_commands ()
  
   a["echo"] = @Argvlist_Type;
   a["echo"].func = &_echo_;
-
-  a["search"] = @Argvlist_Type;
-  a["search"].func = &_search_;
-  a["search"].dir = STDDIR + "/com/search";
-
-  a["cd"] = @Argvlist_Type;
-  a["cd"].func = &_cd_;
-
-  a["which"] = @Argvlist_Type;
-  a["which"].func = &_which_;
-
-  a["q"] = @Argvlist_Type;
-  a["q"].func = &_exit_;
 
   a["rehash"] = @Argvlist_Type;
   a["rehash"].func = &_rehash_;
@@ -263,7 +165,7 @@ define rlineinit ()
 
 private define _rehash_ (argv)
 {
-  RLINE.argvlist = init_commands ();
+  get_cur_rline ().argvlist = my_commands ();
 }
 
 define runcom (argv, issudo)

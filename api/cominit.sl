@@ -122,7 +122,13 @@ define _postexec_ (header)
   if (header)
     shell_post_header ();
 
-  draw (get_cur_buf ());
+  if (NEEDSWINDDRAW)
+    {
+    draw_wind ();
+    NEEDSWINDDRAW = 0;
+    }
+  else
+    draw (get_cur_buf ());
 }
 
 private define _ask_ (cmp_lnrs, wrfd, rdfd)
@@ -704,6 +710,83 @@ define _list_bg_jobs_ (argv)
 
   draw (get_cur_buf ());
 }
+ 
+define _cd_ (argv)
+{
+  _builtinpre_ (argv);
+
+  if (1 == length (argv))
+    {
+    ifnot (getcwd () == "$HOME/"$)
+      () = chdir ("$HOME"$);
+    }
+  else
+    {
+    variable dir = evaldir (argv[1]);
+    ifnot (are_same_files (getcwd (), dir))
+      if (-1 == chdir (dir))
+        {
+        tostderr (errno_string (errno) + "\n");
+        SHELLLASTEXITSTATUS = 1;
+        }
+    }
+
+  _builtinpost_ ();
+}
+
+define _search_ (argv)
+{
+  _precom_ ();
+
+  variable header, issudo, env, stdoutfile, stdoutflags;
+
+  variable p = _preexec_ (argv, &header, &issudo, &env;;__qualifiers ());
+
+  if (NULL == p)
+    return;
+
+  argv = ();
+
+  stdoutfile = GREPFILE;
+  stdoutflags = ">|";
+  p.stderr.file = STDERR;
+  p.stderr.wr_flags = ">>|";
+ 
+  env = [env, "stdoutfile=" + stdoutfile, "stdoutflags=" + stdoutflags];
+
+  _fork_ (p, argv, env);
+
+  ifnot (SHELLLASTEXITSTATUS)
+    runapp (["ved", GREPFILE], proc->defenv ());
+ 
+  shell_post_header ();
+  draw (get_cur_buf ());
+}
+
+define _which_ (argv)
+{
+  _builtinpre_ (argv);
+
+  if (1 == length (argv))
+    {
+    tostderr ("argument is required\n");
+    _builtinpost_ ();
+    return;
+    }
+
+  variable com = argv[1];
+
+  variable path = which (com);
+
+  ifnot (NULL == path)
+    tostdout (path + "\n");
+  else
+    tostdout (com + " hasn't been found in PATH\n");
+
+  SHELLLASTEXITSTATUS = NULL == path;
+
+  _builtinpost_ ();
+}
 
 define runapp (argv, env)
 {
@@ -807,6 +890,19 @@ define init_commands ()
 
   a["killbgjob"] = @Argvlist_Type;
   a["killbgjob"].func = &_kill_bg_job;
+  
+  a["q"] = @Argvlist_Type;
+  a["q"].func = APP.func.exit;
+
+  a["cd"] = @Argvlist_Type;
+  a["cd"].func = &_cd_;
+
+  a["which"] = @Argvlist_Type;
+  a["which"].func = &_which_;
+
+  a["search"] = @Argvlist_Type;
+  a["search"].func = &_search_;
+  a["search"].dir = STDDIR + "/com/search";
 
   return a;
 }

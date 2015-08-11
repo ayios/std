@@ -351,3 +351,10 @@ define readfile (file)
 
   return array_map (String_Type, &strtrim_end, fgetslines (fp), "\n");
 }
+
+define clear_stack ()
+{
+  variable d = _stkdepth () + 1;
+  while (d--, d > 1)
+    pop ();
+}

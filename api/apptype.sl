@@ -8,6 +8,7 @@ typedef struct
   vedrline,
   realshell,
   excom,
+  func,
   os,
   } Api_Type;
 
@@ -19,3 +20,9 @@ typedef struct
   ved,
   eval,
   } Excom_Type;
+
+typedef struct
+  {
+  exit,
+  at_exit,
+  } Appfunc_Type;

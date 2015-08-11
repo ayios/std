@@ -38,4 +38,3 @@ define _osapprec_ (s)
   rline->set (s);
   rline->prompt (s, s._lin, s._col);
 }
-

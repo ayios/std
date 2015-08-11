@@ -11,6 +11,8 @@ define ved (s, fname)
   VED_MAXFRAMES = 2;
   wind_init ("a", 2;force, framesize_func = &_myframesize_);
 
+  __initrline ();
+
   variable mys = struct
     {
     fname = fname,

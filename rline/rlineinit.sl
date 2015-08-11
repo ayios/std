@@ -161,7 +161,8 @@ static define init (getcommands)
   rl.onnolengthargs = qualifier ("onnolengthargs");
   rl.osappnew = qualifier ("osappnew");
   rl.osapprec = qualifier ("osapprec"); 
- 
+  rl.wind_mang = qualifier ("wind_mang");
+
   if (0 == length (rl.history) && NULL != rl.histfile)
     rl.history = readhistory (rl.histfile);
 
@@ -1845,17 +1846,24 @@ static define readline (s)
     
     if (any (keys->rmap.osappnew == s._chr))
       ifnot (NULL == s.osappnew)
-      {
-      s.osappnew ();
-      continue;
-      }
+        {
+        s.osappnew ();
+        continue;
+        }
 
     if (any (keys->rmap.osapprec == s._chr))
       ifnot (NULL == s.osapprec)
-      {
-      s.osapprec ();
-      continue;
-      }
+        {
+        s.osapprec ();
+        continue;
+        }
+
+    if (any (keys->rmap.windmenu == s._chr))
+      ifnot (NULL == s.wind_mang)
+        {
+        s.wind_mang ();
+        continue;
+        }
 
     if (033 == s._chr)
       {

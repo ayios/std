@@ -2,8 +2,8 @@ private define mainloop ()
 {
   forever
     {
-    rline->set (RLINE);
-    rline->readline (RLINE);
+    rline->set (get_cur_rline ());
+    rline->readline (get_cur_rline ());
     topline (" -- shell --" + " depth ("+ string (_stkdepth ())+ ")");
     }
 }

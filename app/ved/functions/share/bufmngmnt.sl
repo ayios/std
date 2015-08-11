@@ -6,8 +6,13 @@ define setbuf (key)
     return;
  
   variable s = w.buffers[key];
+  
+  variable frame = qualifier ("frame", w.cur_frame);
 
-  w.frame_names[w.cur_frame] = key;
+  if (frame > length (w.frame_names) - 1)
+    return;
+
+  w.frame_names[frame] = key;
  
   if (s._autochdir && 0 == VED_ISONLYPAGER)
     () = chdir (s._dir);
@@ -36,6 +41,7 @@ define bufdelete (s, bufname, force)
     return;
 
   variable w = get_cur_wind ();
+
   ifnot (any (s._absfname == w.bufnames))
     return;
  
@@ -50,11 +56,11 @@ define bufdelete (s, bufname, force)
 
   assoc_delete_key (w.buffers, bufname);
  
-  variable index = wherefirst (bufname == w.frame_names);
+  variable index = wherefirst (bufname == w.bufnames);
   
   w.bufnames[index] = NULL;
   w.bufnames = w.bufnames[wherenot (_isnull (w.bufnames))];
- 
+
   variable winds = assoc_get_keys (VED_WIND);
 
   ifnot (length (w.bufnames))
@@ -73,7 +79,8 @@ define bufdelete (s, bufname, force)
       }
  
   ifnot (NULL == isatframe)
-    del_frame (isatframe);
+    if (1 < w.frames)
+      del_frame (isatframe);
 
   index = index ? index - 1 : length (w.bufnames) - 1;
  

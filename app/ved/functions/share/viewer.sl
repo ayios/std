@@ -554,11 +554,53 @@ define _del_frame_ (s)
   s = get_cur_buf ();
 }
 
+define _del_wind_ (s)
+{
+  del_wind (VED_CUR_WIND);
+  s = get_cur_buf ();
+}
+
+define on_wind_change (w)
+{
+  topline (" -- ved --");
+  (@__get_reference ("setbuf")) (w.frame_names[w.cur_frame]);
+}
+
+define on_wind_new (w)
+{
+  variable fn = TEMPDIR + "/" + string (_time) + ".noname";
+  variable s = init_ftype ("txt");
+  variable func = __get_reference ("txt_settype");
+  (@func) (s, fn, w.frame_rows[0], NULL);
+  
+  (@__get_reference ("setbuf")) (fn);
+  (@__get_reference ("__initrline"));
+  topline (" -- ved --");
+  draw_wind ();
+}
+
+define _new_wind_ (s)
+{
+  new_wind (;on_wind_new);
+  s = get_cur_buf ();
+}
+
+define _goto_wind_ (s, chr)
+{
+  if (any (['0':'9'] == chr))
+    chr = int (chr - '0');
+  else
+    chr = char (chr);
+
+  wind_change (chr);
+  s = get_cur_buf ();
+}
+
 define handle_w (s)
 {
   variable chr = getch ();
  
-  if (any (['w', 's', keys->CTRL_w, 'd'] == chr))
+  if (any (['w', 's', keys->CTRL_w, 'd', 'k', 'n', ',', '.', ['0':'9']] == chr))
     {
     if (any (['w', keys->CTRL_w, keys->DOWN] == chr))
       {
@@ -575,6 +617,24 @@ define handle_w (s)
     if ('d' == chr)
       {
       _del_frame_ (s);
+      return;
+      }
+
+    if ('k' == chr)
+      {
+      _del_wind_ (s);
+      return;
+      }
+
+    if ('n' == chr)
+      {
+      _new_wind_ (s);
+      return;
+      }
+
+    if (any ([['0':'9'], ',', '.'] == chr))
+      {
+      _goto_wind_ (s, chr);
       return;
       }
     }

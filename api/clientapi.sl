@@ -47,16 +47,19 @@ if (APP.os)
 else
   loadfrom ("api", "stdfuncs", NULL, &on_eval_err);
 
+loadfrom ("api", "wind_mang", NULL, &on_eval_err);
 loadfrom ("api", "openstderr", NULL, &on_eval_err);
 loadfrom ("api", "openscratch", NULL, &on_eval_err);
 
-if (APP.stdout)
+if (APP.stdout || NULL != APP.excom)
   loadfrom ("api", "openstdout", NULL, &on_eval_err);
 
 loadfrom ("api", "idle", NULL, &on_eval_err);
 
 ifnot (NULL == APP.excom)
   {
+  variable GREPFILE = TEMPDIR + "/" + string (PID) + "grep.list";
+  loadfrom ("dir", "are_same_files", NULL, &on_eval_err);
   loadfrom ("file", "fileis",  NULL, &on_eval_err);
   loadfrom ("proc", "envs", 1, &on_eval_err);
   loadfrom ("stdio", "appendstr", NULL, &on_eval_err);
@@ -68,17 +71,35 @@ ifnot (NULL == APP.excom)
 ifnot (APP.vedrline)
   loadfrom ("api", "framefuncs", NULL, &on_eval_err);
 
+loadfrom ("api", "appfunc", NULL, &on_eval_err);
+
 loadfile ("Init", NULL, &on_eval_err);
 
-ifnot (NULL == APP.excom)
-  RLINE = rlineinit (;
-    osappnew = __get_reference ("_osappnew_"),
-    osapprec = __get_reference ("_osapprec_"),
-    filterargs = __get_reference ("filterexargs"),
-    filtercommands = __get_reference ("filterexcom"));
-else
-  RLINE = rlineinit (;
-    oscompl = __get_reference ("_osappnew_"),
-    osapprec = __get_reference ("_osapprec_"),
-    );
- 
+define __initrline ()
+{
+  variable w;
+  
+  if (_NARGS)
+    {
+    w = ();
+    w = VED_WIND[w];
+    }
+  else
+    w = get_cur_wind ();
+
+  ifnot (NULL == APP.excom)
+    w.rline = rlineinit (;
+      osappnew = __get_reference ("_osappnew_"),
+      osapprec = __get_reference ("_osapprec_"),
+      wind_mang = __get_reference ("wind_mang"),
+      filterargs = __get_reference ("filterexargs"),
+      filtercommands = __get_reference ("filterexcom"));
+  else
+    w.rline = rlineinit (;
+      wind_mang = __get_reference ("wind_mang"),
+      oscompl = __get_reference ("_osappnew_"),
+      osapprec = __get_reference ("_osapprec_"),
+      );
+}
+
+__initrline ();
