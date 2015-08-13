@@ -383,14 +383,17 @@ define parse_argv (argv, isbg)
 
 define _getpasswd_ ()
 {
-  variable passwd;
+  variable passwd, retval;
 
   ifnot (NULL == HASHEDDATA)
     {
-    passwd = os->confirmpasswd (HASHEDDATA);
+    retval = os->confirmpasswd (HASHEDDATA, &passwd);
 
-    if (NULL == passwd)
-      tostderr ("Authentication error");
+    if (NULL == retval)
+      {
+      passwd = NULL;
+      send_msg_dr ("Authentication error", 1, NULL, NULL);
+      }
     else
       passwd+= "\n";
     }

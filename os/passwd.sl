@@ -9,11 +9,11 @@ static define encryptpasswd (passwd)
   return crypt->encrypt (data, passwd);
 }
 
-static define confirmpasswd (data)
+static define confirmpasswd (data, passwd)
 {
-  variable passwd = getpasswd ();
+  @passwd = getpasswd ();
  
-  return crypt->decrypt (data, passwd);
+  return crypt->decrypt (data, @passwd);
 }
 
 static define authenticate (user, passwd)

@@ -1,12 +1,15 @@
 private define _getpasswd_ ()
 {
-  variable passwd;
+  variable passwd, retval;
 
   ifnot (NULL == HASHEDDATA)
     {
-    passwd = os->confirmpasswd (HASHEDDATA);
-    if (NULL == passwd)
+    retval = os->confirmpasswd (HASHEDDATA, &passwd);
+    if (NULL == retval)
+      {
+      passwd = NULL;
       send_msg_dr ("Authentication error", 1, NULL, NULL);
+      }
     else
       passwd+= "\n";
     }
