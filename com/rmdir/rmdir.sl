@@ -1,5 +1,5 @@
 loadfrom ("dir", "parents", NULL, &on_eval_err);
-loadfrom ("dir", "rmdir", NULL, &on_eval_err);
+loadfrom ("file", "remove", NULL, &on_eval_err);
 
 define main ()
 {
@@ -16,7 +16,7 @@ define main ()
     c = cmdopt_new (&_usage);
 
   c.add ("parents", &parents);
-  c.add ("interactive", &interactive);
+  c.add ("i|interactive", &interactive);
   c.add ("v|verbose", &verboseon);
   c.add ("help", &_usage);
   c.add ("info", &info);
@@ -51,7 +51,7 @@ define main ()
       continue;
       }
 
-    retval = removedir (path_arr[i], interactive);
+    retval = __remove (path_arr[i], &interactive, stat_is ("dir", st.st_mode));
  
     if (-1 == retval)
       exit_code = 1;

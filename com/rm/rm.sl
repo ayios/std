@@ -1,8 +1,7 @@
 importfrom ("std", "pcre", NULL, &on_eval_err);
 
+loadfrom ("file", "remove", NULL, &on_eval_err);
 loadfrom ("dir", "fswalk", NULL, &on_eval_err);
-loadfrom ("file", "rmfile", NULL, &on_eval_err);
-loadfrom ("dir", "rmdir",  NULL, &on_eval_err);
 loadfrom ("dir", "evaldir", NULL, &on_eval_err);
 loadfrom ("array", "arrayfuncs", NULL, &on_eval_err);
 
@@ -86,9 +85,7 @@ define main ()
     opts.pattern = pcre_compile (opts.pattern, 0);
 
   _for i (0, length (files) - 1)
-    if ("." == files[i])
-      files[i] = NULL;
-    else if ("/" == files[i] && NULL != recursive)
+    if ("/" == files[i] && NULL != recursive)
       {
       if (NULL == no_preserve_root)
         {
@@ -151,8 +148,7 @@ define main ()
   variable fs;
 
   if (length (dirlist))
-    {
-    _for i (0,length(dirlist) - 1)
+    _for i (0, length (dirlist) - 1)
       {
       fs = fswalk_new (&dir_callback, &file_callback;
           dargs = {filelist},
@@ -160,7 +156,6 @@ define main ()
 
       fs.walk (dirlist[i]);
       }
-    }
 
   filelist = [length (files) ? files : "", length (filelist) ?
     list_to_array (filelist) : ""];
@@ -211,7 +206,6 @@ define main ()
 
         {
         case 's':
-
           retval = ask ([
             sprintf ("There %d files for removal", length (filelist)),
             "Do you want to proceed?",
@@ -237,14 +231,11 @@ define main ()
       interactive = NULL;
     }
 
-  _for i (0, length(filelist) - 1)
+  _for i (0, length (filelist) - 1)
     {
     st = lstat_file (filelist[i]);
-
-    if (stat_is ("dir", st.st_mode))
-      retval = removedir (filelist[i], &interactive);
-    else
-      retval = rmfile (filelist[i], &interactive);
+    
+    retval = __remove (filelist[i], &interactive, stat_is ("dir", st.st_mode));
 
     if (-1 == retval)
       exit_code = 1;

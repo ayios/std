@@ -109,6 +109,9 @@ private define _execProc_Type_ (func, argv)
       issudo = 0;
     else
       passwd = _getpasswd_ ();
+
+    if (NULL == passwd)
+      return;
     }
  
   argv = _glob_ (argv);

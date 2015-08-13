@@ -38,12 +38,14 @@ define main ()
 
   noverbose = NULL == noverbose ? "1" : "0";
  
+  ifnot (NULL == dir)
+    _for i (0, length (files) - 1)
+      ifnot (path_is_absolute (files[i]))
+        files[i] = getcwd () + files[i];
+
   dir = NULL == dir ? getcwd () : dir;
 
   exit_code = array_map (Integer_Type, &extract, files, VERBOSE, dir, strip);
  
-  if (any (exit_code))
-    exit_me (1);
-
-  exit_me (0);
+  exit_me (any (exit_code));
 }
