@@ -1,4 +1,4 @@
-loadfile ("vars", NULL, &on_eval_err);
+loadfrom (APP.loaddir, "vars", NULL, &on_eval_err);
 
 loadfrom ("crypt", "cryptInit", NULL, &on_eval_err);
 
@@ -66,7 +66,7 @@ define _new_frame_ (s)
 
 define intro ();
 
-loadfile ("initrline", NULL, &on_eval_err);
+loadfrom (APP.loaddir, "initrline", NULL, &on_eval_err);
 
 loadfrom ("com/intro", "intro", NULL, &on_eval_err);
 
@@ -77,7 +77,7 @@ define init_shell ()
   if (-1 == access (STACKFILE, F_OK))
     writestring (STACKFILE, "STACK = {}");
 
-  loadfile ("shell", NULL, &on_eval_err);
+  loadfrom (APP.loaddir, "shell", NULL, &on_eval_err);
 
   shell ();
 }

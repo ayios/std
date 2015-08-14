@@ -257,18 +257,19 @@ public define getreffrom (ns, lib, dons, errfunc)
   variable excar;
   variable err;
  
+  _findns_ (ns, &lns, lib);
+
   ns = NULL == dons
     ? NULL
     : Integer_Type == typeof (dons)
       ? 1 == dons
         ? ns
         : NULL
-      : String_Type == typeof (dons)
+      : String_Type == typeof (dons) || BString_Type == typeof (dons)
         ? dons
         : NULL;
   try
     {
-    _findns_ (ns, &lns, lib);
     return _load_ (lns + "/" + lib, ns;;struct {fun = fun, @__qualifiers ()});
     }
   catch AnyError:

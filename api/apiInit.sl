@@ -15,7 +15,7 @@ static define init (dir)
   s.vedrline   = qualifier ("vedrline", 0);
   s.realshell  = qualifier ("realshell", 0);
   s.excom      = qualifier ("excom", NULL);
-  s.loaddir    = dir + "/functions";
+  s.loaddir    = "app/" + s.appname + "/functions";
   s.os         = qualifier ("os", 0);
 
   if (NULL != s.excom && 1 == s.excom)

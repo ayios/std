@@ -1,14 +1,13 @@
 loadfrom ("api", "eval", NULL, &on_eval_err);
+private variable issmg = 0;
 
 variable redirexists = NULL;
 variable licom = 0;
-private variable issmg = 0;
-
 variable icom = 0;
 variable iarg;
 variable SHELLLASTEXITSTATUS = 0;
-variable RDFIFO   = TEMPDIR + "/" + string (PID) +  "_SRV_FIFO.fifo";
-variable WRFIFO   = TEMPDIR + "/" + string (PID) +  "_CLNT_FIFO.fifo";
+variable RDFIFO = TEMPDIR + "/" + string (PID) +  "_SRV_FIFO.fifo";
+variable WRFIFO = TEMPDIR + "/" + string (PID) +  "_CLNT_FIFO.fifo";
 
 ifnot (access (RDFIFO, F_OK))
   if (-1 == remove (RDFIFO))
@@ -63,53 +62,11 @@ ifnot (NULL == APP.excom)
     loadfrom ("api", "eval", NULL, &on_eval_err);
   }
 
-private define write_file (s, overwrite, ptr, argv)
-{
-  variable file;
- 
-  ifnot (length (argv))
-    {
-    if (s._flags & VED_RDONLY)
-      return;
-
-    file = s._fname;
-    }
-  else
-    {
-    file = argv[0];
-    ifnot (access (file, F_OK))
-      {
-      ifnot (overwrite)
-        {
-        send_msg_dr ("file exists, w! to overwrite", 1, ptr[0], ptr[1]);
-        return;
-        }
-
-      if (-1 == access (file, W_OK))
-        {
-        send_msg_dr ("file is not writable", 1, ptr[0], ptr[1]);
-        return;
-        }
-      }
-    }
- 
-  variable retval = writetofile (file, s.lines, s._indent);
- 
-  if (retval)
-    {
-    send_msg_dr (errno_string (retval), 1, ptr[0], ptr[1]);
-    return;
-    }
- 
-  if (file == s._fname)
-    s._flags &= ~VED_MODIFIED;
-}
-
 define _write_ (argv)
 {
-  if ("w" == argv[0] || "w!" == argv[0])
+  if (any (["w", "w!", "W"]  == argv[0]))
     {
-    write_file (get_cur_buf (), "w!" == argv[0], [PROMPTROW, 1], argv[[1:]]);
+    __writefile (get_cur_buf (), "w!" == argv[0], [PROMPTROW, 1], argv[[1:]]);
     return;
     }
 }

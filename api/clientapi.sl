@@ -1,8 +1,5 @@
 sigprocmask (SIG_BLOCK, [SIGINT]);
 
-set_slang_load_path (APP.loaddir + char (path_get_delimiter) +
-  get_slang_load_path ());
-
 importfrom ("std", "socket",  NULL, &on_eval_err);
 
 loadfrom ("api", "atexit", NULL, &on_eval_err);
@@ -73,7 +70,7 @@ ifnot (APP.vedrline)
 
 loadfrom ("api", "appfunc", NULL, &on_eval_err);
 
-loadfile ("Init", NULL, &on_eval_err);
+loadfrom ("app/" + APP.appname + "/functions", "Init", NULL, &on_eval_err);
 
 define __initrline ()
 {
