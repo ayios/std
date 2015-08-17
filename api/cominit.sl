@@ -1,4 +1,3 @@
-loadfrom ("api", "eval", NULL, &on_eval_err);
 private variable issmg = 0;
 
 variable redirexists = NULL;
@@ -44,8 +43,6 @@ define shell_post_header ()
 
 ifnot (NULL == APP.excom)
   {
-  loadfrom ("api", "clientfuncs", NULL, &on_eval_err);
-
   if (APP.excom.scratch)
     loadfrom ("api", "exscratch", NULL, &on_eval_err);
  
@@ -776,10 +773,10 @@ define runapp (argv, env)
 private define _build_comlist (a)
 {
   variable
-    ex = qualifier_exists ("ex"),
     i,
-    ii,
     c,
+    ii,
+    ex = qualifier_exists ("ex"),
     d = [USRDIR, STDDIR, LCLDIR];
  
   _for i (0, length (d) - 1)

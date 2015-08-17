@@ -116,7 +116,7 @@ public define getch ()
 
       ifnot (NULL == callbackf)
         ifnot (NULL == args)
-          (@callbackf) (args);
+          (@callbackf) (__push_list (args));
         else
           (@callbackf);
 

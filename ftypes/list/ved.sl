@@ -6,7 +6,7 @@ define _myframesize_ (frames)
   return f;
 }
 
-define ved (s, fname)
+define list_ved (s, fname)
 {
   VED_MAXFRAMES = 2;
   wind_init ("a", 2;force, framesize_func = &_myframesize_);
@@ -22,8 +22,6 @@ define ved (s, fname)
 
   list_set (s, mys);
 
-  smg->hlregion (VED_INFOCLRBG, s.rows[0] - 1, 0, 1, COLUMNS);
- 
   s.draw ();
 
   preloop (s);

@@ -10,7 +10,7 @@ define main ()
  
   send_msg_dr ("Testing keys, press carriage return to exit");
 
-  retval = getch (;on_lang = &lang_change, on_lang_args = keys->rmap.changelang[0]);
+  retval = getch (;on_lang = &lang_change, on_lang_args = {keys->rmap.changelang[0]});
 
   while (retval != '\r')
     {
@@ -21,7 +21,7 @@ define main ()
       send_msg_dr (sprintf ("int: %d hex: 0x%x octal: 0%o bin: %.8B char: %c",
         retval, retval, retval, retval, retval == 10 ? 32 : retval));
 
-    retval = getch (;on_lang = &lang_change, on_lang_args = keys->rmap.changelang[0]);
+    retval = getch (;on_lang = &lang_change, on_lang_args = {keys->rmap.changelang[0]});
     }
 
   send_msg_dr (sprintf ("Integer: %d hex: 0x%x Octal: 0%o Binary: %.8B char: %c",

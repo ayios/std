@@ -115,25 +115,87 @@ define rlineinit ()
   return rl;
 }
 
+define __write_buffers ()
+{
+  variable
+    w = get_cur_wind (),
+    s,
+    i,
+    fn,
+    abort = 0,
+    hasnewmsg = 0,
+    chr;
+
+  _for i (0, length (w.bufnames) - 1)
+    {
+    fn = w.bufnames[i];
+    s = w.buffers[fn];
+
+    if (s._flags & VED_RDONLY)
+      ifnot (qualifier_exists ("force_rdonly"))
+        continue;
+      else
+        if (-1 == access (fn, W_OK))
+          {
+          tostderr (fn + " is not writable by you " + USER);
+          hasnewmsg = 1;
+          continue;
+          }
+
+    ifnot (s._flags & VED_MODIFIED)
+      continue;
+    
+    send_msg_dr (sprintf ("%s: save changes? y[es]/n[o]/c[cansel]", fn), 0, NULL, NULL);
+
+    while (chr = getch (), 0 == any (chr == ['y', 'n', 'c']));
+ 
+    if ('n' == chr)
+      continue;
+
+    if ('c' == chr)
+      {
+      tostderr ("writting " + fn + " aborted\n");
+      hasnewmsg = 1;
+      abort = -1;
+      continue;
+      }
+ 
+    variable retval = writetofile (s._fname, s.lines, s._indent);
+    
+    ifnot (0 == retval)
+      {
+      send_msg_dr (sprintf ("%s, q to continue, without canseling function call", errno_string (retval)),
+        1, NULL, NULL);
+
+      if ('q' == getch ())
+        continue;
+      else
+        {
+        tostderr (sprintf ("%s, q to continue, without canseling function call", errno_string (retval)));
+        hasnewmsg = 1;
+        abort = -1;
+        }
+      }
+    }
+  
+  if (hasnewmsg)
+    send_msg_dr ("you have new error messages", 1, NULL, NULL);
+
+  return abort;
+}
+
 private define cl_quit ()
 {
+  variable retval = 0;
   variable rl = qualifier ("rl");
 
   rline->writehistory (rl.history, rl.histfile);
 
-  variable s = qualifier ("ved");
+  if (qualifier_exists ("force") || "q!" != qualifier ("argv0"))
+    retval = __write_buffers ();
 
-  if (s._flags & VED_RDONLY || 0 == s._flags & VED_MODIFIED ||
-      (0 == qualifier_exists ("force") && "q!" == qualifier ("argv0")))
-    s.quit (0);
- 
-  send_msg_dr ("file is modified, save changes? y[es]|n[o]", 0, NULL, NULL);
-
-  variable chr = getch ();
-  while (0 == any (chr == ['y', 'n']))
-    chr = getch ();
- 
-  s.quit (chr == 'y');
+  ifnot (retval)
+    exit_me (0);
 }
 
 private define write_file ()
@@ -182,7 +244,9 @@ private define write_quit ()
 {
   variable s = qualifier ("ved");
   variable args = __pop_list (_NARGS);
-  s.quit (1, __push_list (args));
+  variable retval = __write_buffers ();
+  ifnot (retval)
+    exit_me (0);
 }
 
 private define _messages_ ()
@@ -249,73 +313,9 @@ private define doquit ()
   exit_me (0);
 }
 
-define quit ()
+private define _ved (t)
 {
-  variable
-    file,
-    flags = VED_MODIFIED,
-    args = __pop_list (_NARGS - 1),
-    write_on_exit = args[0];
- 
-  variable s = ();
-
-  ifnot (write_on_exit)
-    doquit ();
-
-  if (1 == length (args) || (2 == length (args) && s._fname == args[1]))
-    {
-    file = s._absfname;
-    flags = s._flags;
-    }
-  else
-    {
-    file = args[1];
-    ifnot (access (file, F_OK))
-      {
-      send_msg_dr ("file exists, press q to quit without saving", 1,
-        s.ptr[0], s.ptr[1]);
-      if ('q' == getch ())
-        doquit ();
-
-      smg->setrcdr (s.ptr[0], s.ptr[1]);
-      return;
-      }
-
-    if (-1 == access (file, W_OK))
-      {
-      send_msg_dr ("file is not writable, press q to quit without saving", 1,
-        s.ptr[0], s.ptr[1]);
-
-      if ('q' == getch ())
-        doquit ();
-
-      smg->setrcdr (s.ptr[0], s.ptr[1]);
-      return;
-      }
-    }
- 
-  if (flags & VED_MODIFIED)
-    {
-    variable retval = writetofile (file, s.lines, s._indent);
-    ifnot (0 == retval)
-      {
-      send_msg_dr (sprintf ("%s, press q to quit without saving", errno_string (retval)),
-        1, NULL, NULL);
-
-      if ('q' == getch ())
-        doquit ();
-
-      smg->setrcdr (s.ptr[0], s.ptr[1]);
-      return;
-      }
-    }
-
-  doquit ();
-}
-
-private define ved (t)
-{
-  return getreffrom ("ftypes/" + t, "ved", NULL, &on_eval_err;fun = "ved"); 
+  return getreffrom ("ftypes/" + t, "ved", NULL, &on_eval_err;fun = t + "_ved"); 
 }
 
 define init_ftype (ftype)
@@ -328,8 +328,7 @@ define init_ftype (ftype)
   loadfrom ("ftypes/" + ftype, ftype + "_functions", NULL, &on_eval_err);
 
   type._type = ftype;
-  type.ved = ved (ftype);
-  type.quit = &quit;
+  type.ved = _ved (ftype);
 
   return type;
 }

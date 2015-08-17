@@ -1,4 +1,4 @@
-define ved (s, fname)
+define sl_ved (s, fname)
 {
   sl_settype (s, fname, VED_ROWS, NULL);
 

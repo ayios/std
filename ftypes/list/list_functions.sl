@@ -1,9 +1,5 @@
-
-variable orig_dir = getcwd ();
-
-private variable
-  fnames = Assoc_Type[Ftype_Type],
-  exists = 0x01;
+private variable orig_dir = getcwd ();
+private variable exists = 0x01;
 
 private define add (self, s, rows)
 {
@@ -19,8 +15,7 @@ private define add (self, s, rows)
   ifnot ("list" == ftype)
     {
     w.cur_frame = 0;
-    fnames[s.fname] = init_ftype (ftype);
-    c = fnames[s.fname];
+    c = init_ftype (ftype);
 
     loadfrom ("ftypes/" + ftype, ftype + "_settype", NULL, &on_eval_err);
     variable func = __get_reference (sprintf ("%s_settype", ftype));
@@ -31,14 +26,12 @@ private define add (self, s, rows)
     c.ptr[1] = s.col - 1 + c._indent;
     c._index = c.ptr[1];
     setbuf (c._absfname);
-    w.frame_names[0] = c._absfname;
     return 0;
     }
 
   c = self;
  
   w.cur_frame = 1;
-  w.frame_names[1] = c._absfname;
   variable lines = readfile (s.fname);
   if (NULL == lines)
     lines = [sprintf ("%s\000", c._indent)];
@@ -81,7 +74,7 @@ private define getitem (s)
   return struct {lnr = lnr, col = col, fname = fname};
 }
 
-private define drawfile (s)
+define __pager_on_carriage_return (s)
 {
   ifnot (get_cur_frame ())
     return;
@@ -98,76 +91,31 @@ private define drawfile (s)
 
   variable retval = add (NULL, l, w.frame_rows[0];force);
 
-  s = get_cur_buf ();
- 
   if (exists == retval)
     {
-    change_frame ();
-    s = get_cur_buf ();
+    w.cur_frame = 0;
+    s = get_cur_buf (;bufname = l.fname);
+    setbuf (s._absfname);
     s._i = s._len >= l.lnr - 1 ? l.lnr - 1 : 0;
     s.ptr[0] = 1;
     s.ptr[1] = l.col - 1 + s._indent;
     s._findex = s._indent;
     s._index = s.ptr[1];
+    set_clr_fg (s, 1);
     }
   else
-    {
-    variable lb =w.buffers[w.frame_names[1]];
-    lb.clrs[-1] = VED_INFOCLRBG;
-    smg->hlregion (VED_INFOCLRBG, lb.rows[-1], 0, 1, COLUMNS);
-    SMGIMG[lb.rows[-1]][1] = VED_INFOCLRBG;
-    }
- 
+    s = get_cur_buf ();
+
+  set_clr_bg (w.buffers[w.frame_names[1]], 1);
+
   s.draw ();
   s.vedloop ();
 }
 
-private define myquit ()
-{
-  variable
-    s,
-    fn,
-    chr,
-    fns = assoc_get_keys (fnames);
-
-  _for fn (0, length (fns) - 1)
-    {
-    s = fnames[fns[fn]];
-    if (s._flags & VED_RDONLY || 0 == s._flags & VED_MODIFIED ||
-        (0 == qualifier_exists ("force") && "q!" == qualifier ("argv0")))
-      continue;
-
-    send_msg_dr (sprintf ("%s: save changes? y[es]|n[o]", s._fname), 0, NULL, NULL);
-
-    chr = getch ();
-    while (0 == any (chr == ['y', 'n']))
-      chr = getch ();
- 
-    if ('n' == chr)
-      continue;
- 
-    variable retval = writetofile (s._fname, s.lines, s._indent);
-    ifnot (0 == retval)
-      {
-      send_msg_dr (sprintf ("%s, press q to quit without saving", errno_string (retval)),
-        1, NULL, NULL);
-
-      if ('q' == getch ())
-        return;
-      }
-    }
- 
-  send_msg (" ", 0);
-  exit_me (0);
-}
-
-VED_CLINE["q"] = &myquit;
-VED_CLINE["q!"] = &myquit;
-
-VED_PAGER[string ('\r')] = &drawfile;
+%VED_PAGER[string ('\r')] = &drawfile;
 
 define list_set (s, mys)
 {
-  s.quit = &myquit;
-  () = add (s, mys, get_cur_wind ().frame_rows[1];row = get_cur_wind ().frame_rows[1][0], col = 0);
+  variable w = get_cur_wind ();
+  () = add (s, mys, w.frame_rows[1];row = w.frame_rows[1][0], col = 0);
 }

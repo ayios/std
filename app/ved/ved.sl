@@ -41,10 +41,7 @@ define on_eval_err (err, code)
 }
 
 if (1 == __argc)
-  {
-  () = init_ftype ("txt");
   SCRATCH_VED.ved (SCRATCH);
-  }
 else
   {
   variable fname = __argv[-1];

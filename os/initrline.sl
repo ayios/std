@@ -114,7 +114,7 @@ define initrline ()
     histfile = HISTDIR + "/" + string (OSUID) + "oshistory",
     tabhook = &tabhook,
     on_lang = &toplinedr,
-    on_lang_args = " -- OS CONSOLE --");
+    on_lang_args = {"-- OS --"});
  
   return rl;
 }

@@ -6,7 +6,7 @@ static define find_unique_words_in_lines (ar, str, end)
 
   try
     {
-    variable pat = pcre_compile ("(?<=\\s)(" + str + "\\w*)", PCRE_UTF8);
+    variable pat = pcre_compile ("(\\w*" + str + "\\w*)", PCRE_UTF8);
     }
   catch ParseError:
     return String_Type[0];

@@ -1,5 +1,3 @@
-public variable VEDDIR = STDDIR + "/app/ved/functions";
-
 typedef struct
   {
   _i,
@@ -34,7 +32,6 @@ typedef struct
   vlins,
   lines,
   st_,
-  quit,
   vedloop,
   vedloopcallback,
   ved,
@@ -72,14 +69,25 @@ typedef struct
 
 public variable
   FTYPES = Assoc_Type[Integer_Type],
-  VED_MODIFIED = 0x01,
-  VED_ONDISKMODIFIED = 0x02,
-  VED_RDONLY = 0x04,
+  MARKS = Assoc_Type[Mark_Type],
+  REG = Assoc_Type[String_Type];
+
+public variable
+  EL_MAP = [[913:929:1], [931:937:1], [945:969:1]],
+  EN_MAP = [['a':'z'], ['A':'Z']],
+  MAPS = [EL_MAP, EN_MAP],
+  WCHARS = array_map (String_Type, &char, [['0':'9'], EN_MAP, EL_MAP, '_']);
+
+public variable
   VED_ROWS = [1:LINES - 3],
   VED_INFOCLRFG = COLOR.infofg,
   VED_INFOCLRBG = COLOR.infobg,
-  VED_PROMPTCLR = COLOR.prompt,
-  XCLIP_BIN = which ("xclip");
+  VED_PROMPTCLR = COLOR.prompt;
+
+public variable
+  VED_MODIFIED = 0x01,
+  VED_ONDISKMODIFIED = 0x02,
+  VED_RDONLY = 0x04;
 
 public variable
   VED_WIND = Assoc_Type[Wind_Type],
@@ -92,11 +100,12 @@ public variable
   VED_RLINE = 1;
 
 public variable UNDELETABLE = String_Type[0];
-
-public variable EL_MAP = [[913:929:1], [931:937:1], [945:969:1]];
-public variable EN_MAP = [['a':'z'], ['A':'Z']];
-public variable MAPS = [EL_MAP, EN_MAP];
-public variable WCHARS = array_map (String_Type, &char, [['0':'9'], EN_MAP, EL_MAP, '_']);
+public variable XCLIP_BIN = which ("xclip");
+ 
+public variable % NOT IMPLEMENTED
+  RECORD = 0,
+  CRECORD,
+  RECORDS = Assoc_Type[List_Type];
 
 private define _invalid ()
 {
@@ -105,26 +114,35 @@ private define _invalid ()
 
 public variable
   VED_PAGER = Assoc_Type[Ref_Type, &_invalid],
-  VEDCOUNT = 0,
-  RECORD = 0,
-  CRECORD,
-  MARKS = Assoc_Type[Mark_Type],
-  RECORDS = Assoc_Type[List_Type],
-  REG = Assoc_Type[String_Type];
+  VEDCOUNT = 0;
+ 
+private define build_ftype_table ()
+{
+  variable i;
+  variable ii;
+  variable ft;
+  variable nss = [LCLDIR, STDDIR, USRDIR];
+ 
+  % priority local < std < usr
+  _for i (0, length (nss) - 1)
+    {
+    ft = listdir (nss[i] + "/ftypes");
+    if (NULL == ft)
+      continue;
 
+    _for ii (0, length (ft) - 1)
+      if (_isdirectory (nss[i] + "/ftypes/" + ft[ii])) 
+        FTYPES[ft[ii]] = 0;
+    }
+}
+
+build_ftype_table ();
 MARKS[string ('`')] = @Mark_Type;
-
-FTYPES["sl"] = 0;
-FTYPES["txt"] = 0;
-FTYPES["list"] = 0;
-FTYPES["ashell"] = 0;
 
 loadfrom ("string", "decode", NULL, &on_eval_err);
 loadfrom ("array", "getsize", NULL, &on_eval_err);
 loadfrom ("pcre", "find_unique_words_in_lines", 1, &on_eval_err);
 loadfrom ("pcre", "find_unique_lines_in_lines", 1, &on_eval_err);
-
-importfrom ("std", "pcre", NULL, &on_eval_err);
 
 define set_modified ();
 define writetofile ();
@@ -166,6 +184,12 @@ define getlines (fname, indent, st)
   return array_map (String_Type, &sprintf, "%s%s", indent, readfile (fname));
 }
 
+private define _on_lang_change_ (mode, ptr)
+{
+  topline (" -- " + mode + " --");
+  smg->setrcdr (ptr[0], ptr[1]);
+}
+ 
 define clear (s, frow, lrow)
 {
   variable
@@ -293,7 +317,6 @@ define find_Word (s, line, col, start, end)
   return substr (line, @start + 1, @end - @start + 1);
 }
 
-
 define drawfile (s)
 {
   variable st = lstat_file (s._absfname);
@@ -357,7 +380,7 @@ define __writefile (s, overwrite, ptr, argv)
 {
   variable file;
  
-  ifnot (length (argv))
+  if (NULL == argv || 0 == length (argv))
     {
     if (s._flags & VED_RDONLY)
       return;
@@ -469,11 +492,12 @@ define get_cur_buf ()
   ifnot (length (w.buffers))
     return NULL;
   
-  variable n = w.frame_names[w.cur_frame];
+  variable n = qualifier ("bufname", w.frame_names[w.cur_frame]);
+  
   ifnot (any (n == w.bufnames))
     return NULL;
 
-  return w.buffers[w.frame_names[w.cur_frame]];
+  return w.buffers[n];
 }
 
 define get_frame_buf (frame)
@@ -764,7 +788,7 @@ define new_wind ()
     draw_wind ();
 }
 
-private variable func = [&smg->setrcdr, &smg->setrc];
+private variable _func_ = [&smg->setrcdr, &smg->setrc];
 
 private define _draw_ (s)
 {
@@ -825,7 +849,7 @@ private define _draw_ (s)
 
   s.lexicalhl (ar[[:-2]], s.vlins);
  
-  (@func[qualifier_exists ("dont_draw")]) (s.ptr[0], s.ptr[1]);
+  (@_func_[qualifier_exists ("dont_draw")]) (s.ptr[0], s.ptr[1]);
 }
 
 private define autoindent ();
@@ -908,6 +932,8 @@ define deftype ()
   return type;
 }
 
+% PAGER
+ 
 define markbacktick (s)
 {
   MARKS[string ('`')]._i = s._ii;
@@ -1550,11 +1576,17 @@ define handle_w (s)
     }
 }
 
-define on_cariage_return (s)
+define __pager_on_carriage_return (s)
 {
 }
 
-VED_PAGER[string ('\r')] = &on_cariage_return;
+define _write_on_esc_ (s)
+{
+  __writefile (s, NULL, s.ptr, NULL);
+}
+ 
+VED_PAGER[string (0x1001a)] = &_write_on_esc_;
+VED_PAGER[string ('\r')] = &__pager_on_carriage_return;
 VED_PAGER[string ('m')] = &mark;
 VED_PAGER[string ('`')] = &gotomark;
 VED_PAGER[string (keys->CTRL_l)] = &reread;
@@ -1582,6 +1614,10 @@ VED_PAGER[string ('^')] = &bolnblnk;
 VED_PAGER[string ('0')] = &bol;
 VED_PAGER[string (keys->CTRL_w)] = &handle_w;
 
+%%% PAGER END
+
+%%% BUF
+ 
 define setbuf (key)
 {
   variable w = get_cur_wind ();
@@ -1649,7 +1685,7 @@ define bufdelete (s, bufname, force)
 
   ifnot (length (w.bufnames))
     if (1 == length (winds))
-      s.quit (0);
+      exit_me (0);
     else
       {
       assoc_delete_key (VED_WIND, VED_CUR_WIND);
@@ -1933,6 +1969,8 @@ private define redo (s)
 VED_PAGER[string ('u')] = &undo;
 VED_PAGER[string (keys->CTRL_r)] = &redo;
 
+%%% SEARCH
+ 
 private variable
   col,
   lnr,
@@ -2093,6 +2131,7 @@ private define search_forward (s, str)
 private define search (s)
 {
   variable
+    cur_lang = input->getlang (),
     origlnr,
     dothesearch,
     type,
@@ -2119,7 +2158,7 @@ private define search (s)
   forever
     {
     dothesearch = 0;
-    chr = getch ();
+    chr = getch (;on_lang = &_on_lang_change_, on_lang_args = {"search", [PROMPTROW, col]});
 
     if (033 == chr)
       {
@@ -2244,14 +2283,11 @@ private define search (s)
     if (dothesearch)
       (@typesearch) (s, pat);
     }
+  
+  ifnot (input->getlang () == cur_lang)
+    input->setlang (cur_lang);
 }
 
-private define on_lang_change (col)
-{
-  topline (" -- pager --");
-  smg->setrcdr (PROMPTROW, col);
-}
- 
 private define search_word (s)
 {
   variable
@@ -2311,7 +2347,7 @@ private define search_word (s)
       return;
       }
 
-    chr = getch (;on_lang = &on_lang_change, on_lang_args = col);
+    chr = getch (;disable_langchange);
  
     ifnot (any ([keys->CTRL_n, 033, '\r'] == chr))
       continue;
@@ -3614,25 +3650,29 @@ private define wordcompletion (is, s, line)
 
 insfuncs.wordcompletion = &wordcompletion;
 
-private define on_lang_change (s)
-{
-  toplinedr (" -- insert --";row = s.ptr[0], col = s.ptr[1]);
-}
- 
 private define getline (is, s, line)
 {
   is = struct {@insfuncs, @is};
  
   forever
     {
-    is.chr = getch (;on_lang = &on_lang_change, on_lang_args = s);
+    is.chr = getch (;on_lang = &_on_lang_change_, on_lang_args = {"insert", s.ptr});
 
     if (033 == is.chr)
       {
       is.esc (s, line);
       return;
       }
- 
+    
+    if (0x1001a == is.chr) % Double Escape
+      {
+      s.lins[s.ptr[0] - s.rows[0]] = @line;
+      s.lines[is.lnr] = @line;
+      s.st_.st_size = getsizear (s.lines);
+      __writefile (s, NULL, s.ptr, NULL);
+      continue;
+      }
+  
     if ('\r' == is.chr)
       {
       is.cr (s, line);
@@ -3753,8 +3793,9 @@ define insert (s, line, lnr, prev_l, next_l)
 
   input->setlang (input->get_en_lang ());
 }
+%%% END INSERT MODE
 
-%%% ED MODE
+%%%% ED MODE
 
 private define newline_str (s)
 {

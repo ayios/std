@@ -155,7 +155,7 @@ define rlineinit ()
     onnolength = &toplinedr,
     onnolengthargs = {""},
     on_lang = &toplinedr,
-    on_lang_args = " -- shell --"
+    on_lang_args = {" -- shell --"}
     });
  
   iarg = length (rl.history);

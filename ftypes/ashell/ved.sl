@@ -1,4 +1,4 @@
-define ved (s, fname)
+define ashell_ved (s, fname)
 {
   ashell_settype (s, fname, VED_ROWS, NULL);
  

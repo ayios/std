@@ -1,4 +1,4 @@
-define ved (s, fname)
+define txt_ved (s, fname)
 {
   ifnot (SCRATCH == fname)
     txt_settype (s, fname, VED_ROWS, NULL);
@@ -12,5 +12,6 @@ define ved (s, fname)
   preloop (s);
  
   toplinedr (" -- pager --");
+
   s.vedloop ();
 }
