@@ -1,12 +1,12 @@
 define find_unique_lines_in_lines (ar, str, end)
 {
   variable i;
-
+  variable pat = sprintf ("^%s%s", qualifier_exists ("ign_lead_ws") ? "\\s*" : "", str);
   variable lines = Assoc_Type[Null_Type];
 
   try
     {
-    variable pat = pcre_compile ("^" + str, PCRE_UTF8);
+    pat = pcre_compile (pat, PCRE_UTF8);
     }
   catch ParseError:
     return String_Type[0];

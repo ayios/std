@@ -1583,6 +1583,9 @@ define __pager_on_carriage_return (s)
 define _write_on_esc_ (s)
 {
   __writefile (s, NULL, s.ptr, NULL);
+ send_msg_dr ("", 14, NULL, NULL);
+ sleep (0.001);
+ smg->setrcdr (s.ptr[0], s.ptr[1]);
 }
  
 VED_PAGER[string (0x1001a)] = &_write_on_esc_;
@@ -2828,8 +2831,6 @@ variable insfuncs = struct
   ins_char,
   ins_tab,
   completeline,
-  inscompletion,
-  wordcompletion,
   };
 
 define insert ();
@@ -3405,41 +3406,52 @@ private define esc (is, s, line)
 
 insfuncs.esc = &esc;
 
-private define linecompletion (s, line)
+define ctrl_completion_rout (s, line, type)
 {
   variable
+    ar,
     chr,
-    lines,
-    item = @line,
+    start,
+    item = "ins_linecompletion" == type ? @line : "",
     rows = Integer_Type[0],
     indexchanged = 0,
     index = 1,
     origlen = strlen (@line),
     col = s._index - 1,
     iwchars = [MAPS, ['0':'9'], '_'];
- 
-  ifnot (origlen)
-    return;
+
+  if ("ins_wordcompletion" == type)
+    {
+    item = fpart_of_word (s, @line, col, &start);
+
+    ifnot (strlen (item))
+      return;
+    }
 
   forever
     {
     ifnot (indexchanged)
-      lines = pcre->find_unique_lines_in_lines (s.lines, @line, NULL);
- 
-    ifnot (length (lines))
-      {
-      if (length (lines))
-        smg->restore (rows, s.ptr, 1);
+      if ("ins_linecompletion" == type)
+        ar = pcre->find_unique_lines_in_lines (s.lines, item, NULL;ign_lead_ws);
+      else if ("ins_wordcompletion" == type)
+        ar = pcre->find_unique_words_in_lines (s.lines, item, NULL);
 
+    ifnot (length (ar))
+      {
+      if (length (rows))
+        smg->restore (rows, s.ptr, 1);
+      
+      waddline (s, getlinestr (s, @line, 1), 0, s.ptr[0]);
+      smg->setrcdr (s.ptr[0], s.ptr[1]);
       return;
       }
 
     indexchanged = 0;
 
-    if (index > length (lines))
-      index = length (lines);
+    if (index > length (ar))
+      index = length (ar);
 
-    rows = widg->pop_up (lines, s.ptr[0], s.ptr[1] + 1, index);
+    rows = widg->pop_up (ar, s.ptr[0], s.ptr[1] + 1, index);
 
     smg->setrcdr (s.ptr[0], s.ptr[1]);
 
@@ -3462,9 +3474,12 @@ private define linecompletion (s, line)
     if (any ([' ', '\r'] == chr))
       {
       smg->restore (rows, NULL, NULL);
- 
-      @line = lines[index - 1] + substr (@line, s._index + 1, -1);
- 
+      
+      if ("ins_linecompletion" == type)
+        @line = ar[index - 1] + substr (@line, s._index + 1, -1);
+      else if ("ins_wordcompletion" == type)
+        @line = substr (@line, 1, start) + ar[index - 1] + substr (@line, s._index + 1, -1);
+
       waddline (s, getlinestr (s, @line, 1), 0, s.ptr[0]);
  
       variable len = strlen (@line);
@@ -3485,7 +3500,7 @@ private define linecompletion (s, line)
     if (any ([keys->CTRL_n, keys->DOWN] == chr))
       {
       index++;
-      if (index > length (lines))
+      if (index > length (ar))
         index = 1;
 
       indexchanged = 1;
@@ -3495,18 +3510,18 @@ private define linecompletion (s, line)
       {
       index--;
       ifnot (index)
-        index = length (lines);
+        index = length (ar);
 
       indexchanged = 1;
       }
 
-    ifnot (any ([iwchars, keys->CTRL_n, keys->DOWN, keys->CTRL_p, keys->UP,
-      keys->rmap.backspace, '\r', ' '] == chr))
+    ifnot (any ([iwchars, keys->CTRL_n, keys->DOWN, keys->CTRL_p, keys->UP] == chr))
       {
       smg->restore (rows, s.ptr, 1);
+      smg->refresh ();
       return;
       }
-    else
+    else if (any ([iwchars] == chr))
       item += char (chr);
  
     ifnot (indexchanged)
@@ -3514,141 +3529,33 @@ private define linecompletion (s, line)
  
    % BUG HERE
     if (indexchanged)
-      if (index > LINES - 4)
-        lines = lines[[1:]];
-    % when words ar has been changed and index = 1
+      if (index > 1)
+        if (index > LINES - 4)
+          ar = ar[[1:]];
+    % when ar has been changed and index = 1
     }
 }
 
-private define inscompletion (is, s, line)
+define ins_linecompletion (s, line)
+{
+  ifnot (strlen (@line))
+    return;
+
+  ctrl_completion_rout (s, line, _function_name ());
+}
+
+define ins_ctrl_x_completion (s, line)
 {
   variable chr = getch ();
 
   if (any ([keys->CTRL_l] == chr))
-    linecompletion (s, line);
+    ins_linecompletion (s, line);
 }
 
-insfuncs.inscompletion = &inscompletion;
-
-private define wordcompletion (is, s, line)
+define ins_wordcompletion (s, line)
 {
-  variable
-    word,
-    chr,
-    words,
-    start,
-    rows = Integer_Type[0],
-    indexchanged = 0,
-    index = 1,
-    origlen = strlen (@line),
-    col = s._index - 1,
-    iwchars = [MAPS, ['0':'9'], '_'];
-
-  word = fpart_of_word (s, @line, col, &start);
-
-  ifnot (strlen (word))
-    return;
-
-  forever
-    {
-    ifnot (indexchanged)
-      words = pcre->find_unique_words_in_lines (s.lines, word, NULL);
- 
-    ifnot (length (words))
-      {
-      if (length (rows))
-        smg->restore (rows, s.ptr, 1);
- 
-      return;
-      }
-
-    indexchanged = 0;
-
-    if (index > length (words))
-      index = length (words);
-
-    rows = widg->pop_up (words, s.ptr[0], s.ptr[1] + 1, index);
-
-    smg->setrcdr (s.ptr[0], s.ptr[1]);
-
-    chr = getch ();
-
-    if (any (keys->rmap.backspace == chr))
-      {
-      if (1 == strlen (word))
-        {
-        smg->restore (rows, s.ptr, 1);
-        return;
-        }
-      else
-        word = substr (word, 1, strlen (word) - 1);
- 
-      smg->restore (rows, NULL, NULL);
-      continue;
-      }
-
-    if (any ([' ', '\r'] == chr))
-      {
-      smg->restore (rows, NULL, NULL);
- 
-      @line = substr (@line, 1, start) + words[index - 1] + substr (@line, s._index + 1, -1);
- 
-      waddline (s, getlinestr (s, @line, 1), 0, s.ptr[0]);
- 
-      variable len = strlen (@line);
-
-      %bug here (if len > maxlen) (wrapped line)
-      if (len < origlen)
-        s._index -= (origlen - len);
-      else if (len > origlen)
-        s._index += len - origlen;
-
-      s.ptr[1] = s._index;
-
-      draw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
- 
-      return;
-      }
-
-    if (any ([keys->CTRL_n, keys->DOWN] == chr))
-      {
-      index++;
-      if (index > length (words))
-        index = 1;
-
-      indexchanged = 1;
-      }
-
-    if (any ([keys->CTRL_p, keys->UP] == chr))
-      {
-      index--;
-      ifnot (index)
-        index = length (words);
-
-      indexchanged = 1;
-      }
-
-    ifnot (any ([iwchars, keys->CTRL_n, keys->DOWN, keys->CTRL_p, keys->UP,
-      keys->rmap.backspace, '\r', ' '] == chr))
-      {
-      smg->restore (rows, s.ptr, 1);
-      return;
-      }
-    else
-      word += char (chr);
- 
-    ifnot (indexchanged)
-      smg->restore (rows, NULL, NULL);
- 
-   % BUG HERE
-    if (indexchanged)
-      if (index > LINES - 4)
-        words = words[[1:]];
-    % when words ar has been changed and index = 1
-    }
+  ctrl_completion_rout (s, line, _function_name ());
 }
-
-insfuncs.wordcompletion = &wordcompletion;
 
 private define getline (is, s, line)
 {
@@ -3681,13 +3588,13 @@ private define getline (is, s, line)
  
     if (keys->CTRL_n == is.chr)
       {
-      is.wordcompletion (s, line);
+      ins_wordcompletion (s, line);
       continue;
       }
 
     if (keys->CTRL_x == is.chr)
       {
-      is.inscompletion (s, line);
+      ins_ctrl_x_completion (s, line);
       continue;
       }
 

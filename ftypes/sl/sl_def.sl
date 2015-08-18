@@ -29,8 +29,3 @@ private define sl_complete_blocks (s, line)
 {
   _blocks_ (s._shiftwidth);
 }
-
-define sl_init_compl (s)
-{
-  shiftwidth = s._shiftwidth;
-}
