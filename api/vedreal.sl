@@ -119,6 +119,7 @@ define __write_buffers ()
 {
   variable
     w = get_cur_wind (),
+    bts,
     s,
     i,
     fn,
@@ -144,23 +145,27 @@ define __write_buffers ()
 
     ifnot (s._flags & VED_MODIFIED)
       continue;
-    
-    send_msg_dr (sprintf ("%s: save changes? y[es]/n[o]/c[cansel]", fn), 0, NULL, NULL);
+   
+    ifnot (qualifier_exists ("force"))
+      {   
+      send_msg_dr (sprintf ("%s: save changes? y[es]/n[o]/c[cansel]", fn), 0, NULL, NULL);
 
-    while (chr = getch (), 0 == any (chr == ['y', 'n', 'c']));
+      while (chr = getch (), 0 == any (chr == ['y', 'n', 'c']));
  
-    if ('n' == chr)
-      continue;
+      if ('n' == chr)
+        continue;
 
-    if ('c' == chr)
-      {
-      tostderr ("writting " + fn + " aborted\n");
-      hasnewmsg = 1;
-      abort = -1;
-      continue;
+      if ('c' == chr)
+        {
+        tostderr ("writting " + fn + " aborted\n");
+        hasnewmsg = 1;
+        abort = -1;
+        continue;
+        }
       }
- 
-    variable retval = writetofile (s._fname, s.lines, s._indent);
+    
+    bts = 0;
+    variable retval = __writetofile (s._fname, s.lines, s._indent, &bts);
     
     ifnot (0 == retval)
       {
@@ -244,6 +249,7 @@ private define write_quit ()
 {
   variable s = qualifier ("ved");
   variable args = __pop_list (_NARGS);
+  % needs to write the current buffer and ask for the rest
   variable retval = __write_buffers ();
   ifnot (retval)
     exit_me (0);
@@ -332,3 +338,4 @@ define init_ftype (ftype)
 
   return type;
 }
+

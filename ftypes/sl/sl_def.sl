@@ -1,31 +1,19 @@
-private variable width;
-private variable initblocks = 0;
-private variable shiftwidth = NULL;
+private variable BLOCKS = Assoc_Type[String_Type];
 
-variable BLOCKS = Assoc_Type[String_Type];
-
-private define _blocks_ (lshiftwidth)
+define sl_blocks (swi, col)
 {
-  if (initblocks)
-    if (lshiftwidth == shiftwidth)
-      return;
-    else
-      shiftwidth = lshiftwidth;
-  else
-    shiftwidth = lshiftwidth;
-
-  width = repeat (" ", shiftwidth);
-
-  BLOCKS["if else"] =
-    width + "if ()\n" + width + "\n" + width + "else\n" + width;
+  variable sw = repeat (" ", swi);
+  variable tw = repeat (" ", swi + col);
+  variable iw = repeat (" ", col);
+    
+  BLOCKS["if else"] = iw + "if ()\n" + tw + "\n" + iw + "else\n" + tw;
 
   BLOCKS["if else_if else"] =
-    width + "if ()\n" + width + "\n" + width + "elseif\n" + width + "else if\n" + width;
-  
-  initblocks = 1;
-}
+    iw + "if ()\n" + tw + "\n" + iw + "else if\n" + tw + "\n" + iw + "else\n" + tw;
 
-private define sl_complete_blocks (s, line)
-{
-  _blocks_ (s._shiftwidth);
+  BLOCKS["for i (0, length (ar) - 1)"] = iw + "for i (0, length (ar) - 1)";
+
+  BLOCKS["private define"] = "private define ()\n{\n" + sw + "\n}";
+
+  return BLOCKS;
 }

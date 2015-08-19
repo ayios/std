@@ -114,11 +114,7 @@ private define _load_ ()
   variable lib = ns + "->" + file;
  
   if (LOADED[lib] && 0 == qualifier_exists ("force"))
-    {
-    variable fp = fopen ("/tmp/dev" + string (UID), "a+");
-    () = fprintf (fp, "%S %S\n", ns, lib);
     return __get_reference (ns + "->" + fun);
-    }
  
   try
     {

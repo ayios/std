@@ -7,6 +7,8 @@ private variable colors = [
   12,
 %errors
   17,
+%comments
+  3,
 ];
 
 private variable regexps = [
@@ -123,6 +125,8 @@ private variable regexps = [
 %errors
   pcre_compile ("\
 ((?<=\w)(\s{1,}$))+"R, 0),
+%commwnts
+  pcre_compile ("(^\s*%.*)"R, 0),
 ];
 
 private define sl_hl_groups (lines, vlines)

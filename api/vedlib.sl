@@ -145,7 +145,6 @@ loadfrom ("pcre", "find_unique_words_in_lines", 1, &on_eval_err);
 loadfrom ("pcre", "find_unique_lines_in_lines", 1, &on_eval_err);
 
 define set_modified ();
-define writetofile ();
 define seltoX ();
 define topline ();
 define toplinedr ();
@@ -357,18 +356,21 @@ private define write_line (fp, line, indent)
   return fwrite (line, fp);
 }
 
-define writetofile (file, lines, indent)
+define __writetofile (file, lines, indent, bts)
 {
   variable
     i,
+    retval,
     fp = fopen (file, "w");
  
   if (NULL == fp)
     return errno;
 
   _for i (0, length (lines) - 1)
-    if (-1 == write_line (fp, lines[i] + "\n", indent))
+    if (retval = write_line (fp, lines[i] + "\n", indent), retval == -1)
       return errno;
+    else
+      @bts += retval;
 
   if (-1 == fclose (fp))
     return errno;
@@ -379,6 +381,7 @@ define writetofile (file, lines, indent)
 define __writefile (s, overwrite, ptr, argv)
 {
   variable file;
+  variable bts = 0;
  
   if (NULL == argv || 0 == length (argv))
     {
@@ -406,7 +409,7 @@ define __writefile (s, overwrite, ptr, argv)
       }
     }
  
-  variable retval = writetofile (file, s.lines, s._indent);
+  variable retval = __writetofile (file, s.lines, s._indent, &bts);
  
   if (retval)
     {
@@ -1670,7 +1673,8 @@ define bufdelete (s, bufname, force)
  
   if (s._flags & VED_MODIFIED && force)
     {
-    variable retval = writetofile (s._absfname, s.lines, s._indent);
+    variable bts = 0;
+    variable retval = __writetofile (s._absfname, s.lines, s._indent, &bts);
     ifnot (0 == retval)
       send_msg_dr (errno_string (retval), 1, NULL, NULL);
     }
@@ -3412,7 +3416,7 @@ define ctrl_completion_rout (s, line, type)
     ar,
     chr,
     start,
-    item = "ins_linecompletion" == type ? @line : "",
+    item,
     rows = Integer_Type[0],
     indexchanged = 0,
     index = 1,
@@ -3420,7 +3424,20 @@ define ctrl_completion_rout (s, line, type)
     col = s._index - 1,
     iwchars = [MAPS, ['0':'9'], '_'];
 
-  if ("ins_wordcompletion" == type)
+  if (any (["ins_linecompletion", "blockcompletion"] == type))
+    {
+    item = @line;
+    if ("blockcompletion" == type)
+      {
+      item = strtrim_beg (item);
+      variable block_ar = qualifier ("block_ar");
+      if (NULL == block_ar || 0 == length (block_ar)
+        || (strlen (item) && 0 == length (wherenot (strncmp (
+            block_ar, item, strlen (item))))))
+        return;
+      }
+    }
+  else if ("ins_wordcompletion" == type)
     {
     item = fpart_of_word (s, @line, col, &start);
 
@@ -3435,6 +3452,11 @@ define ctrl_completion_rout (s, line, type)
         ar = pcre->find_unique_lines_in_lines (s.lines, item, NULL;ign_lead_ws);
       else if ("ins_wordcompletion" == type)
         ar = pcre->find_unique_words_in_lines (s.lines, item, NULL);
+      else if ("blockcompletion" == type)
+        ifnot (strlen (item))
+          ar = block_ar;
+        else
+          ar = block_ar[wherenot (strncmp (block_ar, item, strlen (item)))];
 
     ifnot (length (ar))
       {
@@ -3479,6 +3501,11 @@ define ctrl_completion_rout (s, line, type)
         @line = ar[index - 1] + substr (@line, s._index + 1, -1);
       else if ("ins_wordcompletion" == type)
         @line = substr (@line, 1, start) + ar[index - 1] + substr (@line, s._index + 1, -1);
+      else if ("blockcompletion" == type)
+        {
+        @line = ar[index - 1];
+        return;
+        }
 
       waddline (s, getlinestr (s, @line, 1), 0, s.ptr[0]);
  
@@ -3544,12 +3571,80 @@ define ins_linecompletion (s, line)
   ctrl_completion_rout (s, line, _function_name ());
 }
 
-define ins_ctrl_x_completion (s, line)
+define blockcompletion (lnr, s, line)
+{
+ variable f = __get_reference (s._type + "_blocks");
+  
+  if (NULL == f)
+    return;
+  
+  variable assoc = (@f) (s._shiftwidth, s.ptr[1]);
+  variable keys = assoc_get_keys (assoc);
+  
+  ctrl_completion_rout (s, line, _function_name ();block_ar = keys);
+ 
+  variable i = wherefirst (@line == keys);  
+  if (NULL == i)
+    waddline (s, getlinestr (s, @line, 1), 0, s.ptr[0]);
+  else
+    {
+    variable ar = strchop (assoc[@line], '\n', 0);
+    @line = ar[0];
+    if (1 == length (ar))
+      waddline (s, getlinestr (s, @line, 1), 0, s.ptr[0]);
+    
+    s.lines[lnr] = @line;
+    s.lines = [s.lines[[:lnr]], 1 == length (ar) ? String_Type[0] : ar[[1:]],
+      lnr == s._len ? String_Type[0] :  s.lines[[lnr+1:]]];
+    s._len = length (s.lines) - 1;
+    s.st_.st_size = getsizear (s.lines);
+  
+    set_modified (s);
+  
+    s._i = s._ii;
+    s.draw ();
+    }
+}
+ 
+define pag_completion (s)
 {
   variable chr = getch ();
-
-  if (any ([keys->CTRL_l] == chr))
-    ins_linecompletion (s, line);
+  variable line;
+  
+  switch (chr)
+  
+    {
+    case 'b':
+      line = v_lin (s, '.');
+      blockcompletion (v_lnr (s, '.'), s, &line);
+    }
+ 
+    {
+    return;
+    }
+}
+ 
+VED_PAGER[string (033)] = &pag_completion;
+ 
+define ins_ctrl_x_completion (is, s, line)
+{
+  variable chr = getch ();
+  
+  switch (chr)
+  
+    {
+    case keys->CTRL_l:
+      ins_linecompletion (s, line);
+    }
+    
+    {
+    case 'b':
+      blockcompletion (is.lnr, s, line);
+    }
+ 
+    {
+    return;
+    }
 }
 
 define ins_wordcompletion (s, line)
@@ -3594,7 +3689,7 @@ private define getline (is, s, line)
 
     if (keys->CTRL_x == is.chr)
       {
-      ins_ctrl_x_completion (s, line);
+      ins_ctrl_x_completion (is, s, line);
       continue;
       }
 
