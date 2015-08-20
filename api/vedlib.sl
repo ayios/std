@@ -855,7 +855,14 @@ private define _draw_ (s)
   (@_func_[qualifier_exists ("dont_draw")]) (s.ptr[0], s.ptr[1]);
 }
 
-private define autoindent ();
+private define autoindent (s, indent, line)
+{
+  variable f = __get_reference (s._type + "_autoindent");
+  if (NULL == f)
+    @indent =  s._indent + (s._autoindent ? s._shiftwidth : 0);
+  else
+    @indent = (@f) (s, line);
+}
 
 private define lexicalhl ()
 {
@@ -2717,6 +2724,7 @@ vis.c_right = &v_c_right;
 private define v_char_mode (vs, s)
 {
   variable
+    sel,
     chr,
     cur = 0;
  
@@ -2728,7 +2736,7 @@ private define v_char_mode (vs, s)
 
   v_hl_ch (vs, s);
 
-  while (chr = getch (), any (['y', keys->DOWN, keys->RIGHT, keys->UP, keys->LEFT]
+  while (chr = getch (), any (['y', 'd', keys->DOWN, keys->RIGHT, keys->UP, keys->LEFT]
     == chr))
     {
     if (keys->RIGHT == chr)
@@ -2745,10 +2753,53 @@ private define v_char_mode (vs, s)
 
     if ('y' == chr)
       {
-      REG["\""] = strjoin (vs.sel, "\n");
-      seltoX (strjoin (vs.sel, "\n"));
+      sel = strjoin (vs.sel, "\n");
+      REG["\""] = sel;
+      seltoX (sel);
       vs.index = vs.startindex[cur];
       vs.col = vs.startcol[cur];
+      return;
+      }
+
+    if ('d' == chr)
+      {
+      variable len = length (vs.sel);
+      if (1 < len)
+        return;
+
+      sel = strjoin (vs.sel, "\n");
+      REG["\""] = sel;
+      seltoX (sel);
+
+      variable line = s.lines[vs.startlnr];
+      line = strreplace (line, sel, "");
+      ifnot (strlen (line))
+        line = sprintf ("%s\000", repeat (" ", s._indent));
+
+      s.lines[vs.startlnr] = line;
+      s.lins[s.ptr[0] - s.rows[0]] = line;
+
+      variable index = vs.startindex[cur];
+
+      if (index > strlen (line))
+        ifnot (strlen (line))
+          index = s._indent;
+        else
+          index -= strlen (sel);
+
+      if (index > strlen (line))
+        index = strlen (line);
+
+      vs.index = index;
+      vs.col = index;
+
+      s.st_.st_size = getsizear (s.lines);
+
+      set_modified (s);
+
+      waddline (s, getlinestr (s, s.lines[vs.startlnr], 1), 0, s.ptr[0]);
+
+      draw_tail (s);
       return;
       }
     }
@@ -2778,10 +2829,12 @@ vis.at_exit = &v_atexit;
 private define v_init (s)
 {
   toplinedr ("-- visual --");
+  variable lnr = v_lnr (s, '.');
 
   return struct
     {
     startrow,
+    startlnr = lnr,
     startcol,
     wrappedmot = 0,
     startindex,
@@ -2789,7 +2842,7 @@ private define v_init (s)
     index = s._index,
     col = [s.ptr[1]],
     vlins = [s.ptr[0]],
-    lnrs = [v_lnr (s, '.')],
+    lnrs = [lnr],
     linlen = [v_linlen (s, '.')],
     lines = [v_lin (s, '.')],
     sel,
@@ -3580,7 +3633,8 @@ define blockcompletion (lnr, s, line)
   
   variable assoc = (@f) (s._shiftwidth, s.ptr[1]);
   variable keys = assoc_get_keys (assoc);
-  
+  variable item = @line;
+
   ctrl_completion_rout (s, line, _function_name ();block_ar = keys);
  
   variable i = wherefirst (@line == keys);  
@@ -3589,6 +3643,12 @@ define blockcompletion (lnr, s, line)
   else
     {
     variable ar = strchop (assoc[@line], '\n', 0);
+    % broken for code, trying to calc the indent
+    % when there is an initial string to narrow the results, might need
+    % a different approach
+    %_for i (0, length (ar) - 1)
+    %  (ar[i], ) = strreplace (ar[i], " ", "", strlen (item) - 1);
+
     @line = ar[0];
     if (1 == length (ar))
       waddline (s, getlinestr (s, @line, 1), 0, s.ptr[0]);
@@ -3799,9 +3859,10 @@ define insert (s, line, lnr, prev_l, next_l)
 
 %%%% ED MODE
 
-private define newline_str (s)
+private define newline_str (s, indent, line)
 {
-  return repeat (" ", s._indent + (s._autoindent ? s._shiftwidth : 0));
+  s.autoindent (indent, line);
+  return repeat (" ", @indent);
 }
 
 private define indent_in (s)
@@ -4156,9 +4217,7 @@ private define del_to_end (s)
     if (strlen (line))
       REG["\""] = line;
 
-    line = repeat (" ", s._indent);
-    ifnot (strlen (line))
-      line = " ";
+    line = sprintf ("%s\000", repeat (" ", s._indent));
  
     s.ptr[1] = s._indent;
     s._index = s._indent;
@@ -4254,6 +4313,7 @@ private define newline (s)
     dir = s._chr == 'O' ? "prev" : "next",
     prev_l,
     next_l,
+    indent,
     col = s._index,
     lnr = v_lnr (s, '.'),
     line = v_lin (s, '.'),
@@ -4278,9 +4338,10 @@ private define newline (s)
   s._len++;
 
   if (0 == lnr && "prev" == dir)
-    s.lines = [newline_str (s), s.lines];
+    s.lines = [newline_str (s, &indent, line), s.lines];
   else
-    s.lines = [s.lines[[:"next" == dir ? lnr : lnr - 1]], newline_str (s),
+    s.lines = [s.lines[[:"next" == dir ? lnr : lnr - 1]],
+      newline_str (s, &indent, line),
       s.lines[["next" == dir ? lnr + 1 : lnr:]]];
 
   s._i = lnr == 0 ? 0 : s._ii;
@@ -4291,13 +4352,13 @@ private define newline (s)
     else
       s.ptr[0]++;
 
-  s.ptr[1] = s._indent + (s._autoindent ? s._shiftwidth : 0);
-  s._index = s._indent + (s._autoindent ? s._shiftwidth : 0);
-  s._findex = s._indent + (s._autoindent ? s._shiftwidth : 0);
+  s.ptr[1] = indent;
+  s._index = indent;
+  s._findex = s._indent;
  
   s.draw (;dont_draw);
  
-  line = newline_str (s);
+  line = newline_str (s, &indent, line);
   insert (s, &line, "next" == dir ? lnr + 1 : lnr, prev_l, next_l;;__qualifiers ());
 }
 
