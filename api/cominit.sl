@@ -793,6 +793,16 @@ private define _build_comlist (a)
     }
 }
 
+private define _lock_ (argv)
+{
+  smg->cls ();
+  smg->aratrcaddnstrdr ([" --- locked -- ", "passwd:"], 1, [LINES / 2,  MSGROW],
+    [COLUMNS / 2 - 10, 0], MSGROW, 8, COLUMNS); 
+
+  while (NULL == __getpasswd);
+  draw_wind ();
+}
+
 define init_commands ()
 {
   variable
@@ -833,6 +843,9 @@ define init_commands ()
       }
     }
  
+  a["lock"] = @Argvlist_Type;
+  a["lock"].func = &_lock_;
+
   a["&"] = @Argvlist_Type;
   a["&"].func = &_idle_;
 

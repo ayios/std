@@ -1,4 +1,4 @@
-private define _getpasswd_ ()
+public define __getpasswd ()
 {
   variable passwd, retval;
 
@@ -108,7 +108,7 @@ private define _execProc_Type_ (func, argv)
     ifnot (UID)
       issudo = 0;
     else
-      passwd = _getpasswd_ ();
+      passwd = __getpasswd ();
 
     if (NULL == passwd)
       return;
