@@ -16,3 +16,5 @@ define tostdout (str)
   () = lseek (STDOUTFD, 0, SEEK_END);
   () = write (STDOUTFD, str);
 }
+
+SPECIAL = [SPECIAL, STDOUT];

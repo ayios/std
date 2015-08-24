@@ -97,3 +97,5 @@ define __initrline ()
 }
 
 __initrline ();
+
+UNDELETABLE = [UNDELETABLE, SPECIAL];

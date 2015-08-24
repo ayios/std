@@ -17,3 +17,4 @@ if (is_defined ("init_ftype"))
 if (is_defined ("txt_settype"))
   txt_settype (ERR_VED, STDERR, VED_ROWS, NULL);
 
+SPECIAL = [SPECIAL, STDERR];

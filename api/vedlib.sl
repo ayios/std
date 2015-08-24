@@ -93,6 +93,7 @@ public variable
   VED_WIND = Assoc_Type[Wind_Type],
   VED_CUR_WIND = NULL,
   VED_PREV_WIND,
+  VED_PREV_BUFINDEX,
   VED_MAXFRAMES = 3;
 
 public variable
@@ -100,6 +101,7 @@ public variable
   VED_RLINE = 1;
 
 public variable UNDELETABLE = String_Type[0];
+public variable SPECIAL = String_Type[0];
 public variable XCLIP_BIN = which ("xclip");
  
 public variable % NOT IMPLEMENTED
@@ -501,6 +503,14 @@ define get_cur_buf ()
     return NULL;
 
   return w.buffers[n];
+}
+
+define get_cur_bufname ()
+{
+  variable b = get_cur_buf ();
+  ifnot (NULL == b)
+    b = b._absfname;
+  return b;
 }
 
 define get_frame_buf (frame)
@@ -1676,18 +1686,22 @@ define bufdelete (s, bufname, force)
 
   variable w = get_cur_wind ();
 
-  ifnot (any (s._absfname == w.bufnames))
+  ifnot (any (bufname == w.bufnames))
     return;
  
   if (s._flags & VED_MODIFIED && force)
     {
     variable bts = 0;
-    variable retval = __writetofile (s._absfname, s.lines, s._indent, &bts);
+    variable retval = __writetofile (bufname, s.lines, s._indent, &bts);
     ifnot (0 == retval)
+      {
       send_msg_dr (errno_string (retval), 1, NULL, NULL);
+      return;
+      }
     }
 
   variable isatframe = wherefirst (w.frame_names == bufname);
+  variable iscur = get_cur_bufname () == bufname;
 
   assoc_delete_key (w.buffers, bufname);
  
@@ -1716,13 +1730,16 @@ define bufdelete (s, bufname, force)
   ifnot (NULL == isatframe)
     if (1 < w.frames)
       del_frame (isatframe);
-
-  index = index ? index - 1 : length (w.bufnames) - 1;
+  
+  if (iscur)
+    {
+    index = index ? index - 1 : length (w.bufnames) - 1;
  
-  setbuf (w.bufnames[index]);
+    setbuf (w.bufnames[index]);
  
-  s = get_cur_buf ();
-  s.draw ();
+    s = get_cur_buf ();
+    s.draw ();
+    }
 }
 
 define initbuf (s, fname, rows, lines, t)

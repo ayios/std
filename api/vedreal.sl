@@ -55,19 +55,39 @@ private define _edit_other ()
 private define _bdelete ()
 {
   variable bufname;
-  variable s = get_cur_buf ();
-
+  variable force = qualifier ("argv0")[-1] != '!';
+  variable s;
   ifnot (_NARGS)
-    bufname = s._absfname;
+    s = get_cur_buf ();
   else
+    {
     bufname = ();
+    variable w = get_cur_wind ();
+    ifnot (any (bufname == w.bufnames))
+      return;
+    s = w.buffers[bufname];
+    }
 
-  bufdelete (s, bufname, 0);
+  if (force && s._flags & VED_MODIFIED)
+    {
+    variable chr;
+    send_msg_dr (sprintf ("%s is modified: save changes? y[es]/n[o]",
+      s._absfname), 0, NULL, NULL);
+    while (chr = getch (), 0 == any (chr == ['y', 'n']));
+ 
+    if ('n' == chr)
+      force = 0;
+
+    send_msg_dr (" ", 0, NULL, NULL);
+    }
+
+  bufdelete (s, s._absfname, force);
 }
 
 VED_CLINE["e"] = &_edit_other;
 VED_CLINE["b"] = &_edit_other;
 VED_CLINE["bd"] = &_bdelete;
+VED_CLINE["bd!"] = &_bdelete;
 
 private define my_commands ()
 {
@@ -85,14 +105,29 @@ private define my_commands ()
   return a;
 }
 
+private define _filter_bufs_ (v)
+{
+  variable ar = String_Type[0];
+  variable w = get_cur_wind ();
+  variable i;
+  variable b;
+
+  _for i (0, length (w.bufnames) - 1)
+    {
+    b = w.bufnames[i];
+    ifnot (any (b == [v._absfname, SPECIAL]))
+      ar = [ar, b];
+    }
+
+  return ar[array_sort (ar)];
+}
+
 private define tabhook (s)
 {
-  ifnot (any (s.argv[0] == ["b", "bd"]))
+  ifnot (any (s.argv[0] == ["b", "bd", "bd!"]))
     return -1;
  
-  variable v = qualifier ("ved");
-  variable w = get_cur_wind ();
-  variable bufnames = w.bufnames[wherenot (v._absfname == w.bufnames)];
+  variable bufnames = _filter_bufs_ (qualifier ("ved"));
   variable args = array_map (String_Type, &sprintf, "%s void ", bufnames);
   return rline->argroutine (s;args = args, accept_ws);
 }
@@ -338,4 +373,3 @@ define init_ftype (ftype)
 
   return type;
 }
-
