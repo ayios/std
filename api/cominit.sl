@@ -796,8 +796,8 @@ private define _build_comlist (a)
 private define _lock_ (argv)
 {
   smg->cls ();
-  smg->aratrcaddnstrdr ([" --- locked -- ", "passwd:"], 1, [LINES / 2,  MSGROW],
-    [COLUMNS / 2 - 10, 0], MSGROW, 8, COLUMNS); 
+  smg->atrcaddnstr (" --- locked -- ", 1, LINES / 2, COLUMNS / 2 - 10,
+    COLUMNS); 
 
   while (NULL == __getpasswd);
   draw_wind ();

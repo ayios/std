@@ -1,7 +1,12 @@
-define osloop ()
+define osloop (app)
 {
-  toplinedr (" -- OS CONSOLE --" + " (depth " + string (_stkdepth ()) + ")");
+  ifnot (NULL == app)
+    os->runapp (;argv0 = app);
+  else
+    draw (ERR);
 
+  toplinedr (" -- OS CONSOLE --" + " (depth " + string (_stkdepth ()) + ")");
+  
   forever
     {
     rline->set (RLINE);

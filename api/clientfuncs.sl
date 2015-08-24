@@ -72,7 +72,7 @@ define viewfile (s, type, pos, _i)
  
     (@VED_PAGER[string (s._chr)]) (s);
  
-    if (':' == s._chr || 'q' == s._chr)
+    if (any ([':', 'q' == s._chr]))
       break;
     }
 }

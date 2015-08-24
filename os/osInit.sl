@@ -33,4 +33,3 @@ os->apptable ();
 _APPS_ = assoc_get_keys (APPS);
 
 RLINE = initrline ();
-

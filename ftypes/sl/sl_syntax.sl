@@ -29,6 +29,10 @@ private variable regexps = [
 |(?<!\w)(bind(?=\s))\
 |(?<!\w)(listen(?=\s))\
 |(?<!\w)(connect(?=\s))\
+|(?<!\w)(lseek(?=\s))\
+|(?<!\w)(write(?=\s))\
+|(?<!\w)(string(?=\s))\
+|(?<!\w)(array_map(?=\s))\
 |(?<!\w)(getlinestr(?=\s))\
 |(?<!\w)(waddlineat(?=\s))\
 |(?<!\w)(waddlineat_dr(?=\s))\
@@ -90,8 +94,15 @@ private variable regexps = [
 |((?<!\w)break(?=;))\
 |((?<!\w)continue(?=;))\
 |(NULL)\
+|(__argv)\
+|(__argc)\
+|(SEEK_SET)\
+|(SEEK_CUR)\
+|(SEEK_END)\
+|(_NARGS)\
 |((?<!\w)stderr(?=[,\)\.]))\
 |((?<!\w)stdin(?=[,\)\.]))\
+|((?<!\w)stdout(?=[,\)\.]))\
 |((?<!\w)stdout(?=[,\)\.]))\
 |((?<=\s|\||\()S_IRGRP(?=[,\|;\)]+))\
 |((?<=\s|\||\()S_IROTH(?=[,\|;\)]+))\
