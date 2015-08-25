@@ -6,7 +6,7 @@ define osloop (app)
     draw (ERR);
 
   toplinedr (" -- OS CONSOLE --" + " (depth " + string (_stkdepth ()) + ")");
-  
+ 
   forever
     {
     rline->set (RLINE);

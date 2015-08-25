@@ -19,7 +19,7 @@ define on_wind_new (w)
 {
   variable o = TEMPDIR + "/" + string (PID) + "_" + APP.appname +
     string (_time)[[5:]] + "_stdout.shell";
-  
+ 
   variable oved =init_ftype (APP.stdouttype);
 
   oved._fd = initstream (o);
@@ -57,7 +57,7 @@ define _new_frame_ (s)
 {
   new_frame (TEMPDIR + "/" + string (PID) + "_" + APP.appname +
     string (_time)[[5:]] + "_stdout.shell");
-  
+ 
   variable b = get_cur_buf ();
   b._fd = initstream (b._absfname;err_func = &__on_err);
 

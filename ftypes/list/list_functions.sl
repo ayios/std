@@ -20,7 +20,7 @@ private define add (self, s, rows)
     loadfrom ("ftypes/" + ftype, ftype + "_settype", NULL, &on_eval_err);
     variable func = __get_reference (sprintf ("%s_settype", ftype));
     (@func) (c, s.fname, rows, NULL);
-    
+ 
     c._i = c._len >= s.lnr - 1 ? s.lnr - 1 : 0;
     c.ptr[0] = 1;
     c.ptr[1] = s.col - 1 + c._indent;
@@ -45,7 +45,7 @@ private define add (self, s, rows)
   c.ptr[0] = qualifier ("row", 1);
   c.ptr[1] = qualifier ("col", s.col - 1);
   c._index = c.ptr[1];
-  
+ 
   setbuf (c._absfname);
 
   return 0;
@@ -86,7 +86,7 @@ define __pager_on_carriage_return (s)
  
   if (".list" == path_extname (l.fname))
     return;
-  
+ 
   variable w = get_cur_wind ();
 
   variable retval = add (NULL, l, w.frame_rows[0];force);

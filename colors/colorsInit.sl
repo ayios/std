@@ -12,4 +12,6 @@ variable COLOR = struct
   topline = "blackonbrown",
   infofg = "blue",
   infobg = "brown",
+  diffpl = "blackongreen",
+  diffmn = "blackoncyan",
   };

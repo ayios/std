@@ -15,54 +15,74 @@ private variable regexps = [
 %functions
   pcre_compile ("\
 ((evalfile(?=\s))\
-|(?<!\w)(sigprocmask(?=\s))\
-|(?<!\w)(\(\)(?=\s))\
-|(?<!\w)(loadfile(?=\s))\
-|(?<!\w)(loadfrom(?=\s))\
-|(?<!\w)(importfrom(?=\s))\
-|(?<!\w)(loadfile(?=\s))\
-|(?<!\w)(fork(?=\s))\
-|(?<!\w)(pipe(?=\s))\
-|(?<!\w)(execv(?=\s))\
-|(?<!\w)(execve(?=\s))\
-|(?<!\w)(socket(?=\s))\
-|(?<!\w)(bind(?=\s))\
-|(?<!\w)(listen(?=\s))\
-|(?<!\w)(connect(?=\s))\
-|(?<!\w)(lseek(?=\s))\
-|(?<!\w)(write(?=\s))\
-|(?<!\w)(string(?=\s))\
-|(?<!\w)(where(?=\s))\
-|(?<!\w)(wherenot(?=\s))\
-|(?<!\w)(wherefirst(?=\s))\
-|(?<!\w)(_isnull(?=\s))\
-|(?<!\w)(length(?=\s))\
-|(?<!\w)(array_map(?=\s))\
-|(?<!\w)(getlinestr(?=\s))\
-|(?<!\w)(waddlineat(?=\s))\
-|(?<!\w)(waddlineat_dr(?=\s))\
-|(?<!\w)(waddlinear_dr(?=\s))\
-|(?<!\w)(waddlinear(?=\s))\
-|(?<!\w)(waddline(?=\s))\
-|(?<!\w)(waddline_dr(?=\s)))+"R, 0),
+|(?<!\w)(\(\)(?=\s|,))\
+|(?<=&|\s|\[|\()(any(?=\s|,))\
+|(?<=&|\s|\[|\()(chdir(?=\s|,))\
+|(?<=&|\s|\[|\()(array_sort(?=\s|,))\
+|(?<=&|\s|\[|\()(errno_string(?=\s|,))\
+|(?<=&|\s|\[|\(|@)(__get_reference(?=\s|,))\
+|(?<=&|\s|\[|\()(l?stat_file(?=\s|,))\
+|(?<=&|\s|\[|\()(access(?=\s|,))\
+|(?<=&|\s|\[|\()(assoc_\w*_\w*[s,y](?=\s|,))\
+|(?<=&|\s|\[|\()(strn?cmp(?=\s|,))\
+|(?<=&|\s|\[|\()(strchop(?=\s|,))\
+|(?<=&|\s|\[|\()(strtok(?=\s|,))\
+|(?<=&|\s|\[|\()(sigprocmask(?=\s|,))\
+|(?<=&|\s|\[|\()(loadfile(?=\s|,))\
+|(?<=&|\s|\[|\()(loadfrom(?=\s|,))\
+|(?<=&|\s|\[|\()(importfrom(?=\s|,))\
+|(?<=&|\s|\[|\()(loadfile(?=\s|,))\
+|(?<=&|\s|\[|\()(fork(?=\s|,))\
+|(?<=&|\s|\[|\()(pipe(?=\s|,))\
+|(?<=&|\s|\[|\()(execv(?=\s|,))\
+|(?<=&|\s|\[|\()(execve(?=\s|,))\
+|(?<=&|\s|\[|\()(socket(?=\s|,))\
+|(?<=&|\s|\[|\()(bind(?=\s|,))\
+|(?<=&|\s|\[|\()(listen(?=\s|,))\
+|(?<=&|\s|\[|\()(connect(?=\s|,))\
+|(?<=&|\s|\[|\()(char(?=\s|,))\
+|(?<=&|\s|\[|\()([l|f]seek(?=\s|,))\
+|(?<=&|\s|\[|\()(f?read(?=\s|,))\
+|(?<=&|\s|\[|\()(open(?=\s|,))\
+|(?<=&|\s|\[|\()(fopen(?=\s|,))\
+|(?<=&|\s|\[|\()(f?close(?=\s|,))\
+|(?<=&|\s|\[|\()(f?write(?=\s|,))\
+|(?<=&|\s|\[|\()(f?printf(?=\s|,))\
+|(?<=&|\s|\[|\()(string(?=\s|,))\
+|(?<=&|\s|\[|\()(substr(?=\s|,))\
+|(?<=&|\s|\[|\()(strlen(?=\s|,))\
+|(?<=&|\s|\[|\()(sprintf(?=\s|,))\
+|(?<=&|\s|\[|\()(where(?=\s|,))\
+|(?<=&|\s|\[|\()(wherenot(?=\s|,))\
+|(?<=&|\s|\[|\()(wherefirst(?=\s|,))\
+|(?<=&|\s|\[|\()(qualifier(?=\s|,))\
+|(?<=&|\s|\[|\(|;)(__qualifiers(?=\s|,))\
+|(?<=&|\s|\[|\()(qualifier_exists(?=\s|,))\
+|(?<=&|\s|\[|\()(_isnull(?=\s|,))\
+|(?<=&|\s|\[|\()(length(?=\s|,))\
+|(?<=&|\s|\[|\()(array_map(?=\s|,))\
+|(?<=&|\s|\[|\()(path_\w*name(?=\s|,))\
+|(?<=&|\s|\[|\()(getlinestr(?=\s|,))\
+|(?<=&|\s|\[|\()(waddlineat(?=\s|,))\
+|(?<=&|\s|\[|\()(waddline(?=\s|,)))+"R, 0),
 %conditional
   pcre_compile ("\
-(((?<!\w)if(?=\s))\
+(^\s*(if(?=\s))\
+|^\s*(else if(?=\s))\
+|^\s*(while(?=\s))\
+|^\s*(else$)\
+|^\s*(do$)\
+|^\s*(for(?=\s))\
 |((?<!\w)ifnot(?=\s))\
-|((?<!\w)else if(?=\s))\
-|((?<!\w)else$)\
 |((?<!\w)\{$)\
 |((?<!\{)(?<!\w)\}(?=;))\
 |((?<!\w)\}$)\
-|((?<!\w)while(?=\s))\
-|((?<!\w)loop$)\
+|((?<!\w)loop(?=$|\s))\
 |((?<!\w)switch(?=\s))\
 |((?<!\w)case(?=\s))\
 |((?<!\w)_for(?=\s))\
-|((?<!\w)for(?=\s))\
 |((?<!\w)foreach(?=\s))\
 |((?<!\w)forever$)\
-|((?<!\w)do$)\
 |((?<!\w)then$)\
 |((?<=\w)--(?=;))\
 |((?<=\w)\+\+(?=;))\
@@ -72,6 +92,8 @@ private variable regexps = [
 |((?<=\s)-(?=\s))\
 |((?<=\s)\*(?=\s))\
 |((?<=\s)/(?=\s))\
+|((?<=\s)&&(?=[\s|$]))\
+|((?<=').(?='))\
 |((?<=\s)mod(?=\s))\
 |((?<=\s)\+=(?=\s))\
 |((?<=\s)!=(?=\s))\
@@ -79,6 +101,7 @@ private variable regexps = [
 |((?<=\s)<=(?=\s))\
 |((?<=\s)<(?=\s))\
 |((?<=\s)>(?=\s))\
+|((?<=\D)\d+(?=\D))\
 |((?<=\s)==(?=\s)))+"R, 0),
 %type
   pcre_compile ("\
@@ -98,6 +121,7 @@ private variable regexps = [
 |((?<!\w)return(?=[\s;]))\
 |((?<!\w)break(?=;))\
 |((?<!\w)continue(?=;))\
+|((?<=[\(|\s])errno(?=[;|\)]))\
 |(NULL)\
 |(__argv)\
 |(__argc)\
@@ -135,49 +159,17 @@ private variable regexps = [
 |((?<=\s|\|)O_TEXT(?=[,\|;\)]+))\
 |((?<=\s|\|)O_TRUNC(?=[,\|;\)]+))\
 |((?<=\s|\|)O_NONBLOCK(?=[,\|;\)]+))\
-|((?<=[\s|@])[\w]+_Type(?=[\[;\]]))\
-|((?<=\()[\w]+_Type(?=,))\
-|((?<!\w)[\w]+Error(?=:)))+"R, 0),
+%|((?<=[\s|@|\[])[\w]+_Type(?=[\[;,\]]))\
+|((?<=\()[\w]+_Type(?=[,\s]))\
+|((?<!\w)[\w]+Error(?=[:|,])))+"R, 0),
 %errors
   pcre_compile ("\
 ((?<=\w)(\s{1,}$))+"R, 0),
-%commwnts
+%comments
   pcre_compile ("(^\s*%.*)"R, 0),
 ];
 
-private define sl_hl_groups (lines, vlines)
-{
-  variable
-    i,
-    ii,
-    col,
-    subs,
-    match,
-    color,
-    regexp,
-    context;
- 
-  _for i (0, length (lines) - 1)
-    {
-    _for ii (0, length (regexps) - 1)
-      {
-      color = colors[ii];
-      regexp = regexps[ii];
-      col = 0;
-
-      while (subs = pcre_exec (regexp, lines[i], col), subs > 1)
-        {
-        match = pcre_nth_match (regexp, 1);
-        col = match[0];
-        context = match[1] - col;
-        smg->hlregion (color, vlines[i], col, 1, context);
-        col += context;
-        }
-      }
-    }
-}
-
 define sl_lexicalhl (s, lines, vlines)
 {
-  sl_hl_groups (lines, vlines);
+  __hl_groups (lines, vlines, colors, regexps);
 }

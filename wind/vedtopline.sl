@@ -15,7 +15,7 @@ define topline (str)
 define toplinedr (str)
 {
   variable b = get_cur_buf ();
-  
+ 
   str += "(" + string (_stkdepth ()) + ")";
   str += sprintf (" ftype (%s) LANG (%s) ", b._type, input->getmapname ());
 

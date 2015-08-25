@@ -82,7 +82,7 @@ private define rmfile (file)
   return 1;
 }
 
-private define ignore (obj, excl, type)
+private define ignore (obj, excl, type, verbose)
 {
     variable lobj;
     variable i;
@@ -102,8 +102,9 @@ private define ignore (obj, excl, type)
       _for ii (0, cmpnts - 1)
         ifnot (ignobj[ii] == lobj[ii])
           continue 2;
-
-      tostdout ("ignored " + type + ": " + obj);
+ 
+      if (verbose)
+        tostdout ("ignored " + type + ": " + obj);
       return 1;
       }
 
@@ -115,7 +116,7 @@ private define file_callback_a (file, st, s, cur, other, exit_code)
   variable newfile = strreplace (file, other, cur);
  
   ifnot (NULL == s.ignorefileonremove)
-    if (ignore (file, s.ignorefileonremove, "file"))
+    if (ignore (file, s.ignorefileonremove, "file", s.ignoreonremoveverbosity))
       return 1;
 
   if (-1 == access (newfile, F_OK) && 0 == access (file, F_OK))
@@ -133,7 +134,7 @@ private define dir_callback_a (dir, st, s, dirs, cur, other)
   variable newdir = strreplace (dir, other, cur);
 
   ifnot (NULL == s.ignoredironremove)
-    if (ignore (dir, s.ignoredironremove, "dir"))
+    if (ignore (dir, s.ignoredironremove, "dir", s.ignoreonremoveverbosity))
       return 0;
 
   if (-1 == access (newdir, F_OK) && 0 == access (dir, F_OK))
@@ -154,8 +155,6 @@ private define rm_extra (s, cur, other)
     Accept_All_As_Yes = 0;
   else
     Accept_All_As_Yes = 1;
-
-  tostdout ("Removing ...");
 
   fs.walk (other);
 
@@ -374,7 +373,7 @@ private define file_callback (file, st, s, source, dest, exit_code)
     return -1;
 
   ifnot (NULL == s.ignorefile)
-    if (ignore (file, s.ignorefile, "file"))
+    if (ignore (file, s.ignorefile, "file", s.ignoreverbosity))
       return 1;
 
   (dest, ) = strreplace (file, source, dest, 1);
@@ -423,7 +422,7 @@ private define dir_callback (dir, st, s, source, dest, exit_code)
     return -1;
 
   ifnot (NULL == s.ignoredir)
-    if (ignore (dir, s.ignoredir, "dir"))
+    if (ignore (dir, s.ignoredir, "dir", s.ignoreverbosity))
       return 0;
 
   (dest, ) = strreplace (dir, source, dest, 1);
@@ -483,8 +482,6 @@ private define _sync (s, source, dest)
     return exit_code;
     }
  
-  tostdout ("Syncing ...");
-
   variable
     fs = fswalk_new (&dir_callback, &file_callback;
     dargs = {s, source, dest, &exit_code}, fargs = {s, source, dest, &exit_code});
@@ -517,8 +514,10 @@ static define sync_new ()
       ignoredironremove,
       ignorefile,
       ignorefileonremove,
+      ignoreverbosity = 0,
+      ignoreonremoveverbosity = 0,
       rmextra = 1,
-      methods
+      methods,
       },
     methods = qualifier ("methods", ["newer", "size"]);
  

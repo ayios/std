@@ -13,7 +13,7 @@ define __reconnect_to_app (appl)
   variable pid = NULL;
 
   variable args = strtok (appl, "::");
-  
+ 
   if (1 == length (args))
     return NULL;
 
@@ -81,7 +81,7 @@ define __get_con_apps ()
   _for i (0, length (pids) - 1)
     {
     pid = pids[i];
-    str += sprintf ("%s::%d\n", pid[0], APPS[pid[0]][pid[1]].p_.pid);                             
+    str += sprintf ("%s::%d\n", pid[0], APPS[pid[0]][pid[1]].p_.pid);
     }
 
   return str;
@@ -129,7 +129,7 @@ define __connect_to_app (s)
   CUR_IND++;
   CONNECTED_APPS = [CONNECTED_APPS, s._appname];
   CONNECTED_PIDS = [CONNECTED_PIDS, s.p_.pid];
-  
+ 
   return 0;
 }
 
@@ -149,7 +149,7 @@ define __new_app (app)
  
   variable ref = __get_reference (app + "->" + app);
   variable s = (@ref) (;;struct {@setid, dont_connect});
-  
+ 
   if (NULL == s)
     return NULL;
 

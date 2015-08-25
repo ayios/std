@@ -12,5 +12,5 @@ define writefile (buf, fname)
     throw WriteError, "Error while writting $fname"$;
 
   if (-1 == fclose (fp))
-    throw IOError, errno_string(errno);
+    throw IOError, errno_string (errno);
 }

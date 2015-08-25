@@ -5,7 +5,7 @@ define sl_blocks (swi, col)
   variable sw = repeat (" ", swi);
   variable tw = repeat (" ", swi + col);
   variable iw = repeat (" ", col);
-    
+ 
   BLOCKS["if else"] = iw + "if ()\n" + tw + "\n" + iw + "else\n" + tw;
 
   BLOCKS["if else_if else"] =

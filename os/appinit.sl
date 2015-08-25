@@ -36,7 +36,7 @@ static define runapp ()
  
   variable ref = __get_reference (app + "->" + app);
   () = (@ref) (__push_list (args);;setid);
-  
+ 
   smg->init ();
  
   draw (ERR);
@@ -49,17 +49,17 @@ static define app_atexit (s)
     variable status = waitpid (s.p_.pid, 0);
 
     s.p_.atexit ();
-    
+ 
     ifnot (NULL == s._fd)
       () = close (s._fd);
-    
+ 
     variable pid = s.p_.pid;
 
     assoc_delete_key (APPS[s._appname], string (s.p_.pid));
-    
+ 
     variable ind = wherefirst_eq (CONNECTED_PIDS, pid);
 
-    CONNECTED_PIDS[ind] = 0; 
+    CONNECTED_PIDS[ind] = 0;
     CONNECTED_APPS[ind] = NULL;
     CONNECTED_PIDS = CONNECTED_PIDS[where (CONNECTED_PIDS)];
     CONNECTED_APPS = CONNECTED_APPS[wherenot (_isnull (CONNECTED_APPS))];
@@ -98,7 +98,7 @@ static define apploop (s)
       _log_ (sprintf ("%s loop: expected Integer_Type, received %S", s._appname, typeof (retval)), LOGERR);
       return; %don't handled, but it should never happen
       }
-    
+ 
     if (retval == APP_GET_ALL)
       {
       sock->send_str (s._fd, strjoin (_APPS_, "\n"));
@@ -114,15 +114,15 @@ static define apploop (s)
     if (retval == GO_ATEXIT)
       {
       s._state &= ~CONNECTED;
-      
+ 
       if (1 == length (CONNECTED_APPS))
         {
         app_atexit (s);
         return;
         }
-      
+ 
       app_atexit (s);
-      
+ 
       s = _get_s_ ();
 
       __send_reconnect (s);
@@ -140,12 +140,12 @@ static define apploop (s)
       app = sock->send_bit_get_str (s._fd, 1);
 
       __set_idled (s);
-      
+ 
       s = __new_app (app);
-      
+ 
       ifnot (NULL == s)
         continue;
-      
+ 
       s = _get_s_ ();
 
       __send_reconnect (s);
@@ -155,9 +155,9 @@ static define apploop (s)
     if (retval == APP_RECON_OTH)
       {
       app = sock->send_bit_get_str (s._fd, 1);
-      
+ 
       __set_idled (s);
-      
+ 
       s = __reconnect_to_app (app);
 
       if (NULL == s)
@@ -283,6 +283,6 @@ static define doproc (s, argv)
     }
 
   _log_ (s._appname  + " pid: " + string (s.p_.pid), LOGNORM);
-  
+ 
   return 0;
 }

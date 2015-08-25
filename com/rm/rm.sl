@@ -234,7 +234,7 @@ define main ()
   _for i (0, length (filelist) - 1)
     {
     st = lstat_file (filelist[i]);
-    
+ 
     retval = __remove (filelist[i], &interactive, stat_is ("dir", st.st_mode));
 
     if (-1 == retval)

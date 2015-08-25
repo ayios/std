@@ -8,7 +8,8 @@ private define set_basic_color (field, color)
     "cyan", "lightgray", "gray", "brightred", "brightgreen",
     "yellow", "brightblue", "brightmagenta", "brightcyan",
     "blackongray", "blackonwhite", "blackonred", "blackonbrown",
-    "blackonyellow", "brownonyellow", "brownonwhite"
+    "blackonyellow", "brownonyellow", "brownonwhite", "blackongreen",
+    "blackoncyan",
     ];
 
   set_struct_field (COLOR, field, wherefirst (colors == color));
@@ -17,37 +18,33 @@ private define set_basic_color (field, color)
 array_map (Void_Type, &set_basic_color,
   ["normal", "error", "success", "warn", "prompt",
    "border", "focus", "hlchar",   "hlregion", "topline",
-   "infofg", "infobg"
+   "infofg", "infobg", "diffpl", "diffmn"
   ],
   [COLOR.normal, COLOR.error, COLOR.success, COLOR.warn,
    COLOR.prompt, COLOR.border, COLOR.focus, COLOR.hlchar,
-   COLOR.hlregion, COLOR.topline, COLOR.infofg, COLOR.infobg]);
+   COLOR.hlregion, COLOR.topline, COLOR.infofg, COLOR.infobg,
+   COLOR.diffpl, COLOR.diffmn]);
 
 array_map (Void_Type, &slsmg_define_color, [0:14:1],
   [
   "white", "red", "green", "brown", "blue", "magenta",
   "cyan", "lightgray", "gray", "brightred", "brightgreen",
   "yellow", "brightblue", "brightmagenta", "brightcyan"
-  ],
-  "black");
+  ], "black");
 
 array_map (Void_Type, &slsmg_define_color, [15:19:1],
-  "black",
-  array_map (String_Type, &substr,
-  [
-  "blackongray", "blackonwhite", "blackonred", "blackonbrown",
-  "blackonyellow",
-  ], 8, -1)
-  );
+  "black", array_map (String_Type, &substr,
+  ["blackongray", "blackonwhite", "blackonred", "blackonbrown",
+  "blackonyellow"], 8, -1));
 
 array_map (Void_Type, &slsmg_define_color, [20:21:1],
-  "brown",
-  array_map (String_Type, &substr,
-  [
-  "brownonyellow", "brownonwhite",
-  ], 8, -1)
-  );
+  "brown", array_map (String_Type, &substr,
+  ["brownonyellow", "brownonwhite"], 8, -1));
 
+array_map (Void_Type, &slsmg_define_color, [22:23:1],
+  "black", array_map (String_Type, &substr,
+  ["blackongreen", "blackoncyan"], 8, -1));
+  
 static define get_color (clr)
 {
   return get_struct_field (COLOR, clr);
@@ -222,3 +219,4 @@ static define restore (r, ptr, refresh)
   ifnot (NULL == refresh)
     smg->refresh ();
 }
+

@@ -797,7 +797,7 @@ private define _lock_ (argv)
 {
   smg->cls ();
   smg->atrcaddnstr (" --- locked -- ", 1, LINES / 2, COLUMNS / 2 - 10,
-    COLUMNS); 
+    COLUMNS);
 
   while (NULL == __getpasswd);
   draw_wind ();
@@ -860,7 +860,7 @@ define init_commands ()
 
   a["killbgjob"] = @Argvlist_Type;
   a["killbgjob"].func = &_kill_bg_job;
-  
+ 
   a["q"] = @Argvlist_Type;
   a["q"].func = APP.func.exit;
 

@@ -30,7 +30,7 @@ define on_eval_err (err, code)
   tostderr (err);
 
   variable b = get_cur_buf ();
-  
+ 
   ifnot (NULL == b)
     {
     send_msg_dr (msg, 1, NULL, NULL);

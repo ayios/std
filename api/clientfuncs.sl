@@ -69,10 +69,10 @@ define viewfile (s, type, pos, _i)
 
       VEDCOUNT = integer (VEDCOUNT);
       }
- 
+
     (@VED_PAGER[string (s._chr)]) (s);
  
-    if (any ([':', 'q' == s._chr]))
+    if (any ([':', 'q'] == s._chr))
       break;
     }
 }

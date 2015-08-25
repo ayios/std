@@ -8,7 +8,7 @@ define _exit_ (argv)
     rline->writehistory (rl.history, rl.histfile);
 
   APP.func.at_exit ();
-    
+ 
   exit_me (0);
 }
 

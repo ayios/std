@@ -874,6 +874,38 @@ private define autoindent (s, indent, line)
     @indent = (@f) (s, line);
 }
 
+define __hl_groups (lines, vlines, colors, regexps)
+{
+  variable
+    i,
+    ii,
+    col,
+    subs,
+    match,
+    color,
+    regexp,
+    context;
+ 
+  _for i (0, length (lines) - 1)
+    {
+    _for ii (0, length (regexps) - 1)
+      {
+      color = colors[ii];
+      regexp = regexps[ii];
+      col = 0;
+
+      while (subs = pcre_exec (regexp, lines[i], col), subs > 1)
+        {
+        match = pcre_nth_match (regexp, 1);
+        col = match[0];
+        context = match[1] - col;
+        smg->hlregion (color, vlines[i], col, 1, context);
+        col += context;
+        }
+      }
+    }
+}
+ 
 private define lexicalhl ()
 {
   loop (3)
@@ -1462,16 +1494,15 @@ define gotomark (s)
 
   if (any (mark == marks))
     {
-    variable keep = @MARKS[mark];
+    variable m = @MARKS[mark];
 
-    if (keep._i > s._len)
+    if (m._i > s._len)
       return;
 
-    MARKS[mark]._i = s._ii;
-    MARKS[mark].ptr = s.ptr;
+    markbacktick (s);
 
-    s._i = keep._i;
-    s.ptr = keep.ptr;
+    s._i = m._i;
+    s.ptr = m.ptr;
 
     s.draw ();
     }
@@ -3661,7 +3692,8 @@ define blockcompletion (lnr, s, line)
   else
     {
     variable ar = strchop (assoc[@line], '\n', 0);
-    % broken for code, trying to calc the indent
+    % broken _for loop code,
+    % trying to calc the indent
     % when there is an initial string to narrow the results, might need
     % a different approach
     %_for i (0, length (ar) - 1)
@@ -3750,6 +3782,9 @@ private define getline (is, s, line)
       s.lines[is.lnr] = @line;
       s.st_.st_size = getsizear (s.lines);
       __writefile (s, NULL, s.ptr, NULL);
+      send_msg_dr (s._absfname + " written", 0, s.ptr[0], s.ptr[1]);
+      sleep (0.02);
+      send_msg_dr ("", 0, s.ptr[0], s.ptr[1]);
       continue;
       }
   

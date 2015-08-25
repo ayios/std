@@ -160,7 +160,7 @@ static define init (getcommands)
   rl.onnolength = qualifier ("onnolength");
   rl.onnolengthargs = qualifier ("onnolengthargs");
   rl.osappnew = qualifier ("osappnew");
-  rl.osapprec = qualifier ("osapprec"); 
+  rl.osapprec = qualifier ("osapprec");
   rl.wind_mang = qualifier ("wind_mang");
 
   if (0 == length (rl.history) && NULL != rl.histfile)
@@ -1843,7 +1843,7 @@ static define readline (s)
       send_msg_dr (" ", 0, s._prow, s._col);
       initdone = 1;
       }
-    
+ 
     if (any (keys->rmap.osappnew == s._chr))
       ifnot (NULL == s.osappnew)
         {

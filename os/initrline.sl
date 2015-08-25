@@ -33,7 +33,7 @@ private define reconnect_toapp (argv)
 {
   if (1 == length (argv))
     return;
-  
+ 
   variable s = __reconnect_to_app (argv[1]);
 
   if (NULL == s)

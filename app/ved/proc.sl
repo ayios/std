@@ -30,9 +30,9 @@ define on_eval_err (err, code)
     msg = substr (err, 1, COLUMNS);
 
   tostderr (err);
-  
+ 
   variable b = get_cur_buf ();
-  
+ 
   ifnot (NULL == b)
     {
     send_msg_dr (msg, 1, NULL, NULL);

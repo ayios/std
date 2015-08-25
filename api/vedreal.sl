@@ -54,17 +54,19 @@ private define _edit_other ()
 
 private define _bdelete ()
 {
-  variable bufname;
   variable force = qualifier ("argv0")[-1] != '!';
   variable s;
+
   ifnot (_NARGS)
     s = get_cur_buf ();
   else
     {
-    bufname = ();
+    variable bufname = ();
     variable w = get_cur_wind ();
+
     ifnot (any (bufname == w.bufnames))
       return;
+
     s = w.buffers[bufname];
     }
 
@@ -180,9 +182,9 @@ define __write_buffers ()
 
     ifnot (s._flags & VED_MODIFIED)
       continue;
-   
+ 
     ifnot (qualifier_exists ("force"))
-      {   
+      {
       send_msg_dr (sprintf ("%s: save changes? y[es]/n[o]/c[cansel]", fn), 0, NULL, NULL);
 
       while (chr = getch (), 0 == any (chr == ['y', 'n', 'c']));
@@ -198,10 +200,10 @@ define __write_buffers ()
         continue;
         }
       }
-    
+ 
     bts = 0;
     variable retval = __writetofile (s._fname, s.lines, s._indent, &bts);
-    
+ 
     ifnot (0 == retval)
       {
       send_msg_dr (sprintf ("%s, q to continue, without canseling function call", errno_string (retval)),
@@ -217,7 +219,7 @@ define __write_buffers ()
         }
       }
     }
-  
+ 
   if (hasnewmsg)
     send_msg_dr ("you have new error messages", 1, NULL, NULL);
 
@@ -356,7 +358,7 @@ private define doquit ()
 
 private define _ved (t)
 {
-  return getreffrom ("ftypes/" + t, "ved", NULL, &on_eval_err;fun = t + "_ved"); 
+  return getreffrom ("ftypes/" + t, "ved", NULL, &on_eval_err;fun = t + "_ved");
 }
 
 define init_ftype (ftype)
