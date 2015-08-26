@@ -17,6 +17,7 @@ private variable regexps = [
 ((evalfile(?=\s))\
 |(?<!\w)(\(\)(?=\s|,))\
 |(?<=&|\s|\[|\()(any(?=\s|,))\
+|(?<=&|\s|\[|\()(realpath(?=\s|,))\
 |(?<=&|\s|\[|\()(chdir(?=\s|,))\
 |(?<=&|\s|\[|\()(array_sort(?=\s|,))\
 |(?<=&|\s|\[|\()(errno_string(?=\s|,))\
@@ -61,7 +62,7 @@ private variable regexps = [
 |(?<=&|\s|\[|\()(_isnull(?=\s|,))\
 |(?<=&|\s|\[|\()(length(?=\s|,))\
 |(?<=&|\s|\[|\()(array_map(?=\s|,))\
-|(?<=&|\s|\[|\()(path_\w*name(?=\s|,))\
+|(?<=&|\s|\[|\()(path_\w*(nam|(i.*t))e(?=\s|,))\
 |(?<=&|\s|\[|\()(getlinestr(?=\s|,))\
 |(?<=&|\s|\[|\()(waddlineat(?=\s|,))\
 |(?<=&|\s|\[|\()(waddline(?=\s|,)))+"R, 0),

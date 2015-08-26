@@ -74,7 +74,7 @@ private define getitem (s)
   return struct {lnr = lnr, col = col, fname = fname};
 }
 
-define __pager_on_carriage_return (s)
+public define __pg_on_carriage_return (s)
 {
   ifnot (get_cur_frame ())
     return;

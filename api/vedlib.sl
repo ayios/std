@@ -419,28 +419,7 @@ define waddline (s, line, clr, row)
   s.lexicalhl ([line], [row]);
 }
 
-define framesize (frames)
-{
-  variable f = Integer_Type[frames];
-  variable ff = Array_Type[frames];
-  variable len = length (VED_ROWS);
-  
-  f[*] = len / frames;
-  f[0] += len mod frames;
-
-  variable i;
-  variable istart = 0;
-  variable iend;
-
-  _for i (0, length (f) - 1)
-    {
-    iend = istart + f[i] - 1;
-    ff[i] = VED_ROWS[[istart:iend]];
-    istart = iend + 1;
-    }
-  
-  return ff;
-}
+%%% LIB
 
 private define _set_clr_ (s, clr, set)
 {
@@ -477,9 +456,141 @@ define get_cur_wind ()
   return VED_WIND[VED_CUR_WIND];
 }
 
-% many functions imply no errors.
+define get_cur_frame ()
+{
+  return get_cur_wind ().cur_frame;
+}
+
+define get_cur_rline ()
+{
+  return get_cur_wind ().rline;
+}
+
+define setbuf (key)
+{
+  variable w = get_cur_wind ();
+  
+  ifnot (any (key == w.bufnames))
+    return;
+ 
+  variable s = w.buffers[key];
+  
+  variable frame = qualifier ("frame", w.cur_frame);
+
+  if (frame > length (w.frame_names) - 1)
+    return;
+
+  w.frame_names[frame] = key;
+ 
+  if (s._autochdir && 0 == VED_ISONLYPAGER)
+    () = chdir (s._dir);
+}
+
+define addbuf (s)
+{
+  ifnot (path_is_absolute (s._fname))
+    s._absfname = getcwd + s._fname;
+  else
+    s._absfname = s._fname;
+
+  variable w = get_cur_wind ();
+
+  if (any (s._absfname == w.bufnames))
+    return;
+  
+  w.buffers[s._absfname] = s;
+  w.bufnames = [w.bufnames,  s._absfname];
+  w.buffers[s._absfname]._dir = realpath (path_dirname (s._absfname));
+}
+
+define initbuf (s, fname, rows, lines, t)
+{
+  s._maxlen = t._maxlen;
+  s._indent = t._indent;
+  s._shiftwidth = t._shiftwidth;
+  s._autoindent = t._autoindent;
+  s._autochdir = qualifier ("_autochdir", t._autochdir);
+
+  s.lexicalhl = t.lexicalhl;
+  s.autoindent = t.autoindent;
+  s.draw = t.draw;
+  s.vedloop = t.vedloop;
+  s.vedloopcallback = t.vedloopcallback;
+
+  s._fname = fname;
+
+  s._linlen = s._maxlen - s._indent;
+
+  s.st_ = stat_file (s._fname);
+  if (NULL == s.st_)
+    s.st_ = struct
+      {
+      st_atime,
+      st_mtime,
+      st_uid = getuid (),
+      st_gid = getgid (),
+      st_size = 0
+      };
+
+  s.rows = rows;
+
+  s.lines = NULL == lines ? getlines (s._fname, s._indent, s.st_) : lines;
+  s._flags = 0;
+  s._is_wrapped_line = 0;
+ 
+  s.ptr = Integer_Type[2];
+
+  s._len = length (s.lines) - 1;
+ 
+  initrowsbuffvars (s);
+
+  s.ptr[0] = s.rows[0];
+  s.ptr[1] = s._indent;
+ 
+  s._findex = s._indent;
+  s._index = s._indent;
+ 
+  s.undo = String_Type[0];
+  s._undolevel = 0;
+  s.undoset = {};
+
+  s._i = 0;
+  s._ii = 0;
+
+  addbuf (s);
+}
+
+define draw_wind ()
+{
+  variable w = get_cur_wind ();
+  variable i;
+  variable s;
+  variable cur;
+
+  _for i (0, w.frames - 1)
+    {
+    s = w.buffers[w.frame_names[i]];
+    if (i == w.cur_frame)
+      {
+      cur = s;
+      cur._i = cur._ii;
+      continue;
+      }
+
+    s._i = s._ii;
+    set_clr_bg (s, NULL);
+    s.draw (;dont_draw);
+    }
+ 
+  cur.draw ();
+  smg->setrc (cur.ptr[0], cur.ptr[1]);
+  if (cur._autochdir && 0 == VED_ISONLYPAGER)
+    () = chdir (cur._dir);
+}
+
+% many functions (like the next) imply no errors.
 % the logic is to unveil any code errors.
-% the test phase to the waterfall model.
+% like the test phase to a waterfall model.
 
 define get_buf (name)
 {
@@ -511,49 +622,10 @@ define get_frame_buf (frame)
   return w.buffers[w.frame_names[frame]];
 }
 
-define get_cur_frame ()
-{
-  return VED_WIND[VED_CUR_WIND].cur_frame;
-}
-
-define get_cur_rline ()
-{
-  return VED_WIND[VED_CUR_WIND].rline;
-}
-
-define draw_wind ()
-{
-  variable w = get_cur_wind ();
-  variable i;
-  variable s;
-  variable cur;
-
-  _for i (0, w.frames - 1)
-    {
-    s = w.buffers[w.frame_names[i]];
-    if (i == w.cur_frame)
-      {
-      cur = s;
-      cur._i = cur._ii;
-      continue;
-      }
-
-    s._i = s._ii;
-    set_clr_bg (s, NULL);
-    s.draw (;dont_draw);
-    }
- 
-  cur.draw ();
-  smg->setrc (cur.ptr[0], cur.ptr[1]);
-  if (cur._autochdir && 0 == VED_ISONLYPAGER)
-    () = chdir (cur._dir);
-}
-
 define change_frame ()
 {
-  variable w = VED_WIND[VED_CUR_WIND];
-  variable b = w.frame_names[w.cur_frame];
-  variable s = w.buffers[b];
+  variable w = get_cur_wind ();
+  variable s = w.buffers[w.frame_names[w.cur_frame]];
 
   set_clr_bg (s, 1);
 
@@ -563,9 +635,32 @@ define change_frame ()
 
   set_clr_fg (s, 1);
   
-  (@__get_reference ("setbuf")) (s._absfname);
+  setbuf (s._absfname);
 
   smg->setrcdr (s.ptr[0], s.ptr[1]);
+}
+
+define framesize (frames)
+{
+  variable f = Integer_Type[frames];
+  variable ff = Array_Type[frames];
+  variable len = length (VED_ROWS);
+  
+  f[*] = len / frames;
+  f[0] += len mod frames;
+
+  variable i;
+  variable istart = 0;
+  variable iend;
+
+  _for i (0, length (f) - 1)
+    {
+    iend = istart + f[i] - 1;
+    ff[i] = VED_ROWS[[istart:iend]];
+    istart = iend + 1;
+    }
+  
+  return ff;
 }
 
 define del_frame ()
@@ -643,7 +738,7 @@ define new_frame (fn)
 
   w.frame_names = [w.frame_names, fn];
   
- (@__get_reference ("setbuf")) (s._absfname);
+  setbuf (s._absfname);
 
   % fine tuning maybe is needed
   _for i (0, w.cur_frame - 1)
@@ -790,7 +885,70 @@ define new_wind ()
     draw_wind ();
 }
 
-private variable _func_ = [&smg->setrcdr, &smg->setrc];
+define bufdelete (s, bufname, force)
+{
+  if (any (bufname == UNDELETABLE))
+    return;
+
+  variable w = get_cur_wind ();
+
+  ifnot (any (bufname == w.bufnames))
+    return;
+ 
+  if (s._flags & VED_MODIFIED && force)
+    {
+    variable bts = 0;
+    variable retval = __writetofile (bufname, s.lines, s._indent, &bts);
+    ifnot (0 == retval)
+      {
+      send_msg_dr (errno_string (retval), 1, NULL, NULL);
+      return;
+      }
+    }
+
+  variable isatframe = wherefirst (w.frame_names == bufname);
+  variable iscur = get_cur_bufname () == bufname;
+
+  assoc_delete_key (w.buffers, bufname);
+ 
+  variable index = wherefirst (bufname == w.bufnames);
+  
+  w.bufnames[index] = NULL;
+  w.bufnames = w.bufnames[wherenot (_isnull (w.bufnames))];
+
+  variable winds = assoc_get_keys (VED_WIND);
+
+  ifnot (length (w.bufnames))
+    if (1 == length (winds))
+      exit_me (0);
+    else
+      {
+      assoc_delete_key (VED_WIND, VED_CUR_WIND);
+      winds = assoc_get_keys (VED_WIND);
+      VED_CUR_WIND = winds[0];
+      w = get_cur_wind ();
+      s = get_cur_buf ();
+      setbuf (s._absfname);
+      draw_wind ();
+      return;
+      }
+ 
+  ifnot (NULL == isatframe)
+    if (1 < w.frames)
+      del_frame (isatframe);
+  
+  if (iscur)
+    {
+    index = index ? index - 1 : length (w.bufnames) - 1;
+ 
+    setbuf (w.bufnames[index]);
+ 
+    s = get_cur_buf ();
+    s.draw ();
+    }
+}
+
+%%% VED OBJECT FUNCTIONS
 
 private define _draw_ (s)
 {
@@ -851,54 +1009,7 @@ private define _draw_ (s)
 
   s.lexicalhl (ar[[:-2]], s.vlins);
  
-  (@_func_[qualifier_exists ("dont_draw")]) (s.ptr[0], s.ptr[1]);
-}
-
-private define autoindent (s, indent, line)
-{
-  variable f = __get_reference (s._type + "_autoindent");
-  if (NULL == f)
-    @indent =  s._indent + (s._autoindent ? s._shiftwidth : 0);
-  else
-    @indent = (@f) (s, line);
-}
-
-define __hl_groups (lines, vlines, colors, regexps)
-{
-  variable
-    i,
-    ii,
-    col,
-    subs,
-    match,
-    color,
-    regexp,
-    context;
- 
-  _for i (0, length (lines) - 1)
-    {
-    _for ii (0, length (regexps) - 1)
-      {
-      color = colors[ii];
-      regexp = regexps[ii];
-      col = 0;
-
-      while (subs = pcre_exec (regexp, lines[i], col), subs > 1)
-        {
-        match = pcre_nth_match (regexp, 1);
-        col = match[0];
-        context = match[1] - col;
-        smg->hlregion (color, vlines[i], col, 1, context);
-        col += context;
-        }
-      }
-    }
-}
- 
-private define lexicalhl ()
-{
-  loop (3)
-    pop ();
+  (@[&smg->setrcdr, &smg->setrc][qualifier_exists ("dont_draw")]) (s.ptr[0], s.ptr[1]);
 }
 
 private define _vedloopcallback_ (s)
@@ -955,6 +1066,57 @@ private define _vedloop_ (s)
     }
 }
 
+%%% SYNTAX PUBLIC FUNCTIONS
+
+define __hl_groups (lines, vlines, colors, regexps)
+{
+  variable
+    i,
+    ii,
+    col,
+    subs,
+    match,
+    color,
+    regexp,
+    context;
+ 
+  _for i (0, length (lines) - 1)
+    {
+    _for ii (0, length (regexps) - 1)
+      {
+      color = colors[ii];
+      regexp = regexps[ii];
+      col = 0;
+
+      while (subs = pcre_exec (regexp, lines[i], col), subs > 1)
+        {
+        match = pcre_nth_match (regexp, 1);
+        col = match[0];
+        context = match[1] - col;
+        smg->hlregion (color, vlines[i], col, 1, context);
+        col += context;
+        }
+      }
+    }
+}
+ 
+%%% SYN CALLBACK FUNCTIONS
+
+private define autoindent (s, indent, line)
+{
+  variable f = __get_reference (s._type + "_autoindent");
+  if (NULL == f)
+    @indent =  s._indent + (s._autoindent ? s._shiftwidth : 0);
+  else
+    @indent = (@f) (s, line);
+}
+
+private define lexicalhl ()
+{
+  loop (3)
+    pop ();
+}
+
 define deftype ()
 {
   variable type = struct
@@ -974,15 +1136,92 @@ define deftype ()
   return type;
 }
 
-% PAGER
- 
+%%% MARK FUNCTIONS
+
 define markbacktick (s)
 {
   MARKS[string ('`')]._i = s._ii;
   MARKS[string ('`')].ptr = s.ptr;
 }
 
-private define adjust_col (s, linlen, plinlen)
+define mark (s)
+{
+  variable mark = getch (;disable_langchange);
+ 
+  if ('a' <= mark <= 'z')
+    {
+    mark = string (mark);
+ 
+    ifnot (assoc_key_exists (MARKS, mark))
+      MARKS[mark] = @Pos_Type;
+
+    MARKS[mark]._i = s._ii;
+    MARKS[mark].ptr = s.ptr;
+    }
+}
+
+define get_mark ()
+{
+  variable marks = assoc_get_keys (MARKS);
+  variable mark = getch (;disable_langchange);
+ 
+  mark = string (mark);
+
+  if (any (mark == marks))
+    return @MARKS[mark];
+  
+  return NULL;
+}
+
+
+% PAGER
+%% PG LIB
+%%% GENERIC (USED BY OTHER MODES)
+ 
+private define __pg_left (s)
+{
+  ifnot (s.ptr[1] - s._indent)
+    ifnot (s._is_wrapped_line)
+      return -1;
+
+  s._index--;
+
+  if (s._is_wrapped_line && 0 == s.ptr[1] - s._indent)
+    {
+    s._findex--;
+ 
+    ifnot (s._findex)
+      s._is_wrapped_line = 0;
+ 
+    return 1;
+    }
+
+  s.ptr[1]--;
+ 
+  return 0;
+}
+
+private define __pg_right (s, linlen)
+{
+  if (s._index - s._indent == linlen - 1 || 0 == linlen)
+    return -1;
+
+  if (s.ptr[1] < s._maxlen - 1)
+    {
+    s.ptr[1]++;
+    s._index++;
+    return 0;
+    }
+ 
+  s._index++;
+  s._findex++;
+ 
+  return 1;
+}
+
+%% USED BY PAGER ONLY
+
+private define _adjust_col_ (s, linlen, plinlen)
 {
   if (linlen == 0 || 0 == s.ptr[1] - s._indent)
     {
@@ -1007,372 +1246,7 @@ private define adjust_col (s, linlen, plinlen)
       }
 }
 
-private define down (s)
-{
-  variable
-    lnr = v_lnr (s, '.'),
-    linlen,
-    plinlen;
-
-  if (lnr == s._len)
-    return;
-
-  if (s._is_wrapped_line)
-    {
-    waddline (s, getlinestr (s, v_lin (s, '.'), 1), 0, s.ptr[0]);
-    s._is_wrapped_line = 0;
-    }
-
-  plinlen = v_linlen (s, '.');
-
-  if (s.ptr[0] < s.vlins[-1])
-    {
-    s.ptr[0]++;
- 
-    linlen = v_linlen (s, '.');
- 
-    adjust_col (s, linlen, plinlen);
-
-    draw_tail (s);
-
-    return;
-    }
-
-  if (s.lnrs[-1] == s._len)
-    return;
-
-  s._i++;
- 
-  ifnot (s.ptr[0] == s.vlins[-1])
-    s.ptr[0]++;
-
-  s.draw (;dont_draw);
- 
-  linlen = v_linlen (s, '.');
- 
-  adjust_col (s, linlen, plinlen);
- 
-  smg->setrcdr (s.ptr[0], s.ptr[1]);
-}
-
-private define up (s)
-{
-  variable
-    linlen,
-    plinlen;
-
-  if (s._is_wrapped_line)
-    {
-    waddline (s, getlinestr (s, v_lin (s, '.'), 1), 0, s.ptr[0]);
-    s._is_wrapped_line = 0;
-    }
-
-  plinlen = v_linlen (s, '.');
-
-  if (s.ptr[0] > s.vlins[0])
-    {
-    s.ptr[0]--;
- 
-    linlen = v_linlen (s, '.');
-    adjust_col (s, linlen, plinlen);
- 
-    draw_tail (s);
- 
-    return;
-    }
-
-  ifnot (s.lnrs[0])
-    return;
-
-  s._i--;
-
-  s.draw (;dont_draw);
- 
-  linlen = v_linlen (s, '.');
- 
-  adjust_col (s, linlen, plinlen);
- 
-  smg->setrcdr (s.ptr[0], s.ptr[1]);
-}
-
-private define gotoline (s)
-{
-  if (VEDCOUNT <= s._len + 1)
-    {
-    markbacktick (s);
-    s._i = VEDCOUNT - (VEDCOUNT ? 1 : 0);
-    s.draw (;dont_draw);
-
-    s.ptr[0] = s.rows[0];
-    s.ptr[1] = s._indent;
-    s._findex = s._indent;
-    s._index = s._indent;
-
-    smg->setrcdr (s.ptr[0], s.ptr[1]);
-    }
-}
-
-private define eof (s)
-{
-
-  if (VEDCOUNT > -1)
-    {
-    ifnot (VEDCOUNT + 1)
-      VEDCOUNT = 0;
-
-    gotoline (s);
-    return;
-    }
-
-  markbacktick (s);
-
-  s._i = s._len - s._avlins;
-
-  s.ptr[1] = s._indent;
-  s._findex = s._indent;
-  s._index = s._indent;
-
-  if (length (s.lins) < s._avlins - 1)
-    {
-    s.ptr[0] = s.vlins[-1];
-    smg->setrcdr (s.ptr[0], s.ptr[1]);
-    return;
-    }
-
-  s.draw (;dont_draw);
-
-  s.ptr[0] = s.vlins[-1];
-
-  smg->setrcdr (s.ptr[0], s.ptr[1]);
-}
-
-private define bof (s)
-{
-  if (VEDCOUNT > 0)
-    {
-    gotoline (s);
-    return;
-    }
-
-  markbacktick (s);
-
-  s._i = 0;
- 
-  s.ptr[0] = s.rows[0];
-  s.ptr[1] = s._indent;
-  s._findex = s._indent;
-  s._index = s._indent;
- 
-  s.draw ();
-}
-
-define p_left (s)
-{
-  ifnot (s.ptr[1] - s._indent)
-    ifnot (s._is_wrapped_line)
-      return -1;
-
-  s._index--;
-
-  if (s._is_wrapped_line && 0 == s.ptr[1] - s._indent)
-    {
-    s._findex--;
- 
-    ifnot (s._findex)
-      s._is_wrapped_line = 0;
- 
-    return 1;
-    }
-
-  s.ptr[1]--;
- 
-  return 0;
-}
-
-private define left (s)
-{
-  variable retval = p_left (s);
- 
-  if (-1 == retval)
-    return;
-
-  if (retval)
-    {
-    variable line;
-    if (s._is_wrapped_line)
-      line = getlinestr (s, v_lin (s, '.'), s._findex + 1);
-    else
-      line = getlinestr (s, v_lin (s, '.'), 1);
-
-    waddline (s, line, 0, s.ptr[0]);
-    }
-
-  draw_tail (s);
-}
-
-define p_right (s, linlen)
-{
-  if (s._index - s._indent == linlen - 1 || 0 == linlen)
-    return -1;
-
-  if (s.ptr[1] < s._maxlen - 1)
-    {
-    s.ptr[1]++;
-    s._index++;
-    return 0;
-    }
- 
-  s._index++;
-  s._findex++;
- 
-  return 1;
-}
-
-private define right (s)
-{
-  variable
-    line = v_lin (s, '.'),
-    retval = p_right (s, v_linlen (s, '.'));
-
-  if (-1 == retval)
-    return;
-
-  if (retval)
-    {
-    line = getlinestr (s, line, s._findex + 1 - s._indent);
-    waddline (s, line, 0, s.ptr[0]);
-    s._is_wrapped_line = 1;
-    }
-
-  draw_tail (s);
-}
-
-private define page_down (s)
-{
-  if (s._i + s._avlins > s._len)
-    return;
- 
-  markbacktick (s);
-
-  s._is_wrapped_line = 0;
-  s._i += (s._avlins);
-
-  s.ptr[1] = s._indent;
-  s._index = s._indent;
-  s._findex = s._indent;
-
-  s.draw ();
-}
-
-private define page_up (s)
-{
-  ifnot (s.lnrs[0] - 1)
-    return;
- 
-  markbacktick (s);
-
-  if (s.lnrs[0] >= s._avlins)
-    s._i = s.lnrs[0] - s._avlins;
-  else
-    s._i = 0;
-
-  s._is_wrapped_line = 0;
-  s.ptr[1] = s._indent;
-  s._findex = s._indent;
-  s._index = s._indent;
-
-  s.draw ();
-}
-
-private define eos (s)
-{
-  variable linlen = v_linlen (s, '.');
-
-  markbacktick (s);
-
-  if (linlen > s._linlen)
-    {
-    s.ptr[1] = s._maxlen - 1;
-    s._index = s._findex + s._linlen - 1 + s._indent;
-    }
-  else if (0 == linlen)
-    {
-    s.ptr[1] = s._indent;
-    s._index = s._indent;
-    s._findex = s._indent;
-    }
-  else
-    {
-    s.ptr[1] = linlen + s._indent - 1;
-    s._findex = s._indent;
-    s._index = linlen - 1 + s._indent;
-    }
- 
-  draw_tail (s);
-}
-
-private define eol (s)
-{
-  variable linlen = v_linlen (s, s.ptr[0]);
- 
-  s._index = linlen - 1;
-
-  if (linlen < s._linlen)
-    s.ptr[1] = linlen + s._indent - 1;
-  else
-    {
-    s.ptr[1] = s._maxlen - 1;
-    s._index += s._indent;
-
-    s._findex = linlen - s._linlen;
-
-    variable line = getlinestr (s, v_lin (s, '.'), s._findex + 1);
- 
-    waddline (s, line, 0, s.ptr[0]);
-
-    s._is_wrapped_line = 1;
-    }
- 
-  draw_tail (s);
-}
-
-private define bol (s)
-{
-  s.ptr[1] = s._indent;
-  s._findex = s._indent;
-  s._index = s._indent;
-
-  if (s._is_wrapped_line)
-    {
-    variable line = getlinestr (s, v_lin (s, '.'), 1);
-    waddline (s, line, 0, s.ptr[0]);
-    s._is_wrapped_line = 0;
-    }
-
-  draw_tail (s);
-}
-
-private define bolnblnk (s)
-{
-  s.ptr[1] = s._indent;
-
-  variable linlen = v_linlen (s, '.');
-
-  loop (linlen)
-    {
-    ifnot (isblank (s.lins[s.ptr[0] - s.rows[0]][s.ptr[1]]))
-      break;
-
-    s.ptr[1]++;
-    }
-
-  s._findex = s._indent;
-  s._index = s.ptr[1] - s._indent;
-
-  draw_tail (s);
-}
-
-private define word_change_case (s, what)
+private define _word_change_case_ (s, what)
 {
   variable
     ii,
@@ -1409,31 +1283,357 @@ private define word_change_case (s, what)
   draw_tail (s);
 }
 
-private define _g_ (s)
+private define _gotoline_ (s)
+{
+  if (VEDCOUNT <= s._len + 1)
+    {
+    markbacktick (s);
+    s._i = VEDCOUNT - (VEDCOUNT ? 1 : 0);
+    s.draw (;dont_draw);
+
+    s.ptr[0] = s.rows[0];
+    s.ptr[1] = s._indent;
+    s._findex = s._indent;
+    s._index = s._indent;
+
+    smg->setrcdr (s.ptr[0], s.ptr[1]);
+    }
+}
+
+%% PG OBJECT FUNCTIONS
+
+private define pg_down (s)
+{
+  variable
+    lnr = v_lnr (s, '.'),
+    linlen,
+    plinlen;
+
+  if (lnr == s._len)
+    return;
+
+  if (s._is_wrapped_line)
+    {
+    waddline (s, getlinestr (s, v_lin (s, '.'), 1), 0, s.ptr[0]);
+    s._is_wrapped_line = 0;
+    }
+
+  plinlen = v_linlen (s, '.');
+
+  if (s.ptr[0] < s.vlins[-1])
+    {
+    s.ptr[0]++;
+ 
+    linlen = v_linlen (s, '.');
+ 
+    _adjust_col_ (s, linlen, plinlen);
+
+    draw_tail (s);
+
+    return;
+    }
+
+  if (s.lnrs[-1] == s._len)
+    return;
+
+  s._i++;
+ 
+  ifnot (s.ptr[0] == s.vlins[-1])
+    s.ptr[0]++;
+
+  s.draw (;dont_draw);
+ 
+  linlen = v_linlen (s, '.');
+ 
+  _adjust_col_ (s, linlen, plinlen);
+ 
+  smg->setrcdr (s.ptr[0], s.ptr[1]);
+}
+
+private define pg_up (s)
+{
+  variable
+    linlen,
+    plinlen;
+
+  if (s._is_wrapped_line)
+    {
+    waddline (s, getlinestr (s, v_lin (s, '.'), 1), 0, s.ptr[0]);
+    s._is_wrapped_line = 0;
+    }
+
+  plinlen = v_linlen (s, '.');
+
+  if (s.ptr[0] > s.vlins[0])
+    {
+    s.ptr[0]--;
+ 
+    linlen = v_linlen (s, '.');
+    _adjust_col_ (s, linlen, plinlen);
+ 
+    draw_tail (s);
+ 
+    return;
+    }
+
+  ifnot (s.lnrs[0])
+    return;
+
+  s._i--;
+
+  s.draw (;dont_draw);
+ 
+  linlen = v_linlen (s, '.');
+ 
+  _adjust_col_ (s, linlen, plinlen);
+ 
+  smg->setrcdr (s.ptr[0], s.ptr[1]);
+}
+
+private define pg_eof (s)
+{
+
+  if (VEDCOUNT > -1)
+    {
+    ifnot (VEDCOUNT + 1)
+      VEDCOUNT = 0;
+
+    _gotoline_ (s);
+    return;
+    }
+
+  markbacktick (s);
+
+  s._i = s._len - s._avlins;
+
+  s.ptr[1] = s._indent;
+  s._findex = s._indent;
+  s._index = s._indent;
+
+  if (length (s.lins) < s._avlins - 1)
+    {
+    s.ptr[0] = s.vlins[-1];
+    smg->setrcdr (s.ptr[0], s.ptr[1]);
+    return;
+    }
+
+  s.draw (;dont_draw);
+
+  s.ptr[0] = s.vlins[-1];
+
+  smg->setrcdr (s.ptr[0], s.ptr[1]);
+}
+
+private define pg_bof (s)
+{
+  if (VEDCOUNT > 0)
+    {
+    _gotoline_ (s);
+    return;
+    }
+
+  markbacktick (s);
+
+  s._i = 0;
+ 
+  s.ptr[0] = s.rows[0];
+  s.ptr[1] = s._indent;
+  s._findex = s._indent;
+  s._index = s._indent;
+ 
+  s.draw ();
+}
+
+private define pg_left (s)
+{
+  variable retval = __pg_left (s);
+ 
+  if (-1 == retval)
+    return;
+
+  if (retval)
+    {
+    variable line;
+    if (s._is_wrapped_line)
+      line = getlinestr (s, v_lin (s, '.'), s._findex + 1);
+    else
+      line = getlinestr (s, v_lin (s, '.'), 1);
+
+    waddline (s, line, 0, s.ptr[0]);
+    }
+
+  draw_tail (s);
+}
+
+private define pg_right (s)
+{
+  variable
+    line = v_lin (s, '.'),
+    retval = __pg_right (s, v_linlen (s, '.'));
+
+  if (-1 == retval)
+    return;
+
+  if (retval)
+    {
+    line = getlinestr (s, line, s._findex + 1 - s._indent);
+    waddline (s, line, 0, s.ptr[0]);
+    s._is_wrapped_line = 1;
+    }
+
+  draw_tail (s);
+}
+
+private define pg_page_down (s)
+{
+  if (s._i + s._avlins > s._len)
+    return;
+ 
+  markbacktick (s);
+
+  s._is_wrapped_line = 0;
+  s._i += (s._avlins);
+
+  s.ptr[1] = s._indent;
+  s._index = s._indent;
+  s._findex = s._indent;
+
+  s.draw ();
+}
+
+private define pg_page_up (s)
+{
+  ifnot (s.lnrs[0] - 1)
+    return;
+ 
+  markbacktick (s);
+
+  if (s.lnrs[0] >= s._avlins)
+    s._i = s.lnrs[0] - s._avlins;
+  else
+    s._i = 0;
+
+  s._is_wrapped_line = 0;
+  s.ptr[1] = s._indent;
+  s._findex = s._indent;
+  s._index = s._indent;
+
+  s.draw ();
+}
+
+private define pg_eos (s)
+{
+  variable linlen = v_linlen (s, '.');
+
+  markbacktick (s);
+
+  if (linlen > s._linlen)
+    {
+    s.ptr[1] = s._maxlen - 1;
+    s._index = s._findex + s._linlen - 1 + s._indent;
+    }
+  else if (0 == linlen)
+    {
+    s.ptr[1] = s._indent;
+    s._index = s._indent;
+    s._findex = s._indent;
+    }
+  else
+    {
+    s.ptr[1] = linlen + s._indent - 1;
+    s._findex = s._indent;
+    s._index = linlen - 1 + s._indent;
+    }
+ 
+  draw_tail (s);
+}
+
+private define pg_eol (s)
+{
+  variable linlen = v_linlen (s, s.ptr[0]);
+ 
+  s._index = linlen - 1;
+
+  if (linlen < s._linlen)
+    s.ptr[1] = linlen + s._indent - 1;
+  else
+    {
+    s.ptr[1] = s._maxlen - 1;
+    s._index += s._indent;
+
+    s._findex = linlen - s._linlen;
+
+    variable line = getlinestr (s, v_lin (s, '.'), s._findex + 1);
+ 
+    waddline (s, line, 0, s.ptr[0]);
+
+    s._is_wrapped_line = 1;
+    }
+ 
+  draw_tail (s);
+}
+
+private define pg_bol (s)
+{
+  s.ptr[1] = s._indent;
+  s._findex = s._indent;
+  s._index = s._indent;
+
+  if (s._is_wrapped_line)
+    {
+    variable line = getlinestr (s, v_lin (s, '.'), 1);
+    waddline (s, line, 0, s.ptr[0]);
+    s._is_wrapped_line = 0;
+    }
+
+  draw_tail (s);
+}
+
+private define pg_bolnblnk (s)
+{
+  s.ptr[1] = s._indent;
+
+  variable linlen = v_linlen (s, '.');
+
+  loop (linlen)
+    {
+    ifnot (isblank (s.lins[s.ptr[0] - s.rows[0]][s.ptr[1]]))
+      break;
+
+    s.ptr[1]++;
+    }
+
+  s._findex = s._indent;
+  s._index = s.ptr[1] - s._indent;
+
+  draw_tail (s);
+}
+
+private define pg_g (s)
 {
   variable
     chr = getch ();
 
   if ('g' == chr)
     {
-    bof (s);
+    pg_bof (s);
     return;
     }
 
   if ('U' == chr)
     {
-    word_change_case (s, "toupper");
+    _word_change_case_ (s, "toupper");
     return;
     }
 
   if ('u' == chr)
     {
-    word_change_case (s, "tolower");
+    _word_change_case_ (s, "tolower");
     return;
     }
 }
 
-private define Yank (s)
+private define pg_Yank (s)
 {
   variable
     line = v_lin (s, '.');
@@ -1442,7 +1642,7 @@ private define Yank (s)
   seltoX (line + "\n");
 }
 
-private define reread (s)
+private define pg_reread (s)
 {
   s.lines = getlines (s._fname, s._indent, s.st_);
 
@@ -1472,45 +1672,6 @@ private define reread (s)
   s._i = s._ii;
 
   s.draw ();
-}
-
-define gotomark (s)
-{
-  variable marks = assoc_get_keys (MARKS);
-  variable mark = getch (;disable_langchange);
- 
-  mark = string (mark);
-
-  if (any (mark == marks))
-    {
-    variable m = @MARKS[mark];
-
-    if (m._i > s._len)
-      return;
-
-    markbacktick (s);
-
-    s._i = m._i;
-    s.ptr = m.ptr;
-
-    s.draw ();
-    }
-}
-
-define mark (s)
-{
-  variable mark = getch (;disable_langchange);
- 
-  if ('a' <= mark <= 'z')
-    {
-    mark = string (mark);
- 
-    ifnot (assoc_key_exists (MARKS, mark))
-      MARKS[mark] = @Pos_Type;
-
-    MARKS[mark]._i = s._ii;
-    MARKS[mark].ptr = s.ptr;
-    }
 }
 
 define _change_frame_ (s)
@@ -1617,207 +1778,69 @@ define handle_w (s)
     }
 }
 
-define __pager_on_carriage_return (s)
+public define __pg_on_carriage_return (s)
 {
 }
 
-define _write_on_esc_ (s)
+private define pg_write_on_esc (s)
 {
   __writefile (s, NULL, s.ptr, NULL);
- send_msg_dr ("", 14, NULL, NULL);
- sleep (0.001);
- smg->setrcdr (s.ptr[0], s.ptr[1]);
+  send_msg_dr ("", 14, NULL, NULL);
+  sleep (0.001);
+  smg->setrcdr (s.ptr[0], s.ptr[1]);
 }
  
-VED_PAGER[string (0x1001a)] = &_write_on_esc_;
-VED_PAGER[string ('\r')] = &__pager_on_carriage_return;
-VED_PAGER[string ('m')] = &mark;
-VED_PAGER[string ('`')] = &gotomark;
-VED_PAGER[string (keys->CTRL_l)] = &reread;
-VED_PAGER[string ('Y')] = &Yank;
-VED_PAGER[string (keys->DOWN)] = &down;
-VED_PAGER[string ('j')] = &down;
-VED_PAGER[string ('k')] = &up;
-VED_PAGER[string (keys->UP)] = &up;
-VED_PAGER[string ('G')]= &eof;
-VED_PAGER[string (keys->HOME)] = &bof;
-VED_PAGER[string ('g')]= &_g_;
-VED_PAGER[string (' ')]= &page_down;
-VED_PAGER[string (keys->NPAGE)] = &page_down;
-VED_PAGER[string (keys->CTRL_f)] = &page_down;
-VED_PAGER[string (keys->CTRL_b)] = &page_up;
-VED_PAGER[string (keys->PPAGE)] = &page_up;
-VED_PAGER[string (keys->RIGHT)] = &right;
-VED_PAGER[string ('l')] = &right;
-VED_PAGER[string ('h')] = &left;
-VED_PAGER[string (keys->LEFT)] = &left;
-VED_PAGER[string ('-')] = &eos;
-VED_PAGER[string (keys->END)] = &eol;
-VED_PAGER[string ('$')] = &eol;
-VED_PAGER[string ('^')] = &bolnblnk;
-VED_PAGER[string ('0')] = &bol;
+define pg_gotomark (s)
+{
+  variable m = get_mark ();
+  if (NULL == m)
+    return;
+
+  if (m._i > s._len)
+    return;
+
+  markbacktick (s);
+
+  s._i = m._i;
+  s.ptr = m.ptr;
+
+  s.draw ();
+}
+
+VED_PAGER[string ('m')]          = &mark;
+VED_PAGER[string ('\r')]         = &__pg_on_carriage_return;
+VED_PAGER[string (0x1001a)]      = &pg_write_on_esc;
+VED_PAGER[string ('`')]          = &pg_gotomark;
+VED_PAGER[string (keys->CTRL_l)] = &pg_reread;
+VED_PAGER[string ('Y')]          = &pg_Yank;
+VED_PAGER[string (keys->DOWN)]   = &pg_down;
+VED_PAGER[string ('j')]          = &pg_down;
+VED_PAGER[string ('k')]          = &pg_up;
+VED_PAGER[string (keys->UP)]     = &pg_up;
+VED_PAGER[string ('G')]          = &pg_eof;
+VED_PAGER[string (keys->HOME)]   = &pg_bof;
+VED_PAGER[string ('g')]          = &pg_g;
+VED_PAGER[string (' ')]          = &pg_page_down;
+VED_PAGER[string (keys->NPAGE)]  = &pg_page_down;
+VED_PAGER[string (keys->CTRL_f)] = &pg_page_down;
+VED_PAGER[string (keys->CTRL_b)] = &pg_page_up;
+VED_PAGER[string (keys->PPAGE)]  = &pg_page_up;
+VED_PAGER[string (keys->RIGHT)]  = &pg_right;
+VED_PAGER[string ('l')]          = &pg_right;
+VED_PAGER[string ('h')]          = &pg_left;
+VED_PAGER[string (keys->LEFT)]   = &pg_left;
+VED_PAGER[string ('-')]          = &pg_eos;
+VED_PAGER[string (keys->END)]    = &pg_eol;
+VED_PAGER[string ('$')]          = &pg_eol;
+VED_PAGER[string ('^')]          = &pg_bolnblnk;
+VED_PAGER[string ('0')]          = &pg_bol;
 VED_PAGER[string (keys->CTRL_w)] = &handle_w;
 
 %%% PAGER END
 
 %%% BUF
  
-define setbuf (key)
-{
-  variable w = get_cur_wind ();
-  
-  ifnot (any (key == w.bufnames))
-    return;
- 
-  variable s = w.buffers[key];
-  
-  variable frame = qualifier ("frame", w.cur_frame);
-
-  if (frame > length (w.frame_names) - 1)
-    return;
-
-  w.frame_names[frame] = key;
- 
-  if (s._autochdir && 0 == VED_ISONLYPAGER)
-    () = chdir (s._dir);
-}
-
-define addbuf (s)
-{
-  ifnot (path_is_absolute (s._fname))
-    s._absfname = getcwd + s._fname;
-  else
-    s._absfname = s._fname;
-
-  variable w = get_cur_wind ();
-
-  if (any (s._absfname == w.bufnames))
-    return;
-  
-  w.buffers[s._absfname] = s;
-  w.bufnames = [w.bufnames,  s._absfname];
-  w.buffers[s._absfname]._dir = realpath (path_dirname (s._absfname));
-}
-
-define bufdelete (s, bufname, force)
-{
-  if (any (bufname == UNDELETABLE))
-    return;
-
-  variable w = get_cur_wind ();
-
-  ifnot (any (bufname == w.bufnames))
-    return;
- 
-  if (s._flags & VED_MODIFIED && force)
-    {
-    variable bts = 0;
-    variable retval = __writetofile (bufname, s.lines, s._indent, &bts);
-    ifnot (0 == retval)
-      {
-      send_msg_dr (errno_string (retval), 1, NULL, NULL);
-      return;
-      }
-    }
-
-  variable isatframe = wherefirst (w.frame_names == bufname);
-  variable iscur = get_cur_bufname () == bufname;
-
-  assoc_delete_key (w.buffers, bufname);
- 
-  variable index = wherefirst (bufname == w.bufnames);
-  
-  w.bufnames[index] = NULL;
-  w.bufnames = w.bufnames[wherenot (_isnull (w.bufnames))];
-
-  variable winds = assoc_get_keys (VED_WIND);
-
-  ifnot (length (w.bufnames))
-    if (1 == length (winds))
-      exit_me (0);
-    else
-      {
-      assoc_delete_key (VED_WIND, VED_CUR_WIND);
-      winds = assoc_get_keys (VED_WIND);
-      VED_CUR_WIND = winds[0];
-      w = get_cur_wind ();
-      s = get_cur_buf ();
-      setbuf (s._absfname);
-      draw_wind ();
-      return;
-      }
- 
-  ifnot (NULL == isatframe)
-    if (1 < w.frames)
-      del_frame (isatframe);
-  
-  if (iscur)
-    {
-    index = index ? index - 1 : length (w.bufnames) - 1;
- 
-    setbuf (w.bufnames[index]);
- 
-    s = get_cur_buf ();
-    s.draw ();
-    }
-}
-
-define initbuf (s, fname, rows, lines, t)
-{
-  s._maxlen = t._maxlen;
-  s._indent = t._indent;
-  s._shiftwidth = t._shiftwidth;
-  s._autoindent = t._autoindent;
-  s._autochdir = qualifier ("_autochdir", t._autochdir);
-
-  s.lexicalhl = t.lexicalhl;
-  s.autoindent = t.autoindent;
-  s.draw = t.draw;
-  s.vedloop = t.vedloop;
-  s.vedloopcallback = t.vedloopcallback;
-
-  s._fname = fname;
-
-  s._linlen = s._maxlen - s._indent;
-
-  s.st_ = stat_file (s._fname);
-  if (NULL == s.st_)
-    s.st_ = struct
-      {
-      st_atime,
-      st_mtime,
-      st_uid = getuid (),
-      st_gid = getgid (),
-      st_size = 0
-      };
-
-  s.rows = rows;
-
-  s.lines = NULL == lines ? getlines (s._fname, s._indent, s.st_) : lines;
-  s._flags = 0;
-  s._is_wrapped_line = 0;
- 
-  s.ptr = Integer_Type[2];
-
-  s._len = length (s.lines) - 1;
- 
-  initrowsbuffvars (s);
-
-  s.ptr[0] = s.rows[0];
-  s.ptr[1] = s._indent;
- 
-  s._findex = s._indent;
-  s._index = s._indent;
- 
-  s.undo = String_Type[0];
-  s._undolevel = 0;
-  s.undoset = {};
-
-  s._i = 0;
-  s._ii = 0;
-
-  addbuf (s);
-}
+%%% FIXME DIFF UNDO
 
 define diff (lines, fname, retval)
 {
@@ -2648,7 +2671,7 @@ vis.l_mode = &v_linewise_mode;
 
 private define v_c_left (vs, s, cur)
 {
-  variable retval = p_left (s);
+  variable retval = __pg_left (s);
 
   if (-1 == retval)
     return;
@@ -2728,7 +2751,7 @@ vis.c_left = &v_c_left;
 
 private define v_c_right (vs, s, cur)
 {
-  variable retval = p_right (s, vs.linlen[-1]);
+  variable retval = __pg_right (s, vs.linlen[-1]);
 
   if (-1 == retval)
     return;
