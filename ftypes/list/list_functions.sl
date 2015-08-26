@@ -94,7 +94,7 @@ define __pager_on_carriage_return (s)
   if (exists == retval)
     {
     w.cur_frame = 0;
-    s = get_cur_buf (;bufname = l.fname);
+    s = get_buf (l.fname);
     setbuf (s._absfname);
     s._i = s._len >= l.lnr - 1 ? l.lnr - 1 : 0;
     s.ptr[0] = 1;

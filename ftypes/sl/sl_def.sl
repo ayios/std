@@ -20,7 +20,7 @@ define sl_blocks (swi, col)
 
 define sl_autoindent (s, line)
 {
-  if (line == "}")
+  if (line == "}" || 0 == strlen (line) || line[0] == '%')
     return s._indent;
 
   variable indent = strlen (line) - strlen (strtrim_beg (line));

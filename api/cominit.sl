@@ -580,10 +580,10 @@ define execute (argv)
 
   if (NULL != isscratch || 0 == APP.realshell)
     ifnot (SHELLLASTEXITSTATUS)
-      _scratch_ (get_cur_buf ();;__qualifiers ());
+      _scratch_ (get_cur_buf ());
     else
       ifnot (APP.realshell)
-        _scratch_ (get_cur_buf;;__qualifiers ());
+        _scratch_ (get_cur_buf ());
 
   ifnot (isbg)
     _getbgjobs_ ();

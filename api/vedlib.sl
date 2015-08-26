@@ -54,7 +54,7 @@ typedef struct
   {
   _i,
   ptr
-  } Mark_Type;
+  } Pos_Type;
 
 typedef struct
   {
@@ -68,8 +68,9 @@ typedef struct
   } Wind_Type;
 
 public variable
+  POS = Pos_Type[10],
   FTYPES = Assoc_Type[Integer_Type],
-  MARKS = Assoc_Type[Mark_Type],
+  MARKS = Assoc_Type[Pos_Type],
   REG = Assoc_Type[String_Type];
 
 public variable
@@ -139,7 +140,7 @@ private define build_ftype_table ()
 }
 
 build_ftype_table ();
-MARKS[string ('`')] = @Mark_Type;
+MARKS[string ('`')] = @Pos_Type;
 
 loadfrom ("string", "decode", NULL, &on_eval_err);
 loadfrom ("array", "getsize", NULL, &on_eval_err);
@@ -189,23 +190,6 @@ private define _on_lang_change_ (mode, ptr)
 {
   topline (" -- " + mode + " --");
   smg->setrcdr (ptr[0], ptr[1]);
-}
- 
-define clear (s, frow, lrow)
-{
-  variable
-    len = lrow - frow + 1,
-    ar = String_Type[len],
-    cols = Integer_Type[len],
-    clrs = Integer_Type[len],
-    rows = [frow:lrow],
-    pos = [s.ptr[0], s.ptr[1]];
- 
-  ar[*] = " ";
-  cols[*] = 0;
-  clrs[*] = 0;
- 
-  smg->aratrcaddnstrdr (ar, clrs, rows, cols, pos[0], pos[1], COLUMNS);
 }
 
 define write_prompt (str, col)
@@ -458,20 +442,22 @@ define framesize (frames)
   return ff;
 }
 
+private define _set_clr_ (s, clr, set)
+{
+  s.clrs[-1] = clr;
+  SMGIMG[s.rows[-1]][1] = clr;
+  if (set)
+    smg->hlregion (clr, s.rows[-1], 0, 1, COLUMNS);
+}
+
 define set_clr_fg (b, set)
 {
-  b.clrs[-1] = VED_INFOCLRFG;
-  SMGIMG[b.rows[-1]][1] = VED_INFOCLRFG;
-  if (set)
-    smg->hlregion (VED_INFOCLRFG, b.rows[-1], 0, 1, COLUMNS);
+  _set_clr_ (b, VED_INFOCLRFG, set);
 }
 
 define set_clr_bg (b, set)
 {
-  b.clrs[-1] = VED_INFOCLRBG;
-  SMGIMG[b.rows[-1]][1] = VED_INFOCLRBG;
-  if (set)
-    smg->hlregion (VED_INFOCLRBG, b.rows[-1], 0, 1, COLUMNS);
+  _set_clr_ (b, VED_INFOCLRBG, set);
 }
 
 define initrowsbuffvars (s)
@@ -491,26 +477,29 @@ define get_cur_wind ()
   return VED_WIND[VED_CUR_WIND];
 }
 
-define get_cur_buf ()
+% many functions imply no errors.
+% the logic is to unveil any code errors.
+% the test phase to the waterfall model.
+
+define get_buf (name)
 {
-  variable w = _NARGS ? () : get_cur_wind ();
-  ifnot (length (w.buffers))
-    return NULL;
-  
-  variable n = qualifier ("bufname", w.frame_names[w.cur_frame]);
-  
-  ifnot (any (n == w.bufnames))
+  variable w = get_cur_wind ();
+ 
+  ifnot (any (name == w.bufnames))
     return NULL;
 
-  return w.buffers[n];
+  return w.buffers[name];
+}
+
+define get_cur_buf ()
+{
+  variable w = get_cur_wind ();
+  return w.buffers[w.frame_names[w.cur_frame]];
 }
 
 define get_cur_bufname ()
 {
-  variable b = get_cur_buf ();
-  ifnot (NULL == b)
-    b = b._absfname;
-  return b;
+  return get_cur_buf ()._absfname;
 }
 
 define get_frame_buf (frame)
@@ -1517,7 +1506,7 @@ define mark (s)
     mark = string (mark);
  
     ifnot (assoc_key_exists (MARKS, mark))
-      MARKS[mark] = @Mark_Type;
+      MARKS[mark] = @Pos_Type;
 
     MARKS[mark]._i = s._ii;
     MARKS[mark].ptr = s.ptr;
