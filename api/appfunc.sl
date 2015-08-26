@@ -6,6 +6,11 @@ define _exit_ (argv)
 
   ifnot (NULL == rl)
     rline->writehistory (rl.history, rl.histfile);
+  
+  variable searchhist = (@__get_reference ("s_history"));
+
+  if (length (searchhist))
+    rline->writehistory (list_to_array (searchhist), (@__get_reference ("s_histfile")));
 
   APP.func.at_exit ();
  

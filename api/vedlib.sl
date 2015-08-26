@@ -105,6 +105,11 @@ public variable UNDELETABLE = String_Type[0];
 public variable SPECIAL = String_Type[0];
 public variable XCLIP_BIN = which ("xclip");
  
+public variable
+  s_histfile = HISTDIR + "/" + string (getuid ()) + "ved_search_history",
+  s_histindex = NULL,
+  s_history = {};
+ 
 public variable % NOT IMPLEMENTED
   RECORD = 0,
   CRECORD,
@@ -140,7 +145,17 @@ private define build_ftype_table ()
 }
 
 build_ftype_table ();
+
 MARKS[string ('`')] = @Pos_Type;
+
+$1 = readfile (s_histfile);
+if (NULL != $1 && length ($1))
+  {
+  array_map (&list_append, s_history, __tmp ($1));
+  s_histindex = 0;
+  }
+else
+  s_history = {};
 
 loadfrom ("string", "decode", NULL, &on_eval_err);
 loadfrom ("array", "getsize", NULL, &on_eval_err);
@@ -1701,7 +1716,7 @@ define _del_wind_ (s)
 define on_wind_change (w)
 {
   topline (" -- ved --");
-  (@__get_reference ("setbuf")) (w.frame_names[w.cur_frame]);
+  setbuf (w.frame_names[w.cur_frame]);
 }
 
 define on_wind_new (w)
@@ -1711,7 +1726,7 @@ define on_wind_new (w)
   variable func = __get_reference ("txt_settype");
   (@func) (s, fn, w.frame_rows[0], NULL);
   
-  (@__get_reference ("setbuf")) (fn);
+  setbuf (fn);
   (@__get_reference ("__initrline"));
   topline (" -- ved --");
   draw_wind ();
@@ -1836,10 +1851,6 @@ VED_PAGER[string ('^')]          = &pg_bolnblnk;
 VED_PAGER[string ('0')]          = &pg_bol;
 VED_PAGER[string (keys->CTRL_w)] = &handle_w;
 
-%%% PAGER END
-
-%%% BUF
- 
 %%% FIXME DIFF UNDO
 
 define diff (lines, fname, retval)
@@ -1921,6 +1932,8 @@ define patch (in, dir, retval)
 
 define set_modified (s)
 {
+  s._flags |= VED_MODIFIED;
+ 
   variable
     retval,
     d = diff (strjoin (s.lines, "\n") + "\n", s._absfname, &retval);
@@ -1944,8 +1957,6 @@ define set_modified (s)
     return;
     }
 
-  s._flags |= VED_MODIFIED;
- 
   s.undo = [s.undo, d];
   list_append (s.undoset, [qualifier ("_i", s._ii), s.ptr[0], s.ptr[1]]);
 
@@ -2045,16 +2056,13 @@ VED_PAGER[string ('u')] = &undo;
 VED_PAGER[string (keys->CTRL_r)] = &redo;
 
 %%% SEARCH
- 
-private variable
-  col,
-  lnr,
-  found,
-  search_type,
-  histindex = NULL,
-  history = {};
 
-private define exit_rout (s)
+private variable
+  s_col,
+  s_lnr,
+  s_found;
+
+private define s_exit_rout (s)
 {
   smg->setrcdr (s.ptr[0], s.ptr[1]);
   send_msg (" ", 0);
@@ -2085,13 +2093,13 @@ private define search_backward (s, str)
     }
   catch ParseError:
     {
-    send_msg_dr ("error compiling pcre pattern", 1, PROMPTROW, col);
+    send_msg_dr ("error compiling pcre pattern", 1, PROMPTROW, s_col);
     return;
     }
  
-  i = lnr;
+  i = s_lnr;
 
-  while (i > -1 || (i > lnr && wrapped))
+  while (i > -1 || (i > s_lnr && wrapped))
     {
     line = getlinestr (s, s.lines[i], 1);
     if (pcre_exec (pat, line))
@@ -2106,14 +2114,16 @@ private define search_backward (s, str)
       cols = [0, array_map (Integer_Type, &int, cumsum (cols))];
       clrs = [0, 0, VED_PROMPTCLR, 0];
 
-      pos = [qualifier ("row", PROMPTROW),  col];
+      pos = [qualifier ("row", PROMPTROW),  s_col];
       if (qualifier_exists ("context"))
         pos[1] = match[1];
 
       smg->aratrcaddnstrdr (ar, clrs, rows, cols, pos[0], pos[1], COLUMNS);
 
-      lnr = i;
-      found = 1;
+      s_lnr = i;
+ 
+      s_found = 1;
+
       return;
       }
     else
@@ -2129,8 +2139,8 @@ private define search_backward (s, str)
         i--;
     }
  
-  found = 0;
-  send_msg_dr ("Nothing found", 0, PROMPTROW, col);
+  s_found = 0;
+  send_msg_dr ("Nothing found", 0, PROMPTROW, s_col);
 }
 
 private define search_forward (s, str)
@@ -2155,13 +2165,13 @@ private define search_forward (s, str)
     }
   catch ParseError:
     {
-    send_msg_dr ("error compiling pcre pattern", 1, PROMPTROW, col);
+    send_msg_dr ("error compiling pcre pattern", 1, PROMPTROW, s_col);
     return;
     }
  
-  i = lnr;
+  i = s_lnr;
  
-  while (i <= s._len || (i < lnr && wrapped))
+  while (i <= s._len || (i < s_lnr && wrapped))
     {
     line = getlinestr (s, s.lines[i], 1);
     if (pcre_exec (pat, line))
@@ -2176,14 +2186,14 @@ private define search_forward (s, str)
       cols = [0, array_map (Integer_Type, &int, cumsum (cols))];
       clrs = [0, 0, VED_PROMPTCLR, 0];
 
-      pos = [qualifier ("row", PROMPTROW),  col];
+      pos = [qualifier ("row", PROMPTROW),  s_col];
       if (qualifier_exists ("context"))
         pos[1] = match[1];
  
       smg->aratrcaddnstrdr (ar, clrs, rows, cols, pos[0], pos[1], COLUMNS);
 
-      lnr = i;
-      found = 1;
+      s_lnr = i;
+      s_found = 1;
       return;
       }
     else
@@ -2199,8 +2209,9 @@ private define search_forward (s, str)
         i++;
     }
  
-  found = 0;
-  send_msg_dr ("Nothing found", 0, PROMPTROW, col);
+  s_found = 0;
+  
+  send_msg_dr ("Nothing found", 0, PROMPTROW, s_col);
 }
 
 private define search (s)
@@ -2216,28 +2227,28 @@ private define search (s)
     str,
     pat = "";
  
-  found = 0;
-
-  lnr = v_lnr (s, '.');
+  s_found = 0;
+  
+  s_lnr = v_lnr (s, '.');
  
-  origlnr = lnr;
+  origlnr = s_lnr;
 
   type = keys->BSLASH == s._chr ? "forward" : "backward";
   pchr = type == "forward" ? "/" : "?";
   str = pchr;
-  col = 1;
+  s_col = 1;
  
   typesearch = type == "forward" ? &search_forward : &search_backward;
-  write_prompt (str, col);
+  write_prompt (str, s_col);
  
   forever
     {
     dothesearch = 0;
-    chr = getch (;on_lang = &_on_lang_change_, on_lang_args = {"search", [PROMPTROW, col]});
+    chr = getch (;on_lang = &_on_lang_change_, on_lang_args = {"search", [PROMPTROW, s_col]});
 
     if (033 == chr)
       {
-      exit_rout (s);
+      s_exit_rout (s);
       break;
       }
  
@@ -2245,53 +2256,53 @@ private define search (s)
         0 == any (chr == [keys->rmap.backspace, keys->rmap.delete,
         [keys->UP:keys->RIGHT], [keys->F1:keys->F12]]))
       {
-      if (col == strlen (pat) + 1)
+      if (s_col == strlen (pat) + 1)
         pat += char (chr);
       else
-        pat = substr (pat, 1, col - 1) + char (chr) + substr (pat, col, -1);
+        pat = substr (pat, 1, s_col - 1) + char (chr) + substr (pat, s_col, -1);
 
-      col++;
+      s_col++;
       dothesearch = 1;
       }
  
     if (any (chr == keys->rmap.backspace) && strlen (pat))
-      if (col - 1)
+      if (s_col - 1)
         {
-        if (col == strlen (pat) + 1)
+        if (s_col == strlen (pat) + 1)
           pat = substr (pat, 1, strlen (pat) - 1);
         else
-          pat = substr (pat, 1, col - 2) + substr (pat, col, -1);
+          pat = substr (pat, 1, s_col - 2) + substr (pat, s_col, -1);
  
-        lnr = origlnr;
+        s_lnr = origlnr;
 
-        col--;
+        s_col--;
         dothesearch = 1;
         }
 
     if (any (chr == keys->rmap.delete) && strlen (pat))
       {
-      ifnot (col - 1)
+      ifnot (s_col - 1)
         (pat = substr (pat, 2, -1), dothesearch = 1);
-      else if (col != strlen (pat) + 1)
-        (pat = substr (pat, 1, col - 1) + substr (pat, col + 1, -1),
+      else if (s_col != strlen (pat) + 1)
+        (pat = substr (pat, 1, s_col - 1) + substr (pat, s_col + 1, -1),
          dothesearch = 1);
       }
  
-    if (any (chr == keys->rmap.left) && col != 1)
-      col--;
+    if (any (chr == keys->rmap.left) && s_col != 1)
+      s_col--;
  
-    if (any (chr == keys->rmap.right) && col != strlen (pat) + 1)
-      col++;
+    if (any (chr == keys->rmap.right) && s_col != strlen (pat) + 1)
+      s_col++;
  
     if ('\r' == chr)
       {
-      if (found)
+      if (s_found)
         {
-        list_insert (history, pat);
-        if (NULL == histindex)
-          histindex = 0;
+        list_insert (s_history, pat);
+        if (NULL == s_histindex)
+          s_histindex = 0;
 
-        s._i = lnr;
+        s._i = s_lnr;
         s.ptr[0] = s.rows[0];
         s.ptr[1] = s._indent;
         s._index = s._indent;
@@ -2300,38 +2311,38 @@ private define search (s)
         s.draw ();
         }
 
-      exit_rout (s);
+      s_exit_rout (s);
       break;
       }
  
     if (chr == keys->UP)
-      ifnot (NULL == histindex)
+      ifnot (NULL == s_histindex)
         {
-        pat = history[histindex];
-        if (histindex == length (history) - 1)
-          histindex = 0;
+        pat = s_history[s_histindex];
+        if (s_histindex == length (s_history) - 1)
+          s_histindex = 0;
         else
-          histindex++;
+          s_histindex++;
 
-        col = strlen (pat) + 1;
+        s_col = strlen (pat) + 1;
         str = pchr + pat;
-        write_prompt (str, col);
+        write_prompt (str, s_col);
         (@typesearch) (s, pat);
         continue;
         }
 
     if (chr == keys->DOWN)
-      ifnot (NULL == histindex)
+      ifnot (NULL == s_histindex)
         {
-        pat = history[histindex];
-        ifnot (histindex)
-          histindex = length (history) - 1;
+        pat = s_history[s_histindex];
+        ifnot (s_histindex)
+          s_histindex = length (s_history) - 1;
         else
-          histindex--;
+          s_histindex--;
 
-        col = strlen (pat) + 1;
+        s_col = strlen (pat) + 1;
         str = pchr + pat;
-        write_prompt (str, col);
+        write_prompt (str, s_col);
         (@typesearch) (s, pat);
         continue;
         }
@@ -2339,21 +2350,21 @@ private define search (s)
     if (chr == keys->CTRL_n)
       {
       if (type == "forward")
-        if (lnr == s._len)
-          lnr = 0;
+        if (s_lnr == s._len)
+          s_lnr = 0;
         else
-          lnr++;
+          s_lnr++;
       else
-        ifnot (lnr)
-          lnr = s._len;
+        ifnot (s_lnr)
+          s_lnr = s._len;
         else
-          lnr--;
+          s_lnr--;
 
       (@typesearch) (s, pat);
       }
 
     str = pchr + pat;
-    write_prompt (str, col);
+    write_prompt (str, s_col);
 
     if (dothesearch)
       (@typesearch) (s, pat);
@@ -2377,34 +2388,34 @@ private define search_word (s)
     typesearch,
     line = v_lin (s, '.');
  
-  found = 0;
+  s_found = 0;
 
-  lnr = v_lnr (s, '.');
+  s_lnr = v_lnr (s, '.');
 
   type = '*' == s._chr ? "forward" : "backward";
  
   typesearch = type == "forward" ? &search_forward : &search_backward;
 
   if (type == "forward")
-    if (lnr == s._len)
-      lnr = 0;
+    if (s_lnr == s._len)
+      s_lnr = 0;
     else
-      lnr++;
+      s_lnr++;
   else
-    if (lnr == 0)
-      lnr = s._len;
+    if (s_lnr == 0)
+      s_lnr = s._len;
     else
-      lnr--;
+      s_lnr--;
 
-  col = s._index;
-  lcol = col;
+  s_col = s._index;
+  lcol = s_col;
 
   if (isblank (substr (line, lcol + 1, 1)))
     return;
  
   pat = find_word (s, line, lcol, &start, &end);
 
-  if (col - s._indent)
+  if (s_col - s._indent)
     pat = "\\W+" + pat;
   else
     pat = "^" + pat;
@@ -2416,9 +2427,9 @@ private define search_word (s)
 
   forever
     {
-    ifnot (found)
+    ifnot (s_found)
       {
-      exit_rout (s);
+      s_exit_rout (s);
       return;
       }
 
@@ -2429,19 +2440,19 @@ private define search_word (s)
 
     if (033 == chr)
       {
-      exit_rout (s);
+      s_exit_rout (s);
       break;
       }
  
     if ('\r' == chr)
       {
-      if (found)
+      if (s_found)
         {
-        list_insert (history, pat);
-        if (NULL == histindex)
-          histindex = 0;
+        list_insert (s_history, pat);
+        if (NULL == s_histindex)
+          s_histindex = 0;
 
-        s._i = lnr;
+        s._i = s_lnr;
         s.ptr[0] = s.rows[0];
         s.ptr[1] = s._indent;
         s._index = s._indent;
@@ -2449,22 +2460,22 @@ private define search_word (s)
         s.draw ();
         }
 
-      exit_rout (s);
+      s_exit_rout (s);
       return;
       }
  
     if (chr == keys->CTRL_n)
       {
       if (type == "forward")
-        if (lnr == s._len)
-          lnr = 0;
+        if (s_lnr == s._len)
+          s_lnr = 0;
         else
-          lnr++;
+          s_lnr++;
       else
-        ifnot (lnr)
-          lnr = s._len;
+        ifnot (s_lnr)
+          s_lnr = s._len;
         else
-          lnr--;
+          s_lnr--;
 
       (@typesearch) (s, pat;row = MSGROW, context);
       }

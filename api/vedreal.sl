@@ -233,6 +233,9 @@ private define cl_quit ()
 
   rline->writehistory (rl.history, rl.histfile);
 
+  if (length (s_history))
+    rline->writehistory (list_to_array (s_history), s_histfile);
+
   if (qualifier_exists ("force") || "q!" != qualifier ("argv0"))
     retval = __write_buffers ();
 

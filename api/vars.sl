@@ -14,6 +14,5 @@ public variable RECONNECT  = 0x0190;
 public variable APP_GET_ALL = 0x2bc;
 public variable APP_GET_CONNECTED = 0x320;
 
-
 define toscratch ();
 
