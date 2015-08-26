@@ -146,8 +146,6 @@ private define build_ftype_table ()
 
 build_ftype_table ();
 
-MARKS[string ('`')] = @Pos_Type;
-
 $1 = readfile (s_histfile);
 if (NULL != $1 && length ($1))
   {
@@ -963,6 +961,12 @@ define bufdelete (s, bufname, force)
     }
 }
 
+define preloop (s)
+{
+  MARKS[string ('`')].ptr = s.ptr;
+  MARKS[string ('`')]._i = s._ii;
+}
+
 %%% VED OBJECT FUNCTIONS
 
 private define _draw_ (s)
@@ -1153,29 +1157,38 @@ define deftype ()
 
 %%% MARK FUNCTIONS
 
-define markbacktick (s)
+private define mark_init (m)
 {
-  MARKS[string ('`')]._i = s._ii;
-  MARKS[string ('`')].ptr = s.ptr;
+  ifnot (assoc_key_exists (MARKS, m))
+    MARKS[m] = @Pos_Type;
 }
 
-define mark (s)
+mark_init (string ('`'));
+
+private define mark_set (m, s)
+{
+  MARKS[m]._i = s._ii;
+  MARKS[m].ptr = s.ptr;
+}
+
+define markbacktick (s)
+{
+  mark_set (string ('`'), s);
+}
+
+private define mark (s)
 {
   variable mark = getch (;disable_langchange);
  
   if ('a' <= mark <= 'z')
     {
     mark = string (mark);
- 
-    ifnot (assoc_key_exists (MARKS, mark))
-      MARKS[mark] = @Pos_Type;
-
-    MARKS[mark]._i = s._ii;
-    MARKS[mark].ptr = s.ptr;
+    mark_init (mark); 
+    mark_set (mark);
     }
 }
 
-define get_mark ()
+private define mark_get ()
 {
   variable marks = assoc_get_keys (MARKS);
   variable mark = getch (;disable_langchange);
@@ -1187,7 +1200,6 @@ define get_mark ()
   
   return NULL;
 }
-
 
 % PAGER
 %% PG LIB
@@ -1651,9 +1663,10 @@ private define pg_g (s)
 private define pg_Yank (s)
 {
   variable
+    reg = qualifier ("reg", "\""),
     line = v_lin (s, '.');
 
-  REG["\""] = line + "\n";
+  REG[reg] = line + "\n";
   seltoX (line + "\n");
 }
 
@@ -1807,7 +1820,7 @@ private define pg_write_on_esc (s)
  
 define pg_gotomark (s)
 {
-  variable m = get_mark ();
+  variable m = mark_get ();
   if (NULL == m)
     return;
 
@@ -3033,7 +3046,7 @@ private define ins_char (is, s, line)
 
 insfuncs.ins_char = &ins_char;
 
-private define del_prev (is, s, line)
+private define ins_del_prev (is, s, line)
 {
   variable
     lline,
@@ -3127,9 +3140,9 @@ private define del_prev (is, s, line)
   is.modified = 1;
 }
 
-insfuncs.del_prev = &del_prev;
+insfuncs.del_prev = &ins_del_prev;
 
-private define del_next (is, s, line)
+private define ins_del_next (is, s, line)
 {
   ifnot (s._index - s._indent)
     if (1 == strlen (@line))
@@ -3192,9 +3205,9 @@ private define del_next (is, s, line)
   is.modified = 1;
 }
 
-insfuncs.del_next = &del_next;
+insfuncs.del_next = &ins_del_next;
 
-private define eol (is, s, line)
+private define ins_eol (is, s, line)
 {
   variable
     lline,
@@ -3218,9 +3231,9 @@ private define eol (is, s, line)
   draw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
 }
 
-insfuncs.eol = &eol;
+insfuncs.eol = &ins_eol;
 
-private define bol (is, s, line)
+private define ins_bol (is, s, line)
 {
   s._findex = s._indent;
   s._index = s._indent;
@@ -3230,9 +3243,9 @@ private define bol (is, s, line)
   s._is_wrapped_line = 0;
 }
 
-insfuncs.bol = &bol;
+insfuncs.bol = &ins_bol;
 
-private define completeline (is, s, line, comp_line)
+private define ins_completeline (is, s, line, comp_line)
 {
   if (s._is_wrapped_line)
     return;
@@ -3254,7 +3267,7 @@ private define completeline (is, s, line, comp_line)
     }
 }
 
-insfuncs.completeline = &completeline;
+insfuncs.completeline = &ins_completeline;
 
 private define ins_right (is, s, line)
 {
@@ -3445,7 +3458,7 @@ private define ins_up (is, s, line)
 
 insfuncs.up = &ins_up;
 
-private define cr (is, s, line)
+private define ins_cr (is, s, line)
 {
   variable
     prev_l,
@@ -3509,9 +3522,9 @@ private define cr (is, s, line)
     }
 }
 
-insfuncs.cr = &cr;
+insfuncs.cr = &ins_cr;
 
-private define esc (is, s, line)
+private define ins_esc (is, s, line)
 {
   if (0 < s.ptr[1] - s._indent)
     s.ptr[1]--;
@@ -3533,7 +3546,7 @@ private define esc (is, s, line)
   draw_tail (s);
 }
 
-insfuncs.esc = &esc;
+insfuncs.esc = &ins_esc;
 
 define ctrl_completion_rout (s, line, type)
 {
@@ -3785,7 +3798,7 @@ define ins_wordcompletion (s, line)
   ctrl_completion_rout (s, line, _function_name ());
 }
 
-private define getline (is, s, line)
+private define ins_getline (is, s, line)
 {
   is = struct {@insfuncs, @is};
  
@@ -3925,7 +3938,7 @@ define insert (s, line, lnr, prev_l, next_l)
   ifnot (qualifier_exists ("dont_draw_tail"))
     draw_tail (s);
 
-  getline (self, s, line);
+  ins_getline (self, s, line);
 
   lang = input->getlang ();
 
@@ -3941,7 +3954,7 @@ private define newline_str (s, indent, line)
   return repeat (" ", @indent);
 }
 
-private define indent_in (s)
+private define ed_indent_in (s)
 {
   variable
     i_ = s._indent,
@@ -3979,7 +3992,7 @@ private define indent_in (s)
   draw_tail (s);
 }
 
-private define indent_out (s)
+private define ed_indent_out (s)
 {
   variable
     i = v_lnr (s, '.'),
@@ -4004,7 +4017,7 @@ private define indent_out (s)
   draw_tail (s);
 }
 
-private define join_line (s)
+private define ed_join_line (s)
 {
   variable
     i = v_lnr (s, '.'),
@@ -4025,7 +4038,7 @@ private define join_line (s)
   s.draw ();
 }
 
-private define del_line (s)
+private define ed_del_line (s)
 {
   variable
     i = v_lnr (s, '.'),
@@ -4071,7 +4084,7 @@ private define del_line (s)
   return 0;
 }
 
-private define del_word (s, what)
+private define ed_del_word (s, what)
 {
   variable
     end,
@@ -4105,7 +4118,7 @@ private define del_word (s, what)
   draw_tail (s);
 }
 
-private define chang_chr (s)
+private define ed_chang_chr (s)
 {
   variable
     chr = getch (),
@@ -4126,7 +4139,7 @@ private define chang_chr (s)
     }
 }
 
-private define del_chr (s)
+private define ed_del_chr (s)
 {
   variable
     col = s._index,
@@ -4177,7 +4190,7 @@ private define del_chr (s)
   draw_tail (s);
 }
 
-private define change_word (s, what)
+private define ed_change_word (s, what)
 {
   variable
     end,
@@ -4227,7 +4240,7 @@ private define change_word (s, what)
   insert (s, &line, lnr, prev_l, next_l;modified);
 }
 
-private define change (s)
+private define ed_change (s)
 {
   variable chr = getch ();
  
@@ -4235,19 +4248,19 @@ private define change (s)
     {
     if ('w' == chr)
       {
-      change_word (s, 'w');
+      ed_change_word (s, 'w');
       return;
       }
 
     if ('W' == chr)
       {
-      change_word (s, 'W');
+      ed_change_word (s, 'W');
       return;
       }
     }
 }
 
-private define del (s)
+private define ed_del (s)
 {
   variable chr = getch ();
  
@@ -4255,7 +4268,7 @@ private define del (s)
     {
     if ('d' == chr)
       {
-      if (1 == del_line (s))
+      if (1 == ed_del_line (s))
         return;
 
       s.draw ();
@@ -4264,20 +4277,20 @@ private define del (s)
  
     if ('w' == chr)
       {
-      del_word (s, 'w');
+      ed_del_word (s, 'w');
       return;
       }
 
     if ('W' == chr)
       {
-      del_word (s, 'W');
+      ed_del_word (s, 'W');
       return;
       }
  
     }
 }
 
-private define del_to_end (s)
+private define ed_del_to_end (s)
 {
   variable
     col = s._index,
@@ -4333,7 +4346,7 @@ private define del_to_end (s)
   draw_tail (s);
 }
 
-private define edit_line (s)
+private define ed_editline (s)
 {
   variable
     prev_l,
@@ -4383,7 +4396,7 @@ private define edit_line (s)
     insert (s, &line, lnr, prev_l, next_l);
 }
 
-private define newline (s)
+private define ed_newline (s)
 {
   variable
     dir = s._chr == 'O' ? "prev" : "next",
@@ -4438,7 +4451,7 @@ private define newline (s)
   insert (s, &line, "next" == dir ? lnr + 1 : lnr, prev_l, next_l;;__qualifiers ());
 }
 
-private define Put (s)
+private define ed_Put (s)
 {
   ifnot (assoc_key_exists (REG, "\""))
     return;
@@ -4470,7 +4483,7 @@ private define Put (s)
   s.draw ();
 }
 
-private define put (s)
+private define ed_put (s)
 {
   ifnot (assoc_key_exists (REG, "\""))
     return;
@@ -4498,7 +4511,7 @@ private define put (s)
   s.draw ();
 }
 
-private define toggle_case (s)
+private define ed_toggle_case (s)
 {
   variable
     func,
@@ -4546,34 +4559,29 @@ private define toggle_case (s)
 %  RECORDS[CRECORD] = {};
 %}
 
-VED_PAGER[string ('~')] = &toggle_case;
-VED_PAGER[string ('P')] = &Put;
-VED_PAGER[string ('p')] = &put;
-VED_PAGER[string ('o')] = &newline;
-VED_PAGER[string ('O')] = &newline;
-VED_PAGER[string ('c')] = &change;
-VED_PAGER[string ('d')] = &del;
-VED_PAGER[string ('x')] = &del_chr;
-VED_PAGER[string ('X')] = &del_chr;
-VED_PAGER[string (keys->rmap.delete[0])] = &del_chr;
-if (2 == length (keys->rmap.delete))
-  VED_PAGER[string (keys->rmap.delete[1])] = &del_chr;
-VED_PAGER[string ('D')] = &del_to_end;
-VED_PAGER[string ('C')] = &edit_line;
-VED_PAGER[string ('i')] = &edit_line;
-VED_PAGER[string ('a')] = &edit_line;
-VED_PAGER[string ('A')] = &edit_line;
-VED_PAGER[string ('r')] = &chang_chr;
-VED_PAGER[string ('J')] = &join_line;
-VED_PAGER[string ('>')] = &indent_out;
-VED_PAGER[string ('<')] = &indent_in;
-
-define preloop (s)
-{
-  MARKS[string ('`')].ptr = s.ptr;
-  MARKS[string ('`')]._i = s._ii;
-}
-
+VED_PAGER[string ('~')] = &ed_toggle_case;
+VED_PAGER[string ('P')] = &ed_Put;
+VED_PAGER[string ('p')] = &ed_put;
+VED_PAGER[string ('o')] = &ed_newline;
+VED_PAGER[string ('O')] = &ed_newline;
+VED_PAGER[string ('c')] = &ed_change;
+VED_PAGER[string ('d')] = &ed_del;
+VED_PAGER[string ('D')] = &ed_del_to_end;
+VED_PAGER[string ('C')] = &ed_editline;
+VED_PAGER[string ('i')] = &ed_editline;
+VED_PAGER[string ('a')] = &ed_editline;
+VED_PAGER[string ('A')] = &ed_editline;
+VED_PAGER[string ('r')] = &ed_chang_chr;
+VED_PAGER[string ('J')] = &ed_join_line;
+VED_PAGER[string ('>')] = &ed_indent_out;
+VED_PAGER[string ('<')] = &ed_indent_in;
+VED_PAGER[string ('x')] = &ed_del_chr;
+VED_PAGER[string ('X')] = &ed_del_chr;
+VED_PAGER[string (keys->rmap.delete[0])]    = &ed_del_chr;
+VED_PAGER[string (keys->rmap.backspace[0])] = &ed_del_chr;
+VED_PAGER[string (keys->rmap.backspace[1])] = &ed_del_chr;
+VED_PAGER[string (keys->rmap.backspace[2])] = &ed_del_chr;
+ 
 ifnot (NULL == DISPLAY)
   ifnot (NULL == XAUTHORITY)
     ifnot (NULL == XCLIP_BIN)
