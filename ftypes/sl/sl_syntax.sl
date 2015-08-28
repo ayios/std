@@ -19,6 +19,7 @@ private variable regexps = [
 |(?<=&|\s|\[|\()(any(?=\s|,))\
 |(?<=&|\s|\[|\()(realpath(?=\s|,))\
 |(?<=&|\s|\[|\()(chdir(?=\s|,))\
+|(?<=&|\s|\[|\()(__tmp(?=\s|,))\
 |(?<=&|\s|\[|\()(array_sort(?=\s|,))\
 |(?<=&|\s|\[|\()(errno_string(?=\s|,))\
 |(?<=&|\s|\[|\(|@)(__get_reference(?=\s|,))\

@@ -36,7 +36,6 @@ typedef struct
   vedloopcallback,
   ved,
   draw,
-  mainloop,
   lexicalhl,
   autoindent,
   } Ftype_Type;
@@ -145,15 +144,6 @@ private define build_ftype_table ()
 }
 
 build_ftype_table ();
-
-$1 = readfile (s_histfile);
-if (NULL != $1 && length ($1))
-  {
-  array_map (&list_append, s_history, __tmp ($1));
-  s_histindex = 0;
-  }
-else
-  s_history = {};
 
 loadfrom ("string", "decode", NULL, &on_eval_err);
 loadfrom ("array", "getsize", NULL, &on_eval_err);
@@ -416,6 +406,8 @@ define __writefile (s, overwrite, ptr, argv)
     return;
     }
  
+  tostderr (s._absfname + ": " + string (bts) + " bytes written");
+
   if (file == s._absfname)
     s._flags &= ~VED_MODIFIED;
 }
@@ -639,10 +631,14 @@ define change_frame ()
 {
   variable w = get_cur_wind ();
   variable s = w.buffers[w.frame_names[w.cur_frame]];
+  variable dir = qualifier ("dir", "next");
 
   set_clr_bg (s, 1);
 
-  w.cur_frame = w.cur_frame == w.frames - 1 ? 0 : w.cur_frame + 1;
+  if ("next" == dir)
+    w.cur_frame = w.cur_frame == w.frames - 1 ? 0 : w.cur_frame + 1;
+  else
+    w.cur_frame = 0 == w.cur_frame ? w.frames - 1 : w.cur_frame - 1;
 
   s = get_cur_buf ();
 
@@ -1038,6 +1034,8 @@ private define _vedloopcallback_ (s)
 
 private define _vedloop_ (s)
 {
+  variable rl;
+
   forever
     {
     s = get_cur_buf ();
@@ -1061,12 +1059,10 @@ private define _vedloop_ (s)
  
     if (':' == s._chr && 0 == VED_ISONLYPAGER && VED_RLINE)
       {
-      if (RECORD)
-        RECORD = 0;
-
       topline (" -- command line --");
-      rline->set (get_cur_rline ());
-      rline->readline (get_cur_rline ();
+      rl = get_cur_rline ();
+      rline->set (rl);
+      rline->readline (rl;
         ved = s, draw = (@__get_reference ("SCRATCH")) == s._absfname ? 0 : 1);
 
       if ('!' == get_cur_rline ().argv[0][0] &&
@@ -1077,6 +1073,7 @@ private define _vedloop_ (s)
         }
 
       topline (" -- pager --");
+      s = get_cur_buf ();
       smg->setrcdr (s.ptr[0], s.ptr[1]);
       }
 
@@ -1123,8 +1120,11 @@ define __hl_groups (lines, vlines, colors, regexps)
 
 private define autoindent (s, indent, line)
 {
+  % lookup for a (not private) type_autoindent
   variable f = __get_reference (s._type + "_autoindent");
+  % call it (if exists) and calc the value
   if (NULL == f)
+  % else calculate the value as:
     @indent =  s._indent + (s._autoindent ? s._shiftwidth : 0);
   else
     @indent = (@f) (s, line);
@@ -1184,7 +1184,7 @@ private define mark (s)
     {
     mark = string (mark);
     mark_init (mark); 
-    mark_set (mark);
+    mark_set (mark, s);
     }
 }
 
@@ -1246,7 +1246,21 @@ private define __pg_right (s, linlen)
   return 1;
 }
 
-%% USED BY PAGER ONLY
+%% USED BY PAGER COMMANDS
+
+private define _indent_in_ (s, line, i_)
+{
+  ifnot (strlen (line) - s._indent)
+    return NULL;
+  
+  ifnot (isblank (line[s._indent]))
+    return NULL;
+ 
+  while (isblank (line[@i_]) && @i_ < s._shiftwidth + s._indent)
+    @i_++;
+
+  return substr (line, @i_ + 1 - s._indent, -1);
+}
 
 private define _adjust_col_ (s, linlen, plinlen)
 {
@@ -2075,6 +2089,18 @@ private variable
   s_lnr,
   s_found;
 
+private define _init_search_hist_ ()
+{
+  variable ar = readfile (s_histfile);
+  if (NULL != ar && length (ar))
+    {
+    array_map (&list_append, s_history, ar);
+    s_histindex = 0;
+    }
+}
+
+_init_search_hist_ ();
+
 private define s_exit_rout (s)
 {
   smg->setrcdr (s.ptr[0], s.ptr[1]);
@@ -2634,13 +2660,15 @@ vis.l_down = &v_l_down;
 private define v_linewise_mode (vs, s)
 {
   variable
+    keys = ['y', 'd', '>', '<', keys->DOWN, keys->UP],
+    i,
     chr;
  
   vs.linlen = [strlen (vs.lines[0])];
 
   v_hl_line (vs, s);
 
-  while (chr = getch (), any (['y', 'd', keys->DOWN, keys->UP] == chr))
+  while (chr = getch (), any (keys == chr))
     {
     if (chr == keys->DOWN)
       {
@@ -2658,6 +2686,31 @@ private define v_linewise_mode (vs, s)
       {
       REG["\""] = strjoin (vs.lines, "\n") + "\n";
       seltoX (strjoin (vs.lines, "\n") + "\n");
+      return 1;
+      }
+    
+    if ('>' == chr)
+      {
+      _for i (0, length (vs.lnrs) - 1)
+        s.lines[vs.lnrs[i]] = repeat (" ", s._shiftwidth) + s.lines[vs.lnrs[i]];
+      
+      set_modified (s);
+      return 1;
+      }
+    
+    if ('<' == chr)
+      {
+      _for i (0, length (vs.lnrs) - 1)
+        {
+        variable i_ = s._indent;
+        variable l = _indent_in_ (s, s.lines[vs.lnrs[i]], &i_);
+        if (NULL == l)
+          continue;
+        
+        s.lines[vs.lnrs[i]] = l;
+        }
+
+      set_modified (s);
       return 1;
       }
 
@@ -2809,6 +2862,7 @@ vis.c_right = &v_c_right;
 private define v_char_mode (vs, s)
 {
   variable
+    keys = ['y', 'd', keys->DOWN, keys->RIGHT, keys->UP, keys->LEFT],
     sel,
     chr,
     cur = 0;
@@ -2821,8 +2875,7 @@ private define v_char_mode (vs, s)
 
   v_hl_ch (vs, s);
 
-  while (chr = getch (), any (['y', 'd', keys->DOWN, keys->RIGHT, keys->UP, keys->LEFT]
-    == chr))
+  while (chr = getch (), any (keys == chr))
     {
     if (keys->RIGHT == chr)
       {
@@ -2955,6 +3008,12 @@ VED_PAGER[string ('v')] = &vis_mode;
 VED_PAGER[string ('V')] = &vis_mode;
 
 %%% INSERT MODE
+
+private define newline_str (s, indent, line)
+{
+  s.autoindent (indent, line);
+  return repeat (" ", @indent);
+}
 
 private variable lang = input->getlang ();
 
@@ -3480,7 +3539,8 @@ private define ins_cr (is, s, line)
   else
     {
     lline = 0 == s._index - s._indent ? " " : substr (@line, 1, s._index);
-    @line = substr (@line, s._index + 1, -1);
+    variable indent = 0;
+    @line =  newline_str (s, &indent, @line) + substr (@line, s._index + 1, -1);
 
     prev_l = lline;
 
@@ -3492,7 +3552,7 @@ private define ins_cr (is, s, line)
       else
         next_l = v_lin (s, s.ptr[0] + 1);
 
-    s.ptr[1] = s._indent;
+    s.ptr[1] = indent;
     s._i = s._ii;
 
     if (s.ptr[0] == s.rows[-2] && s.ptr[0] + 1 > s._avlins)
@@ -3509,11 +3569,10 @@ private define ins_cr (is, s, line)
  
     s.draw (;dont_draw);
  
-    @line = repeat (" ", s._indent) + @line;
     waddline (s, @line, 0, s.ptr[0]);
     draw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
 
-    s._index = s._indent;
+    s._index = indent;
     s._findex = s._indent;
 
     lang = input->getlang ();
@@ -3948,12 +4007,6 @@ define insert (s, line, lnr, prev_l, next_l)
 
 %%%% ED MODE
 
-private define newline_str (s, indent, line)
-{
-  s.autoindent (indent, line);
-  return repeat (" ", @indent);
-}
-
 private define ed_indent_in (s)
 {
   variable
@@ -3961,16 +4014,10 @@ private define ed_indent_in (s)
     i = v_lnr (s, '.'),
     line = v_lin (s, '.');
  
-  ifnot (strlen (line) - s._indent)
+  line = _indent_in_ (s, line, &i_);
+  
+  if (NULL == line)
     return;
-
-  ifnot (isblank (line[i_]))
-    return;
- 
-  while (isblank (line[i_]) && i_ < s._shiftwidth + s._indent)
-    i_++;
-
-  line = substr (line, i_ + 1 - s._indent, -1);
 
   s.lins[s.ptr[0] - s.rows[0]] = line;
   s.lines[i] = line;

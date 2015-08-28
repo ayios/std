@@ -21,25 +21,16 @@ define addfname (fname)
     s = init_ftype (ft);
     variable func = __get_reference (sprintf ("%s_settype", ft));
     (@func) (s, fname, w.frame_rows[get_cur_frame ()], NULL);
-    setbuf (s._absfname);
-
-    write_prompt (" ", 0);
-
-    s.draw ();
-
-    w.frame_names[get_cur_frame ()] = s._absfname;
     }
   else
     {
     s = w.buffers[absfname];
- 
-    w.frame_names[get_cur_frame ()] = s._absfname;
-    setbuf (s._absfname);
-
-    write_prompt (" ", 0);
     s._i = s._ii;
-    s.draw ();
     }
+  
+  setbuf (s._absfname);
+  write_prompt (" ", 0);
+  s.draw (;dont_draw);
 }
 
 private define _edit_other ()
@@ -72,9 +63,9 @@ private define _bdelete ()
 
   if (force && s._flags & VED_MODIFIED)
     {
-    variable chr;
     send_msg_dr (sprintf ("%s is modified: save changes? y[es]/n[o]",
       s._absfname), 0, NULL, NULL);
+    variable chr;
     while (chr = getch (), 0 == any (chr == ['y', 'n']));
  
     if ('n' == chr)
@@ -183,7 +174,8 @@ define __write_buffers ()
     ifnot (s._flags & VED_MODIFIED)
       continue;
  
-    ifnot (qualifier_exists ("force"))
+    if (0 == qualifier_exists ("force") ||
+      (qualifier_exists ("force") && s._absfname != get_cur_bufname ()))
       {
       send_msg_dr (sprintf ("%s: save changes? y[es]/n[o]/c[cansel]", fn), 0, NULL, NULL);
 
@@ -202,8 +194,8 @@ define __write_buffers ()
       }
  
     bts = 0;
-    variable retval = __writetofile (s._fname, s.lines, s._indent, &bts);
- 
+    variable retval = __writetofile (s._absfname, s.lines, s._indent, &bts);
+   
     ifnot (0 == retval)
       {
       send_msg_dr (sprintf ("%s, q to continue, without canseling function call", errno_string (retval)),
@@ -213,11 +205,13 @@ define __write_buffers ()
         continue;
       else
         {
-        tostderr (sprintf ("%s, q to continue, without canseling function call", errno_string (retval)));
+        tostderr (sprintf ("%s: %s", s._absfname, errno_string (retval)));
         hasnewmsg = 1;
         abort = -1;
         }
       }
+    else
+      tostderr (s._absfname + ": " + string (bts) + " bytes written");
     }
  
   if (hasnewmsg)
@@ -228,16 +222,24 @@ define __write_buffers ()
 
 private define cl_quit ()
 {
+  variable force = 0;
   variable retval = 0;
+  variable com = qualifier ("argv0");
   variable rl = qualifier ("rl");
 
   rline->writehistory (rl.history, rl.histfile);
 
   if (length (s_history))
     rline->writehistory (list_to_array (s_history), s_histfile);
+  
+  if (qualifier_exists ("force") || 'w' == com[0])
+    force = 1;
 
-  if (qualifier_exists ("force") || "q!" != qualifier ("argv0"))
-    retval = __write_buffers ();
+  if (force)
+    retval = __write_buffers (;force);
+  else
+    ifnot ("q!" == com)
+      retval = __write_buffers ();
 
   ifnot (retval)
     exit_me (0);
@@ -290,7 +292,7 @@ private define write_quit ()
   variable s = qualifier ("ved");
   variable args = __pop_list (_NARGS);
   % needs to write the current buffer and ask for the rest
-  variable retval = __write_buffers ();
+  variable retval = __write_buffers (;force);
   ifnot (retval)
     exit_me (0);
 }
@@ -378,3 +380,4 @@ define init_ftype (ftype)
 
   return type;
 }
+
