@@ -304,7 +304,6 @@ private define delete_at (s)
       else
         s.argv[i] = substr (s.argv[i], 1, len) +
           substr (s.argv[i], len + 2, -1);
-
 }
 
 private define insert_at (s)
@@ -326,7 +325,7 @@ private define insert_at (s)
   len = s._col - (len - arglen);
  
   if (s._col == len)
-    s.argv[i]+= chr;
+    s.argv[i] += chr;
   else
     ifnot (len)
       if (i > 0)
@@ -340,11 +339,26 @@ private define insert_at (s)
 
 private define routine (s)
 {
-  if (any (keys->rmap.backspace == s._chr))
+  if (any ([keys->rmap.backspace] == s._chr))
     {
     if (s._col > strlen (s._pchar))
       delete_at (s);
- 
+    return;
+    }
+    
+  if (any (keys->rmap.delete == s._chr))
+    {
+    if (s._col <= strlen (s._lin))
+      ifnot (s._col == strlen (strjoin (s.argv[[:s._ind]], " ")) + 1)
+        delete_at (s;is_delete);
+      else
+        if (s._ind < length (s.argv) - 1)
+          {
+          s.argv[s._ind] += s.argv[s._ind+1];
+          s.argv[s._ind+1] = NULL;
+          s.argv = s.argv[wherenot (_isnull (s.argv))];
+          }
+
     return;
     }
 
@@ -384,21 +398,6 @@ private define routine (s)
     return;
     }
 
-  if (any (keys->rmap.delete == s._chr))
-    {
-    if (s._col <= strlen (s._lin))
-      ifnot (s._col == strlen (strjoin (s.argv[[:s._ind]], " ")) + 1)
-        delete_at (s;is_delete);
-      else
-        if (s._ind < length (s.argv) - 1)
-          {
-          s.argv[s._ind] += s.argv[s._ind+1];
-          s.argv[s._ind+1] = NULL;
-          s.argv = s.argv[wherenot (_isnull (s.argv))];
-          }
-
-    return;
-    }
 
   if (' ' == s._chr)
     {
@@ -1340,16 +1339,47 @@ private define fnamecmpToprow (s, fname)
     }
 }
 
-define Null ()
+private define _null_ ()
 {
   return NULL;
 }
 
+static define __gettxt (str, row, col)
+{
+  variable rl = init (&_null_);
+
+  set (rl);
+
+  col = NULL == col ? strlen (rl.argv[0]) + 1 : col;
+  rl._pclr = qualifier ("clr", 16);
+  rl.argv = [str];
+  rl._col = col;
+  rl._prow = row;
+  rl._ind = 0;
+  rl._lin = rl.argv[0];
+  rl._pchar = "";
+  
+ smg->atrcaddnstrdr (strlen (rl._lin) ? rl._lin : " ", rl._pclr, rl._prow,
+   col, rl._prow, rl._col - 1, strlen (rl._lin) ? strlen (rl._lin) : 1);
+
+  forever
+    {
+    rl._chr = getch ();
+    if (033 == rl._chr)
+      return rl;
+ 
+    routine (rl;insert_ws);
+    rl._lin = rl.argv[0];
+    smg->atrcaddnstrdr (rl._lin, rl._pclr, rl._prow, col, rl._prow,
+     rl._col - 1, strlen (rl._lin));
+    }
+}
+  
 private define getpattern (s, pat)
 {
   variable pcrepat;
   variable err;
-  variable rl = init (&Null);
+  variable rl = init (&_null_);
 
   set (rl);
 
@@ -1970,3 +2000,4 @@ static define readline (s)
     prompt (s, s._lin, s._col);
     }
 }
+

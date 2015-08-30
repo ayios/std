@@ -68,11 +68,13 @@ typedef struct
 
 private variable vis = struct
   {
+  _i,
+  ptr,
   clr = COLOR.visual,
   l_mode,
   l_down,
   l_up,
-  l_keys = ['y', 'd', '>', '<', keys->DOWN, keys->UP],
+  l_keys = ['y', 'Y', 'd', '>', '<', keys->DOWN, keys->UP],
   c_mode,
   c_left,
   c_right,
@@ -82,8 +84,18 @@ private variable vis = struct
   bw_up,
   bw_left,
   bw_right,
-  bw_keys = ['x', 'I', 'c', keys->DOWN, keys->UP, keys->RIGHT, keys->LEFT],
+  bw_keys = ['x', 'I', 'd', 'y', keys->DOWN, keys->UP, keys->RIGHT, keys->LEFT],
   bw_maxlen,
+  needsdraw,
+  startrow,
+  startlnr,
+  startcol,
+  startindex,
+  vlins,
+  lnrs,
+  linlen,
+  lines,
+  sel,
   at_exit,
   };
 
@@ -261,7 +273,7 @@ define tail (s)
   variable
     lnr = v_lnr (s, '.') + 1,
     line = v_lin (s, '.');
- 
+
   return sprintf (
     "[%s] (row %d) (col %d) (linenr %d/%d %.0f%%) (strlen %d) chr (%d), undo (%d/%d)",
     path_basename (s._fname), s.ptr[0], s.ptr[1] - s._indent + 1, lnr,
@@ -2599,7 +2611,7 @@ private define v_hl_line (vs, s)
     smg->refresh ();
 }
 
-private define _v_calclines_up (s, vs, un, inc)
+private define v_calclines_up (s, vs, un, inc)
 {
   if (un)
     v_unhl_line (vs, s, -1);
@@ -2613,7 +2625,7 @@ private define _v_calclines_up (s, vs, un, inc)
     vs.vlins++;
 }
 
-private define _v_calclines_up_ (s, vs, incr)
+private define v_calclines_up_ (s, vs, incr)
 {
   vs.lines = [v_lin (s, '.'), vs.lines];
   vs.lnrs = [vs.lnrs[0] - 1, vs.lnrs];
@@ -2636,9 +2648,9 @@ private define v_l_up (vs, s)
     s.draw ();
     
     if (vs.lnrs[-1] <= vs.startlnr)
-      _v_calclines_up_ (s, vs, 1);
+      v_calclines_up_ (s, vs, 1);
     else
-      _v_calclines_up (s, vs, 0, 1);
+      v_calclines_up (s, vs, 0, 1);
     
     v_hl_line (vs, s);
     return;
@@ -2647,16 +2659,16 @@ private define v_l_up (vs, s)
   s.ptr[0]--;
 
   if (vs.lnrs[-1] > vs.startrow)
-    _v_calclines_up (s, vs, 1, 0);
+    v_calclines_up (s, vs, 1, 0);
   else
-    _v_calclines_up_ (s, vs, 0);
+    v_calclines_up_ (s, vs, 0);
 
   v_hl_line (vs, s);
 }
 
 vis.l_up = &v_l_up;
 
-private define _v_calclines_down (s, vs, un, dec)
+private define v_calclines_down (s, vs, un, dec)
 {
   if (un)
     v_unhl_line (vs, s, 0);
@@ -2670,7 +2682,7 @@ private define _v_calclines_down (s, vs, un, dec)
     vs.vlins--;
 }
 
-private define _v_calclines_down_ (s, vs, dec)
+private define v_calclines_down_ (s, vs, dec)
 {
   vs.lines = [vs.lines, v_lin (s, '.')];
   vs.lnrs = [vs.lnrs, vs.lnrs[-1] + 1];
@@ -2693,9 +2705,9 @@ private define v_l_down (vs, s)
     s.draw ();
     
     if (vs.lnrs[0] < vs.startlnr)
-      _v_calclines_down (s, vs, 0, 1);
+      v_calclines_down (s, vs, 0, 1);
     else
-      _v_calclines_down_ (s, vs, 1);
+      v_calclines_down_ (s, vs, 1);
 
     v_hl_line (vs, s);
     return;
@@ -2704,9 +2716,9 @@ private define v_l_down (vs, s)
   s.ptr[0]++;
 
   if (vs.lnrs[0] < vs.startlnr)
-    _v_calclines_down (s, vs, 1, 0);
+    v_calclines_down (s, vs, 1, 0);
   else
-    _v_calclines_down_ (s, vs, 0);
+    v_calclines_down_ (s, vs, 0);
 
   v_hl_line (vs, s);
 }
@@ -2735,7 +2747,7 @@ private define v_l_loop (vs, s)
       {
       REG["\""] = strjoin (vs.lines, "\n") + "\n";
       seltoX (strjoin (vs.lines, "\n") + "\n");
-      return 1;
+      break;
       }
     
     if ('>' == chr)
@@ -2744,7 +2756,7 @@ private define v_l_loop (vs, s)
         s.lines[vs.lnrs[i]] = repeat (" ", s._shiftwidth) + s.lines[vs.lnrs[i]];
       
       set_modified (s);
-      return 1;
+      break;
       }
     
     if ('<' == chr)
@@ -2760,7 +2772,7 @@ private define v_l_loop (vs, s)
         }
 
       set_modified (s);
-      return 1;
+      break;
       }
 
     if ('d' == chr)
@@ -2786,11 +2798,11 @@ private define v_l_loop (vs, s)
  
       set_modified (s);
       s.draw ();
-      return 0;
+      return;
       }
     }
 
-  return 1;
+  vs.needsdraw = 1;
 }
 
 private define v_linewise_mode (vs, s)
@@ -2799,7 +2811,7 @@ private define v_linewise_mode (vs, s)
 
   v_hl_line (vs, s);
   
-  return v_l_loop (vs, s);
+  v_l_loop (vs, s);
 }
 
 vis.l_mode = &v_linewise_mode;
@@ -2925,7 +2937,7 @@ private define v_char_mode (vs, s)
     cur = 0;
  
   vs.startcol = [vs.col[0]];
-  vs.startindex = [vs.index];
+  vs.startindex = vs.index;
   vs.index = [vs.index];
 
   vs.sel = [substr (vs.lines[cur], vs.index[cur] + 1, 1)];
@@ -2951,8 +2963,9 @@ private define v_char_mode (vs, s)
       sel = strjoin (vs.sel, "\n");
       REG["\""] = sel;
       seltoX (sel);
-      vs.index = vs.startindex[cur];
-      vs.col = vs.startcol[cur];
+      s._index = vs.startindex;
+      s.ptr[0] = vs.ptr[0];
+      s.ptr[1] = vs.ptr[1];
       return;
       }
 
@@ -2974,7 +2987,7 @@ private define v_char_mode (vs, s)
       s.lines[vs.startlnr] = line;
       s.lins[s.ptr[0] - s.rows[0]] = line;
 
-      variable index = vs.startindex[cur];
+      variable index = vs.startindex;
 
       if (index > strlen (line))
         ifnot (strlen (line))
@@ -2985,8 +2998,9 @@ private define v_char_mode (vs, s)
       if (index > strlen (line))
         index = strlen (line);
 
-      vs.index = index;
-      vs.col = index;
+      s._index = index;
+      s.ptr[0] = vs.ptr[0];
+      s.ptr[1] = index;
 
       s.st_.st_size = getsizear (s.lines);
 
@@ -2999,40 +3013,156 @@ private define v_char_mode (vs, s)
       }
     }
 
-  vs.index = vs.startindex[cur];
-  vs.col = [vs.startcol[cur]];
+  s.ptr[0] = vs.ptr[0];
+  s.ptr[1] = vs.startindex;
 }
 
 vis.c_mode = &v_char_mode;
 
-private define v_bw_right (vs, s, cur)
+private define v_bw_calclines (vs)
 {
-  variable retval = __pg_right (s, vs.linlen[-1]);
+  variable i;
+  _for i (0, length (vs.lines) - 1)
+    vs.sel[i] = substr (vs.lines[i], vs.startcol + 1, vs.index[i] - vs.startcol + 1);
+}
 
-  if (-1 == retval)
+private define v_bw_calclines_up (s, vs, un, inc)
+{
+  v_calclines_up (s, vs, un, inc);
+
+  vs.index =  vs.index[[:-2]];
+  vs.sel = vs.sel[[:-2]];
+  vs.col  = vs.col[[:-2]];
+}
+
+private define v_bw_calclines_up_ (s, vs, incr)
+{
+  v_calclines_up_ (s, vs, incr);
+  vs.index = [vs.index[0], vs.index];
+  vs.sel = [substr (vs.lines[0], vs.index[0] + 1, 1), vs.sel];
+  vs.col  = [vs.col[0], vs.col];
+  vs.bw_maxlen = int (min (vs.linlen[where (vs.linlen)]));
+}
+
+private define v_bw_up (vs, s)
+{
+  ifnot (v_lnr (s, '.'))
     return;
- 
-  vs.index[cur]++;
-
-  if (retval)
+  
+  if (s.ptr[0] == s.vlins[0])
     {
-    variable lline = getlinestr (s, vs.lines[cur], s._findex + 1 - s._indent);
-    waddline (s, lline, 0, s.ptr[0]);
-    s._is_wrapped_line = 1;
-    vs.wrappedmot++;
+    s._i--;
+    s.draw ();
+    
+    if (vs.lnrs[-1] <= vs.startlnr)
+      v_bw_calclines_up_ (s, vs, 1);
+    else
+      v_bw_calclines_up (s, vs, 0, 1);
+
+    v_bw_calclines (vs);   
+    v_hl_ch (vs, s);
+    return;
     }
 
-  vs.col[cur] = s.ptr[1] < vs.startcol[cur]
-    ? s.ptr[1]
-    : s._is_wrapped_line
-      ? vs.startcol[cur] - vs.wrappedmot
-      : vs.startcol[cur];
- 
-  if (vs.index[cur] <= vs.startindex[cur])
-    vs.sel[cur] = substr (vs.sel[cur], 2, -1);
-  else
-    vs.sel[cur] += substr (vs.lines[cur], vs.index[cur] + 1, 1);
+  s.ptr[0]--;
 
+  if (vs.lnrs[-1] > vs.startrow)
+    v_bw_calclines_up (s, vs, 1, 0);
+  else
+    v_bw_calclines_up_ (s, vs, 0);
+
+  v_bw_calclines (vs);   
+  v_hl_ch (vs, s);
+}
+
+vis.bw_up = &v_bw_up;
+
+private define v_bw_calclines_down (s, vs, un, dec)
+{
+  v_calclines_down (s, vs, un, dec);
+  vs.index =  vs.index[[1:]];
+  vs.sel = vs.sel[[1:]];
+  vs.col  = vs.col[[1:]];
+}
+
+private define v_bw_calclines_down_ (s, vs, dec)
+{
+  v_calclines_down_ (s, vs, dec);
+  vs.index = [vs.index, vs.index[-1]];
+  vs.sel = [vs.sel, substr (vs.lines[-1], vs.index[-1] + 1, 1)];
+  vs.col  = [vs.col, vs.col[-1]];
+}
+
+private define v_bw_down (vs, s)
+{
+  if (v_lnr (s, '.') == s._len)
+      return;
+
+  if (s.ptr[0] == s.vlins[-1])
+    {
+    s._i++;
+    s.draw ();
+    
+    if (vs.lnrs[0] < vs.startlnr)
+      v_bw_calclines_down (s, vs, 0, 1);
+    else
+      v_bw_calclines_down_ (s, vs, 1);
+
+    v_bw_calclines (vs);   
+    v_hl_ch (vs, s);
+    return;
+    }    
+
+  s.ptr[0]++;
+
+  if (vs.lnrs[0] < vs.startlnr)
+    v_bw_calclines_down (s, vs, 1, 0);
+  else
+    v_bw_calclines_down_ (s, vs, 0);
+
+  v_bw_calclines (vs);   
+  v_hl_ch (vs, s);
+}
+
+vis.bw_down = &v_bw_down;
+
+private define v_bw_left (vs, s)
+{
+  if (s.ptr[1] == vs.startcol)
+    return;
+
+  vs.index--;
+  s.ptr[1]--;
+  s._index--;
+  
+  v_bw_calclines (vs);  
+  v_hl_ch (vs, s);
+}
+
+vis.bw_left = &v_bw_left;
+
+private define v_bw_right (vs, s)
+{
+  variable linlen = v_linlen (s, '.');
+
+  if (s._index - s._indent == linlen - 1 || 0 == linlen
+      || s._index + 1 > vs.bw_maxlen)
+    return;
+  
+  if (s.ptr[1] < s._maxlen - 1)
+    s.ptr[1]++;
+  else
+    {
+    % still there is no care for wrapped lines (possible blockwise is unsuable
+    % and bit of sensless for wrapped lines): very low priority
+    %s._findex++;
+    %s._is_wrapped_line = 1;
+    }
+
+  s._index++;
+  vs.index++;
+ 
+  v_bw_calclines (vs);
   v_hl_ch (vs, s);
 }
 
@@ -3041,46 +3171,116 @@ vis.bw_right = &v_bw_right;
 private define v_bw_mode (vs, s)
 {
   variable
+    i,
+    lnr,
     sel,
     chr,
-    cur = 0;
- 
-  vs.maxlen = 1;
-  vs.startcol = [vs.col[0]];
-  vs.startindex = [vs.index];
+    len,
+    line;
+
+  vs.linlen = [strlen (vs.lines[0])];
+
+  vs.bw_maxlen = vs.linlen[0];
+  vs.startcol = vs.col[0];
+  vs.startindex = vs.index;
   vs.index = [vs.index];
 
-  vs.sel = [substr (vs.lines[cur], vs.index[cur] + 1, 1)];
+  vs.sel = [substr (vs.lines[0], vs.index[0] + 1, 1)];
 
   v_hl_ch (vs, s);
 
   while (chr = getch (), any (vs.bw_keys == chr))
     {
+    if (keys->UP == chr)
+      {
+      vs.bw_up (s);
+      continue;
+      }
+
+    if (keys->DOWN == chr)
+      {
+      vs.bw_down (s);
+      continue;
+      }
+
     if (keys->RIGHT == chr)
       {
-      vs.c_right (s, cur);
+      vs.bw_right (s);
       continue;
       }
 
     if (keys->LEFT == chr)
       {
-      vs.c_left (s, cur);
+      vs.bw_left (s);
       continue;
       }
 
-    if ('x' == chr)
+    if ('d' == chr)
       {
       sel = strjoin (vs.sel, "\n");
       REG["\""] = sel;
       seltoX (sel);
-      vs.index = vs.startindex[cur];
-      vs.col = vs.startcol[cur];
-      return;
+      _for i (0, length (vs.lnrs) - 1)
+        {
+        lnr = vs.lnrs[i];
+        line = s.lines[lnr];
+ 
+        if (0 == strlen (line) || (1 == strlen (line) && ' ' == line[0]))
+          continue;
+        
+        if (vs.startcol)
+          line = sprintf ("%s%s", substr (line, 1, vs.startcol), vs.index[i] == strlen (line)
+            ? "" : substr (line, vs.startcol + 1 + strlen (vs.sel[i]), -1));
+        else
+          line = sprintf ("%s", vs.index[i] == strlen (line)
+            ? "" : substr (line, strlen (vs.sel[1]) + 1, -1));
+
+        s.lines[lnr] = line;
+        }
+
+      set_modified (s);
+      break;
+      }
+    
+    if ('y' == chr)
+      {
+      sel = strjoin (vs.sel, "\n");
+      REG["\""] = sel;
+      seltoX (sel);
+      break;
+      }
+    
+    if ('I' == chr)
+      {
+      variable t = rline->__gettxt ("", vs.vlins[0] - 1, vs.startcol)._lin;
+      _for i (0, length (vs.lnrs) - 1)
+        {
+        lnr = vs.lnrs[i];
+        line = s.lines[lnr];
+        len = strlen (line);
+ 
+        if (0 == len && vs.startcol)
+          continue;
+        
+        if (vs.startcol)
+          line = sprintf ("%s%s%s%s",
+            substr (line, 1, vs.startcol),
+            len < vs.startcol ? repeat (" ", vs.startcol - len) : "",
+            t,
+            substr (line, vs.startcol + 1, -1));
+        else
+          line = sprintf ("%s%s", t, strlen (line) == 1 && line[0] == ' '
+            ? "" : substr (line, 1, -1));
+
+        s.lines[lnr] = line;
+        }
+
+      set_modified (s);
+      break;
       }
     }
 
-  vs.index = vs.startindex[cur];
-  vs.col = [vs.startcol[cur]];
+  vs.needsdraw = 1;
 }
 
 vis.bw_mode = &v_bw_mode;
@@ -3091,9 +3291,10 @@ private define v_atexit (vs, s, draw)
  
   if (draw)
     {
-    s._i = s._ii;
-    s.ptr[1] = vs.col[0];
-    s._index = vs.index;
+    s._i = vs._i;
+    s.ptr[1] = vs.ptr[1];
+    s.ptr[0] = vs.ptr[0];
+    s._index = vs.startindex;
  
     s.draw ();
     }
@@ -3105,44 +3306,47 @@ private define v_init (s)
 {
   toplinedr ("-- visual --");
   variable lnr = v_lnr (s, '.');
-
+  variable v = @vis;
+  
+  v._i = @s._ii;
+  v.ptr = @s.ptr;
+  v.needsdraw = 0;
+  v.startlnr = lnr;
+  v.vlins = [s.ptr[0]];
+  v.lnrs = [lnr];
+  v.linlen = [v_linlen (s, '.')];
+  v.lines = [v_lin (s, '.')];
+  v.startrow = lnr;
+  v.startindex = s._index;
+  
   return struct
     {
-    startrow,
-    startlnr = lnr,
-    startcol,
     wrappedmot = 0,
-    startindex,
     findex = s._findex,
     index = s._index,
     col = [s.ptr[1]],
-    vlins = [s.ptr[0]],
-    lnrs = [lnr],
-    linlen = [v_linlen (s, '.')],
-    lines = [v_lin (s, '.')],
-    sel,
-    @vis,
+    @v,
     };
 }
 
 private define vis_mode (s)
 {
   variable
-    draw = 1,
     vs = v_init (s);
- 
-  vs.startrow = vs.lnrs[0];
 
   if (s._chr == 'v')
     vs.c_mode (s);
+  else if (s._chr == keys->CTRL_v)
+    vs.bw_mode (s);
   else
-    draw = vs.l_mode (s);
+    vs.l_mode (s);
 
-  vs.at_exit (s, draw);
+  vs.at_exit (s, vs.needsdraw);
 }
 
 VED_PAGER[string ('v')] = &vis_mode;
 VED_PAGER[string ('V')] = &vis_mode;
+VED_PAGER[string (keys->CTRL_v)] = &vis_mode; 
 
 %%% INSERT MODE
   
