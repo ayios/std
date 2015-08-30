@@ -168,7 +168,7 @@ private variable regexps = [
   pcre_compile ("\
 ((?<=\w)(\s{1,}$))+"R, 0),
 %comments
-  pcre_compile ("(^\s*%.*)"R, 0),
+  pcre_compile ("((^\s*%.*)|((?<=[\)|;|\s])% .*))"R, 0),
 ];
 
 define sl_lexicalhl (s, lines, vlines)

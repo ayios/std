@@ -14,4 +14,5 @@ variable COLOR = struct
   infobg = "brown",
   diffpl = "blackongreen",
   diffmn = "blackoncyan",
+  visual = "blackonbrown",
   };

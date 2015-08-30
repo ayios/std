@@ -66,6 +66,44 @@ typedef struct
   rline,
   } Wind_Type;
 
+private variable vis = struct
+  {
+  clr = COLOR.visual,
+  l_mode,
+  l_down,
+  l_up,
+  l_keys = ['y', 'd', '>', '<', keys->DOWN, keys->UP],
+  c_mode,
+  c_left,
+  c_right,
+  c_keys = ['y', 'd', keys->DOWN, keys->RIGHT, keys->UP, keys->LEFT],
+  bw_mode,
+  bw_down,
+  bw_up,
+  bw_left,
+  bw_right,
+  bw_keys = ['x', 'I', 'c', keys->DOWN, keys->UP, keys->RIGHT, keys->LEFT],
+  bw_maxlen,
+  at_exit,
+  };
+
+private variable insfuncs = struct
+  {
+  cr,
+  esc,
+  bol,
+  eol,
+  up,
+  left,
+  down,
+  right,
+  del_prev,
+  del_next,
+  ins_char,
+  ins_tab,
+  completeline,
+  };
+
 public variable
   POS = Pos_Type[10],
   FTYPES = Assoc_Type[Integer_Type],
@@ -1163,7 +1201,7 @@ private define mark_init (m)
     MARKS[m] = @Pos_Type;
 }
 
-mark_init (string ('`'));
+array_map (&mark_init, array_map (String_Type, &string, ['`', '<', '>']));
 
 private define mark_set (m, s)
 {
@@ -2528,18 +2566,6 @@ VED_PAGER[string (keys->QMARK)] = &search;
 
 %%% VISUAL MODE
 
-private variable vis = struct
-  {
-  clr = 18,
-  l_mode,
-  l_down,
-  l_up,
-  c_mode,
-  c_left,
-  c_right,
-  at_exit,
-  };
-
 private define v_unhl_line (vs, s, index)
 {
   smg->hlregion (0, vs.vlins[index], 0, 1, s._maxlen);
@@ -2554,121 +2580,144 @@ private define v_hl_ch (vs, s)
     smg->hlregion (vs.clr, vs.vlins[i], vs.col[i], 1, strlen (vs.sel[i]));
     }
 
-  smg->refresh ();
+  ifnot (qualifier_exists ("dont_draw"))
+    smg->refresh ();
 }
 
 private define v_hl_line (vs, s)
 {
   variable i;
   _for i (0, length (vs.vlins) - 1)
-    ifnot (-1 == vs.vlins[i])
+    if (vs.vlins[i] >= s.rows[0])
       if (vs.vlins[i] == s.rows[-1])
         break;
-      else if (vs.vlins[i] < s.rows[0])
-        continue;
       else
         smg->hlregion (vs.clr, vs.vlins[i], 0, 1,
           s._maxlen > vs.linlen[i] ? vs.linlen[i] : s._maxlen);
+  
+  ifnot (qualifier_exists ("dont_draw"))
+    smg->refresh ();
+}
 
-  smg->refresh ();
+private define _v_calclines_up (s, vs, un, inc)
+{
+  if (un)
+    v_unhl_line (vs, s, -1);
+
+  vs.lines = vs.lines[[:-2]];
+  vs.lnrs = vs.lnrs[[:-2]];
+  vs.vlins = vs.vlins[[:-2]];
+  vs.linlen = vs.linlen[[:-2]];
+
+  if (inc)
+    vs.vlins++;
+}
+
+private define _v_calclines_up_ (s, vs, incr)
+{
+  vs.lines = [v_lin (s, '.'), vs.lines];
+  vs.lnrs = [vs.lnrs[0] - 1, vs.lnrs];
+
+  if (incr)
+    vs.vlins++;
+
+  vs.vlins = [s.ptr[0], vs.vlins];
+  vs.linlen = [strlen (vs.lines[0]), vs.linlen];
 }
 
 private define v_l_up (vs, s)
 {
   ifnot (v_lnr (s, '.'))
     return;
-
+  
   if (s.ptr[0] == s.vlins[0]) %for now FIXME
     {
-    vs._i--;
+    s._i--;
     s.draw ();
-
-    vs.lines = [v_lin (s, '.'), vs.lines];
-    vs.lnrs = [vs.lnrs[0] - 1, vs.lnrs];
-    vs.vlins++;
-    vs.vlins = [vs.ptr[0], vs.vlins];
-    vs.linlen = [strlen (vs.lines[0]), vs.linlen];
+    
+    if (vs.lnrs[-1] <= vs.startlnr)
+      _v_calclines_up_ (s, vs, 1);
+    else
+      _v_calclines_up (s, vs, 0, 1);
+    
     v_hl_line (vs, s);
     return;
     }
- 
+
   s.ptr[0]--;
 
   if (vs.lnrs[-1] > vs.startrow)
-    {
-    v_unhl_line (vs, s, -1);
-    vs.lines = vs.lines[[:-2]];
-    vs.lnrs = vs.lnrs[[:-2]];
-    vs.vlins = vs.vlins[[:-2]];
-    vs.linlen = vs.linlen[[:-2]];
-    }
+    _v_calclines_up (s, vs, 1, 0);
   else
-    {
-    vs.lines = [v_lin (s, '.'), vs.lines];
-    vs.lnrs = [vs.lnrs[0] - 1, vs.lnrs];
-    vs.vlins = [s.ptr[0], vs.vlins];
-    vs.linlen = [strlen (vs.lines[0]), vs.linlen];
-    }
+    _v_calclines_up_ (s, vs, 0);
 
   v_hl_line (vs, s);
 }
 
 vis.l_up = &v_l_up;
 
+private define _v_calclines_down (s, vs, un, dec)
+{
+  if (un)
+    v_unhl_line (vs, s, 0);
+
+  vs.lines = vs.lines[[1:]];
+  vs.lnrs = vs.lnrs[[1:]];
+  vs.vlins = vs.vlins[[1:]];
+  vs.linlen = vs.linlen[[1:]];
+
+  if (dec)
+    vs.vlins--;
+}
+
+private define _v_calclines_down_ (s, vs, dec)
+{
+  vs.lines = [vs.lines, v_lin (s, '.')];
+  vs.lnrs = [vs.lnrs, vs.lnrs[-1] + 1];
+
+  if (dec)
+    vs.vlins--;
+
+  vs.vlins = [vs.vlins, s.ptr[0]];
+  vs.linlen = [vs.linlen, strlen (vs.lines[-1])];
+}
+
 private define v_l_down (vs, s)
 {
   if (v_lnr (s, '.') == s._len)
       return;
 
-  if (s.ptr[0] == s.vlins[-1]) %for now FIXME
+  if (s.ptr[0] == s.vlins[-1])
     {
     s._i++;
- 
     s.draw ();
-    vs.lines = [vs.lines, v_lin (s, '.')];
-    vs.lnrs = [vs.lnrs, vs.lnrs[-1] + 1];
-    vs.vlins--;
-    vs.vlins = [vs.vlins, s.ptr[0]];
-    vs.linlen = [vs.linlen, strlen (vs.lines[-1])];
+    
+    if (vs.lnrs[0] < vs.startlnr)
+      _v_calclines_down (s, vs, 0, 1);
+    else
+      _v_calclines_down_ (s, vs, 1);
+
     v_hl_line (vs, s);
     return;
-    }
+    }    
 
   s.ptr[0]++;
 
-  if (vs.lnrs[0] < vs.startrow)
-    {
-    v_unhl_line (vs, s, 0);
-    vs.lines = vs.lines[[1:]];
-    vs.lnrs = vs.lnrs[[1:]];
-    vs.vlins = vs.vlins[[1:]];
-    vs.linlen = vs.linlen[[1:]];
-    }
+  if (vs.lnrs[0] < vs.startlnr)
+    _v_calclines_down (s, vs, 1, 0);
   else
-    {
-    vs.lines = [vs.lines, v_lin (s, '.')];
-    vs.lnrs = [vs.lnrs, vs.lnrs[-1] + 1];
-    vs.vlins = [vs.vlins, s.ptr[0]];
-    vs.linlen = [vs.linlen, strlen (vs.lines[-1])];
-    }
+    _v_calclines_down_ (s, vs, 0);
 
   v_hl_line (vs, s);
 }
 
 vis.l_down = &v_l_down;
 
-private define v_linewise_mode (vs, s)
+private define v_l_loop (vs, s)
 {
-  variable
-    keys = ['y', 'd', '>', '<', keys->DOWN, keys->UP],
-    i,
-    chr;
+  variable chr, i;
  
-  vs.linlen = [strlen (vs.lines[0])];
-
-  v_hl_line (vs, s);
-
-  while (chr = getch (), any (keys == chr))
+  while (chr = getch (), any (vs.l_keys == chr))
     {
     if (chr == keys->DOWN)
       {
@@ -2742,6 +2791,15 @@ private define v_linewise_mode (vs, s)
     }
 
   return 1;
+}
+
+private define v_linewise_mode (vs, s)
+{
+  vs.linlen = [strlen (vs.lines[0])];
+
+  v_hl_line (vs, s);
+  
+  return v_l_loop (vs, s);
 }
 
 vis.l_mode = &v_linewise_mode;
@@ -2862,7 +2920,6 @@ vis.c_right = &v_c_right;
 private define v_char_mode (vs, s)
 {
   variable
-    keys = ['y', 'd', keys->DOWN, keys->RIGHT, keys->UP, keys->LEFT],
     sel,
     chr,
     cur = 0;
@@ -2875,7 +2932,7 @@ private define v_char_mode (vs, s)
 
   v_hl_ch (vs, s);
 
-  while (chr = getch (), any (keys == chr))
+  while (chr = getch (), any (vs.c_keys == chr))
     {
     if (keys->RIGHT == chr)
       {
@@ -2904,7 +2961,7 @@ private define v_char_mode (vs, s)
       variable len = length (vs.sel);
       if (1 < len)
         return;
-
+      
       sel = strjoin (vs.sel, "\n");
       REG["\""] = sel;
       seltoX (sel);
@@ -2947,6 +3004,86 @@ private define v_char_mode (vs, s)
 }
 
 vis.c_mode = &v_char_mode;
+
+private define v_bw_right (vs, s, cur)
+{
+  variable retval = __pg_right (s, vs.linlen[-1]);
+
+  if (-1 == retval)
+    return;
+ 
+  vs.index[cur]++;
+
+  if (retval)
+    {
+    variable lline = getlinestr (s, vs.lines[cur], s._findex + 1 - s._indent);
+    waddline (s, lline, 0, s.ptr[0]);
+    s._is_wrapped_line = 1;
+    vs.wrappedmot++;
+    }
+
+  vs.col[cur] = s.ptr[1] < vs.startcol[cur]
+    ? s.ptr[1]
+    : s._is_wrapped_line
+      ? vs.startcol[cur] - vs.wrappedmot
+      : vs.startcol[cur];
+ 
+  if (vs.index[cur] <= vs.startindex[cur])
+    vs.sel[cur] = substr (vs.sel[cur], 2, -1);
+  else
+    vs.sel[cur] += substr (vs.lines[cur], vs.index[cur] + 1, 1);
+
+  v_hl_ch (vs, s);
+}
+
+vis.bw_right = &v_bw_right;
+ 
+private define v_bw_mode (vs, s)
+{
+  variable
+    sel,
+    chr,
+    cur = 0;
+ 
+  vs.maxlen = 1;
+  vs.startcol = [vs.col[0]];
+  vs.startindex = [vs.index];
+  vs.index = [vs.index];
+
+  vs.sel = [substr (vs.lines[cur], vs.index[cur] + 1, 1)];
+
+  v_hl_ch (vs, s);
+
+  while (chr = getch (), any (vs.bw_keys == chr))
+    {
+    if (keys->RIGHT == chr)
+      {
+      vs.c_right (s, cur);
+      continue;
+      }
+
+    if (keys->LEFT == chr)
+      {
+      vs.c_left (s, cur);
+      continue;
+      }
+
+    if ('x' == chr)
+      {
+      sel = strjoin (vs.sel, "\n");
+      REG["\""] = sel;
+      seltoX (sel);
+      vs.index = vs.startindex[cur];
+      vs.col = vs.startcol[cur];
+      return;
+      }
+    }
+
+  vs.index = vs.startindex[cur];
+  vs.col = [vs.startcol[cur]];
+}
+
+vis.bw_mode = &v_bw_mode;
 
 private define v_atexit (vs, s, draw)
 {
@@ -3008,7 +3145,7 @@ VED_PAGER[string ('v')] = &vis_mode;
 VED_PAGER[string ('V')] = &vis_mode;
 
 %%% INSERT MODE
-
+  
 private define newline_str (s, indent, line)
 {
   s.autoindent (indent, line);
@@ -3016,23 +3153,6 @@ private define newline_str (s, indent, line)
 }
 
 private variable lang = input->getlang ();
-
-variable insfuncs = struct
-  {
-  cr,
-  esc,
-  bol,
-  eol,
-  up,
-  left,
-  down,
-  right,
-  del_prev,
-  del_next,
-  ins_char,
-  ins_tab,
-  completeline,
-  };
 
 define insert ();
 
