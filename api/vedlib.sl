@@ -231,15 +231,20 @@ define init_ftype (ftype)
   return type;
 }
 
+define __get_null_str (indent)
+{
+  return sprintf ("%s\000", repeat (" ", indent));
+}
+ 
 define getlines (fname, indent, st)
 {
-  indent = repeat (" ", indent);
   if (-1 == access (fname, F_OK) || 0 == st.st_size)
     {
     st.st_size = 0;
-    return [sprintf ("%s\000", indent)];
+    return [__get_null_str (indent)];
     }
 
+  indent = repeat (" ", indent);
   return array_map (String_Type, &sprintf, "%s%s", indent, readfile (fname));
 }
 
@@ -251,7 +256,8 @@ private define _on_lang_change_ (mode, ptr)
 
 define write_prompt (str, col)
 {
-  smg->atrcaddnstrdr (str, VED_PROMPTCLR, PROMPTROW, 0, qualifier ("row", PROMPTROW), col, COLUMNS);
+  smg->atrcaddnstrdr (str, VED_PROMPTCLR, PROMPTROW, 0,
+    qualifier ("row", PROMPTROW), col, COLUMNS);
 }
 
 define v_linlen (s, r)
@@ -548,7 +554,7 @@ define setbuf (key)
 define addbuf (s)
 {
   ifnot (path_is_absolute (s._fname))
-    s._absfname = getcwd + s._fname;
+    s._absfname = getcwd () + s._fname;
   else
     s._absfname = s._fname;
 
@@ -1487,7 +1493,6 @@ private define pg_up (s)
 
 private define pg_eof (s)
 {
-
   if (VEDCOUNT > -1)
     {
     ifnot (VEDCOUNT + 1)
@@ -1944,8 +1949,6 @@ define diff (lines, fname, retval)
     () = writestring (fn, lines);
     p = proc->init (0, 1, 1);
     status = p.execv ([which ("diff"), "-u", fname, fn], NULL);
-%    @retval = NULL;
-%    return "Bytes are more than 65535";
     }
   else
     {
@@ -2156,6 +2159,7 @@ VED_PAGER[string (keys->CTRL_r)] = &redo;
 
 private variable
   s_col,
+  s_fcol,
   s_lnr,
   s_found;
 
@@ -2171,8 +2175,28 @@ private define _init_search_hist_ ()
 
 _init_search_hist_ ();
 
-private define s_exit_rout (s)
+private define s_exit_rout (s, pat, draw)
 {
+  if (s_found && pat != NULL)
+    {
+    list_insert (s_history, pat);
+    if (NULL == s_histindex)
+      s_histindex = 0;
+    }
+
+  if (draw)
+    if (s_found)
+      {
+      markbacktick (s);
+      s_fcol = s_fcol > s._maxlen ? s._indent : s_fcol;
+      s._i = s_lnr;
+      s.ptr[0] = s.rows[0];
+      s.ptr[1] = s_fcol;
+      s._index = s_fcol;
+      s._findex = s._indent;
+      s.draw ();
+      }
+
   smg->setrcdr (s.ptr[0], s.ptr[1]);
   send_msg (" ", 0);
   smg->atrcaddnstr (" ", 0, PROMPTROW, 0, COLUMNS);
@@ -2230,7 +2254,7 @@ private define search_backward (s, str)
       smg->aratrcaddnstrdr (ar, clrs, rows, cols, pos[0], pos[1], COLUMNS);
 
       s_lnr = i;
- 
+      s_fcol = match[0];
       s_found = 1;
 
       return;
@@ -2295,14 +2319,16 @@ private define search_forward (s, str)
       cols = [0, array_map (Integer_Type, &int, cumsum (cols))];
       clrs = [0, 0, VED_PROMPTCLR, 0];
 
-      pos = [qualifier ("row", PROMPTROW),  s_col];
+      pos = [qualifier ("row", PROMPTROW), s_col];
       if (qualifier_exists ("context"))
         pos[1] = match[1];
  
       smg->aratrcaddnstrdr (ar, clrs, rows, cols, pos[0], pos[1], COLUMNS);
 
       s_lnr = i;
+      s_fcol = match[0];
       s_found = 1;
+ 
       return;
       }
     else
@@ -2336,10 +2362,13 @@ private define search (s)
     str,
     pat = "";
  
-  s_found = 0;
-  
-  s_lnr = v_lnr (s, '.');
+  if (length (s_history))
+    s_histindex = 0;
  
+  s_found = 0;
+  s_lnr = v_lnr (s, '.');
+
+  s_fcol = s.ptr[1];
   origlnr = s_lnr;
 
   type = keys->BSLASH == s._chr ? "forward" : "backward";
@@ -2357,7 +2386,7 @@ private define search (s)
 
     if (033 == chr)
       {
-      s_exit_rout (s);
+      s_exit_rout (s, NULL, 0);
       break;
       }
  
@@ -2405,22 +2434,7 @@ private define search (s)
  
     if ('\r' == chr)
       {
-      if (s_found)
-        {
-        list_insert (s_history, pat);
-        if (NULL == s_histindex)
-          s_histindex = 0;
-
-        s._i = s_lnr;
-        s.ptr[0] = s.rows[0];
-        s.ptr[1] = s._indent;
-        s._index = s._indent;
-        s._findex = s._indent;
-
-        s.draw ();
-        }
-
-      s_exit_rout (s);
+      s_exit_rout (s, pat, s_found);
       break;
       }
  
@@ -2498,7 +2512,7 @@ private define search_word (s)
     line = v_lin (s, '.');
  
   s_found = 0;
-
+  s_fcol = s.ptr[1];
   s_lnr = v_lnr (s, '.');
 
   type = '*' == s._chr ? "forward" : "backward";
@@ -2538,7 +2552,7 @@ private define search_word (s)
     {
     ifnot (s_found)
       {
-      s_exit_rout (s);
+      s_exit_rout (s, NULL, 0);
       return;
       }
 
@@ -2549,27 +2563,13 @@ private define search_word (s)
 
     if (033 == chr)
       {
-      s_exit_rout (s);
-      break;
+      s_exit_rout (s, NULL, 0);
+      return;
       }
  
     if ('\r' == chr)
       {
-      if (s_found)
-        {
-        list_insert (s_history, pat);
-        if (NULL == s_histindex)
-          s_histindex = 0;
-
-        s._i = s_lnr;
-        s.ptr[0] = s.rows[0];
-        s.ptr[1] = s._indent;
-        s._index = s._indent;
-        s._findex = s._indent;
-        s.draw ();
-        }
-
-      s_exit_rout (s);
+      s_exit_rout (s, pat, s_found);
       return;
       }
  
@@ -2811,8 +2811,7 @@ private define v_l_loop (vs, s)
  
       if (-1 == s._len)
         {
-        variable indent = repeat (" ", s._indent);
-        s.lines = [sprintf ("%s\000", indent)];
+        s.lines = [__get_null_str (s._indent)];
         s._len = 0;
         }
        
@@ -2984,10 +2983,7 @@ private define v_char_mode (vs, s)
       sel = strjoin (vs.sel, "\n");
       REG["\""] = sel;
       seltoX (sel);
-      s._index = vs.startindex;
-      s.ptr[0] = vs.ptr[0];
-      s.ptr[1] = vs.ptr[1];
-      return;
+      break;
       }
 
     if ('d' == chr)
@@ -3003,7 +2999,7 @@ private define v_char_mode (vs, s)
       variable line = s.lines[vs.startlnr];
       line = strreplace (line, sel, "");
       ifnot (strlen (line))
-        line = sprintf ("%s\000", repeat (" ", s._indent));
+        line = __get_null_str (s._indent);
 
       s.lines[vs.startlnr] = line;
       s.lins[s.ptr[0] - s.rows[0]] = line;
@@ -3036,6 +3032,7 @@ private define v_char_mode (vs, s)
 
   s.ptr[0] = vs.ptr[0];
   s.ptr[1] = vs.startindex;
+  vs.needsdraw = 1;
 }
 
 vis.c_mode = &v_char_mode;
@@ -4438,13 +4435,14 @@ private define ed_del_line (s)
     i = v_lnr (s, '.'),
     line = v_lin (s, '.');
 
-  if (0 == s._len && (0 == v_linlen (s, '.') || " " == line || line == sprintf ("%s\000", s._indent)))
+  if (0 == s._len && (0 == v_linlen (s, '.') || " " == line ||
+      line == __get_null_str (s._indent)))
     return 1;
 
   ifnot (i)
     ifnot (s._len)
       {
-      s.lines[0] = sprintf ("%s\000", s._indent);
+      s.lines[0] = __get_null_str (s._indent);
       s.st_.st_size = 0;
       s.ptr[1] = s._indent;
       s._index = s._indent;
@@ -4564,7 +4562,7 @@ private define ed_del_chr (s)
       }
  
   ifnot (strlen (line))
-    line = sprintf ("%s ", repeat (" ", s._indent));
+    line = __get_null_str (s._indent);
  
   if (s.ptr[1] - s._indent < 0)
     s.ptr[1] = s._indent;
@@ -4700,7 +4698,7 @@ private define ed_del_to_end (s)
     if (strlen (line))
       REG["\""] = line;
 
-    line = sprintf ("%s\000", repeat (" ", s._indent));
+    line = __get_null_str (s._indent);
  
     s.ptr[1] = s._indent;
     s._index = s._indent;
@@ -4826,7 +4824,9 @@ private define ed_newline (s)
     s.lines = [s.lines[[:"next" == dir ? lnr : lnr - 1]],
       newline_str (s, &indent, line),
       s.lines[["next" == dir ? lnr + 1 : lnr:]]];
-
+ 
+  s.st_.st_size = getsizear (s.lines);
+ 
   s._i = lnr == 0 ? 0 : s._ii;
  
   if ("next" == dir)
@@ -4834,7 +4834,7 @@ private define ed_newline (s)
       s._i++;
     else
       s.ptr[0]++;
-
+  
   s.ptr[1] = indent;
   s._index = indent;
   s._findex = s._indent;
