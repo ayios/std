@@ -108,6 +108,8 @@ private variable insfuncs = struct
   up,
   left,
   down,
+  pag_down,
+  pag_up,
   right,
   del_prev,
   del_next,
@@ -3727,6 +3729,46 @@ private define ins_left (is, s, line)
 
 insfuncs.left = &ins_left;
 
+private define ins_page_up (is, s, line)
+{
+  s.lins[s.ptr[0] - s.rows[0]] = @line;
+  s.lines[is.lnr] = @line;
+  s._findex = s._indent;
+  
+  (@VED_PAGER[string (keys->PPAGE)]) (s;modified);
+  is.lnr = v_lnr (s, '.');
+  @line = v_lin (s, '.'); 
+  
+  ifnot (is.lnr)
+    is.prev_l = "";
+  else
+    is.prev_l = s.lines[is.lnr - 1];
+ 
+  is.next_l = s.lines[is.lnr + 1];
+}
+
+insfuncs.pag_up = &ins_page_up;
+  
+private define ins_page_down (is, s, line)
+{
+  s.lins[s.ptr[0] - s.rows[0]] = @line;
+  s.lines[is.lnr] = @line;
+  s._findex = s._indent;
+  
+  (@VED_PAGER[string (keys->NPAGE)]) (s;modified);
+  is.lnr = v_lnr (s, '.');
+  @line = v_lin (s, '.'); 
+  
+  if (is.lnr == s._len)
+    is.next_l = "";
+  else
+    is.next_l = s.lines[is.lnr + 1];
+ 
+  is.prev_l = s.lines[is.lnr - 1];
+}
+
+insfuncs.pag_down = &ins_page_down;
+
 private define ins_down (is, s, line)
 {
   if (is.lnr == s._len)
@@ -4254,6 +4296,18 @@ private define ins_getline (is, s, line)
     if (keys->DOWN == is.chr)
       {
       is.down (s, line);
+      continue;
+      }
+
+    if (keys->NPAGE == is.chr)
+      {
+      is.pag_down (s, line);
+      continue;
+      }
+
+    if (keys->PPAGE == is.chr)
+      {
+      is.pag_up (s, line);
       continue;
       }
 

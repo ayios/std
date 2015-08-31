@@ -61,9 +61,9 @@ ifnot (strncmp ("st-", getenv ("TERM"), 3))
 variable rmap = struct
   {
   osappnew = [F2, 0x10065], % Esc_f
-  osapprec = [F1, 0x1006f], %Esc_p
-  windmenu = [F3, 0x10076], %Esc_w
-  battery = [F9, 0x10061], % Esc_b
+  osapprec = [F1, 0x1006f], % Esc_p
+  windmenu = [F3, 0x10076], % Esc_w
+  battery = [F9, 0x10061],  % Esc_b
   changelang = [F10, 0x1006b], % Esc_l
   % navigation
   home = [HOME, CTRL_a],
@@ -76,7 +76,7 @@ variable rmap = struct
   deltoend = [CTRL_u],
   % special keys
   % last components in previous commands
-  lastcmp = [0xae, 0x1f], %ALT + . (not supported from all terms), CTRL + _
+  lastcmp = [0xae, 0x1f], % ALT + . (not supported from all terms), CTRL + _
   % keep the command line, execute another and re-enter the keep'ed command
   lastcur = [ESC_q],
   histup = [CTRL_r, UP],
