@@ -1344,6 +1344,17 @@ private define _null_ ()
   return NULL;
 }
 
+% - buggy -
+% probably renaming, should be agnostic (pchar, row, col),
+% get one line
+% grow symmetrically to left and right
+% enter accepts
+% escape returns (what?) (maybe a reference line var -> rl.argv[0])
+% the implementation can be used to replace standard rline routines
+% make a type and insert fields on demand,
+% add a loadfrom to that point and mark it (under development)
+% destroy the object
+
 static define __gettxt (str, row, col)
 {
   variable rl = init (&_null_);

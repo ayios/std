@@ -153,6 +153,7 @@ public variable
 public variable UNDELETABLE = String_Type[0];
 public variable SPECIAL = String_Type[0];
 public variable XCLIP_BIN = which ("xclip");
+public variable VED_DIR = TEMPDIR + "/ved_" + string (PID) + "_" + string (_time)[[5:]];
  
 public variable
   s_histfile = HISTDIR + "/" + string (getuid ()) + "ved_search_history",
@@ -195,7 +196,10 @@ private define build_ftype_table ()
 
 build_ftype_table ();
 
+() = mkdir (VED_DIR, PERM["PRIVATE"]);
+
 loadfrom ("string", "decode", NULL, &on_eval_err);
+loadfrom ("stdio", "appendstr", NULL, &on_eval_err);
 loadfrom ("array", "getsize", NULL, &on_eval_err);
 loadfrom ("pcre", "find_unique_words_in_lines", 1, &on_eval_err);
 loadfrom ("pcre", "find_unique_lines_in_lines", 1, &on_eval_err);
@@ -1218,7 +1222,7 @@ array_map (&mark_init, array_map (String_Type, &string, ['`', '<', '>']));
 private define mark_set (m, s)
 {
   MARKS[m]._i = s._ii;
-  MARKS[m].ptr = s.ptr;
+  MARKS[m].ptr = @s.ptr;
 }
 
 define markbacktick (s)
@@ -1932,18 +1936,23 @@ VED_PAGER[string (keys->CTRL_w)] = &handle_w;
 
 define diff (lines, fname, retval)
 {
+  variable p, status;
   % if 65536 < size error
   if (strbytelen (lines) >= 256 * 256)
     {
-    @retval = NULL;
-    return "Bytes are more than 65535";
+    variable fn = VED_DIR + "/" + path_basename (fname) + "_" + string (PID);
+    () = writestring (fn, lines);
+    p = proc->init (0, 1, 1);
+    status = p.execv ([which ("diff"), "-u", fname, fn], NULL);
+%    @retval = NULL;
+%    return "Bytes are more than 65535";
     }
-
-  variable p = proc->init (1, 1, 1);
-
-  p.stdin.in = lines;
-
-  variable status = p.execv ([which ("diff"), "-u", fname, "-"], NULL);
+  else
+    {
+    p = proc->init (1, 1, 1);
+    p.stdin.in = lines;
+    status = p.execv ([which ("diff"), "-u", fname, "-"], NULL);
+    }
 
   if (NULL == status)
     {
@@ -1970,19 +1979,28 @@ define diff (lines, fname, retval)
 
 define patch (in, dir, retval)
 {
-  % if 65536 < size error
-  if (strbytelen (in) >= 256 * 256)
+  variable isbigin = 256 * 256 >= strbytelen (in);
+  variable isbigout = qualifier ("isbig", 0);
+  variable com = [which ("patch"), "-d", dir, "-r", VED_DIR + "/patchrej.diff"];
+  variable out = "-";
+      
+  if (isbigin)
     {
-    @retval = NULL;
-    return "Bytes are more than 65535";
+    variable fin = VED_DIR + "/pathchin.diff";
+    () = writestring (fin, in);
+    com = [com, "-i", fin];
     }
+ 
+  if (isbigout)
+    out = VED_DIR + "/patchout.diff";
+   
+  com = [com, "-o", out];
+   
+  variable p = proc->init (isbigin ? 0 : 1, 1, 1);
+  ifnot (isbigin)
+    p.stdin.in = in;
 
-  variable p = proc->init (1, 1, 1);
-
-  p.stdin.in = in;
-
-  variable status = p.execv ([which ("patch"), "-d", dir, "-r",
-    sprintf ("%s/patch.rej", TEMPDIR), "-o", "-"], NULL);
+  variable status = p.execv (com, NULL);
 
   if (NULL == status)
     {
@@ -2004,7 +2022,7 @@ define patch (in, dir, retval)
 
   @retval = 0;
 
-  return p.stdout.out;
+  return isbigout ? strjoin (readfile (out), "\n") : p.stdout.out;
 }
 
 define set_modified (s)
@@ -2048,6 +2066,7 @@ private define undo (s)
   variable
     retval,
     in,
+    isbig = 256 * 256 <= s.st_.st_size,
     d;
  
   if (0 == s._undolevel)
@@ -2061,7 +2080,7 @@ private define undo (s)
 
   in = s.undo[s._undolevel - 1];
 
-  d = patch (in, s._dir, &retval);
+  d = patch (in, s._dir, &retval;isbig = isbig);
  
   if (NULL == retval)
     {
@@ -2098,9 +2117,10 @@ private define redo (s)
   variable
     retval,
     in = s.undo[s._undolevel],
+    isbig = 256 * 256 <= s.st_.st_size,
     d;
 
-  d = patch (in, path_dirname (s._fname), &retval);
+  d = patch (in, path_dirname (s._fname), &retval;isbig = isbig);
  
   if (NULL == retval)
     {
@@ -2795,7 +2815,8 @@ private define v_l_loop (vs, s)
         s.lines = [sprintf ("%s\000", indent)];
         s._len = 0;
         }
- 
+       
+      s.st_.st_size = getsizear (s.lines);
       set_modified (s);
       s.draw ();
       return;
@@ -3851,6 +3872,7 @@ private define ins_cr (is, s, line)
   if (strlen (@line) == s._index)
     {
     s.lines[is.lnr] = @line;
+    s.lins[s.ptr[0] - s.rows[0]] = @line;
 
     lang = input->getlang ();
 
@@ -4201,6 +4223,7 @@ private define ins_getline (is, s, line)
       s.lines[is.lnr] = @line;
       s.st_.st_size = getsizear (s.lines);
       __writefile (s, NULL, s.ptr, NULL);
+      s._flags &= ~VED_MODIFIED;
       send_msg_dr (s._absfname + " written", 0, s.ptr[0], s.ptr[1]);
       sleep (0.02);
       send_msg_dr ("", 0, s.ptr[0], s.ptr[1]);
@@ -4415,13 +4438,13 @@ private define ed_del_line (s)
     i = v_lnr (s, '.'),
     line = v_lin (s, '.');
 
-  if (0 == s._len && (0 == v_linlen (s, '.') || " " == line))
+  if (0 == s._len && (0 == v_linlen (s, '.') || " " == line || line == sprintf ("%s\000", s._indent)))
     return 1;
 
   ifnot (i)
     ifnot (s._len)
       {
-      s.lines[0] = " ";
+      s.lines[0] = sprintf ("%s\000", s._indent);
       s.st_.st_size = 0;
       s.ptr[1] = s._indent;
       s._index = s._indent;
@@ -4451,7 +4474,7 @@ private define ed_del_line (s)
     s._i = s._len;
  
   set_modified (s;_i = s._i);
-
+  
   return 0;
 }
 
@@ -4779,13 +4802,13 @@ private define ed_newline (s)
     line = v_lin (s, '.'),
     len = strlen (line);
 
-    if ("prev" == dir)
-      ifnot (lnr)
-        prev_l = "";
-      else
-        prev_l = v_lin (s, s.ptr[0] - 1);
+  if ("prev" == dir)
+    ifnot (lnr)
+      prev_l = "";
     else
-      prev_l = line;
+      prev_l = v_lin (s, s.ptr[0] - 1);
+  else
+    prev_l = line;
  
   if ("prev" == dir)
     next_l = line;
