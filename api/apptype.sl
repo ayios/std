@@ -10,6 +10,7 @@ typedef struct
   excom,
   func,
   os,
+  tmpdir,
   } Api_Type;
 
 typedef struct

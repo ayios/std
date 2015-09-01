@@ -1,4 +1,4 @@
-loadfrom ("search", "searchandreplace", "search", &on_eval_err);
+loadfrom ("search", "searchandreplaceInit", NULL, &on_eval_err);
 
 importfrom ("std", "fork", NULL, &on_eval_err);
 
@@ -45,26 +45,38 @@ define assign_func (func)
 
 define unified_diff (lines, fname)
 {
+  lines = strjoin (lines, "\n") + "\n";
+
   variable
     status,
-    p = proc->init (1, 1, 1);
+    isbigin = strbytelen (lines) >= 256 * 256,
+    p = proc->init (isbigin ? 0 : 1, 1, 1),
+    com = [which ("diff"), "-u", fname, "-"];
 
-  p.stdin.in = strjoin (lines, "\n") + "\n";
+  if (isbigin)
+    {
+    variable fn = TEMPDIR + "/" + path_basename (fname) + "_" + string (PID) + "_" +
+      string (_time)[[5:]];
+    writefile (lines, fn);
+    com[-1] = fn; 
+    }
+  else
+    p.stdin.in = lines;
 
-  status = p.execv ([which ("diff"), "-u", fname, "-"], NULL);
-
+  status = p.execv (com, NULL);
+                                                         
   if (NULL == status)
     return NULL;
-
+                                                                          
   ifnot (2 > status.exit_status)
     return NULL;
- 
+
   ifnot (status.exit_status)
     return NULL;
- 
+
   return p.stdout.out;
 }
-
+                                                                                                                          
 private define sed (file, s)
 {
   variable

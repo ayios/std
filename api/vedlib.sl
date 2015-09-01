@@ -38,6 +38,7 @@ typedef struct
   draw,
   lexicalhl,
   autoindent,
+  pairs,
   } Ftype_Type;
 
 typedef struct
@@ -66,6 +67,21 @@ typedef struct
   rline,
   } Wind_Type;
 
+typedef struct
+  {
+  global,
+  fname,
+  ar,
+  pat,
+  patstr,
+  substlist,
+  numchanges,
+  newlines,
+  askwhensubst,
+  ask,
+  lnronfile,
+  } Search_Type;
+  
 private variable vis = struct
   {
   _i,
@@ -200,6 +216,7 @@ build_ftype_table ();
 
 () = mkdir (VED_DIR, PERM["PRIVATE"]);
 
+loadfrom ("search", "searchandreplace", "search", &on_eval_err);
 loadfrom ("string", "decode", NULL, &on_eval_err);
 loadfrom ("stdio", "appendstr", NULL, &on_eval_err);
 loadfrom ("array", "getsize", NULL, &on_eval_err);
@@ -1943,21 +1960,22 @@ VED_PAGER[string (keys->CTRL_w)] = &handle_w;
 
 define diff (lines, fname, retval)
 {
-  variable p, status;
-  % if 65536 < size error
-  if (strbytelen (lines) >= 256 * 256)
+  variable
+    status,
+    isbigin = strbytelen (lines) >= 256 * 256,
+    p = proc->init (isbigin ? 0 : 1, 1, 1),
+    com = [which ("diff"), "-u", fname, "-"];
+
+  if (isbigin)
     {
     variable fn = VED_DIR + "/" + path_basename (fname) + "_" + string (PID);
     () = writestring (fn, lines);
-    p = proc->init (0, 1, 1);
-    status = p.execv ([which ("diff"), "-u", fname, fn], NULL);
+    com[-1] = fn; 
     }
   else
-    {
-    p = proc->init (1, 1, 1);
     p.stdin.in = lines;
-    status = p.execv ([which ("diff"), "-u", fname, "-"], NULL);
-    }
+
+  status = p.execv (com, NULL);
 
   if (NULL == status)
     {
@@ -5006,6 +5024,68 @@ private define ed_toggle_case (s)
 %  CRECORD = char (chr);
 %  RECORDS[CRECORD] = {};
 %}
+
+private define _askonsubst_ (s, fn, lnr, fpart, context, lpart, replace)
+{
+  variable cmp_lnrs = Integer_Type[0];
+  variable ar = 
+    ["@" + fn + " linenr: " + string (lnr+1),
+     "replace?",
+     repeat ("_", COLUMNS),
+     sprintf ("%s%s%s", fpart, context, lpart),
+     repeat ("_", COLUMNS),
+     "with?",
+     repeat ("_", COLUMNS),
+     sprintf ("%s%s%s", fpart, replace, lpart),
+     repeat ("_", COLUMNS),
+     "y[es replace]",
+     "n[o  dont replace]",
+     "q[uit all the replacements]",
+     "a[ll replace all, dont ask again for this file]"];
+   variable char_ar =  ['y', 'n', 'q', 'a'];
+   return widg->askprintstr (ar, char_ar, &cmp_lnrs);
+}
+                                                                                         
+define __substitute ()
+{
+  variable global = 0, ask = 1, pat = NULL, sub = NULL, ind;
+  variable args = __pop_list (_NARGS);
+  variable buf = get_cur_buf ();
+ 
+  args = list_to_array (args, String_Type);
+  
+  ind = is_arg ("--global", args);
+  ifnot (NULL == ind)
+    global = 1;
+  
+  ind = is_arg ("--dont-ask-when-subst", args);
+  ifnot (NULL == ind)
+    ask = 0;
+  
+  ind = is_arg ("--pat=", args);
+  ifnot (NULL == ind)
+    pat = substr (args[ind], strlen ("--pat=") + 1, -1);
+  
+  ind = is_arg ("--sub=", args);
+  ifnot (NULL == ind)
+    sub = substr (args[ind], strlen ("--pat=") + 1, -1);
+
+  if (NULL == pat || NULL == sub)
+    {
+    send_msg_dr ("--pat= and --sub= are required", 1, buf.ptr[0], buf.ptr[1]);
+    return;
+    }
+ 
+  variable s = search->init (pat, sub;global = global, askwhensubst = ask);
+  s.fname = path_basename (buf._absfname);
+  s.ask = &_askonsubst_;
+  variable retval = search->search_and_replace (s, buf.lines);
+  ifnot (retval)
+    {
+    buf.lines = ();
+    buf.draw ();
+    }
+}
 
 VED_PAGER[string ('~')] = &ed_toggle_case;
 VED_PAGER[string ('P')] = &ed_Put;

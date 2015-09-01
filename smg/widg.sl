@@ -141,7 +141,7 @@ static define askprintstr (str, charar, cmp_lnrs)
   variable header = " ";
   variable headclr = headerclr;
   variable chr = NULL;
-  variable ar = strchop (strtrim_end (str), '\n', 0);
+  variable ar = String_Type == typeof (str) ? strchop (strtrim_end (str), '\n', 0) : str;
   variable len = length (ar);
 
   if ('@' == ar[0][0])

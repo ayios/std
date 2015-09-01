@@ -1522,18 +1522,19 @@ private define argcompletion (s)
 {
   variable
     i,
-    ar,
     col,
     tmp,
     chr = 0,
+    ar = NULL,
     args = qualifier ("args");
 
-  if (NULL == args)
-    args = s.argvlist[s.argv[0]].args;
-  else
+  ifnot (NULL == args)
     ar = args;
+  else
+    if (NULL != s.argvlist[s.argv[0]].args)
+      ar = s.argvlist[s.argv[0]].args;
 
-  if (NULL == args)
+  if (ar == NULL == args)
     {
     variable file = qualifier ("file");
     if (NULL == file)
@@ -1551,7 +1552,7 @@ private define argcompletion (s)
     ar = readfile (file);
     }
 
-  if (NULL == ar || 0 == length (ar))
+  if (NULL == ar || typeof (ar) != Array_Type || 0 == length (ar))
     return 0;
 
   variable arg = qualifier ("arg", s.argv[s._ind]);

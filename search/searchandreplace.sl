@@ -1,17 +1,23 @@
-importfrom ("std", "pcre", NULL, &on_eval_err);
-
-typedef struct
-  {
-  global,
-  fname,
-  ar,
-  pat,
-  patstr,
-  substlist,
-  numchanges,
-  newlines,
-  askwhensubst,
-  } Search_Type;
+private define _ask_ (s, fn, lnr, fpart, context, lpart, replace)
+{
+  variable f = __get_reference ("ask");
+  return (@f) (["@" + fn + " linenr: " + string (lnr+1),
+     "replace?",
+     repeat ("_", COLUMNS),
+     sprintf ("%s%s%s", fpart, context, lpart),
+     repeat ("_", COLUMNS),
+     "with?",
+     repeat ("_", COLUMNS),
+     sprintf ("%s%s%s", fpart, replace, lpart),
+     repeat ("_", COLUMNS),
+     "y[es replace]",
+     "n[o  dont replace]",
+     "q[uit all the replacements]",
+     "a[ll replace all, dont ask again for this file]"],
+     ['y', 'n', 'q', 'a']; hl = [
+       struct {color = 1, row = 5, col = strlen (fpart), dr = 1, dc = strlen (context)},
+       struct {color = 2, row = 9, col = strlen (fpart), dr = 1, dc = strlen (replace)}]);
+}
 
 private define find_new_lines (ar, pat)
 {
@@ -85,26 +91,6 @@ private define assign_substitute (substitution)
   return list;
 }
 
-static define init (pat, sub)
-{
-  variable s = @Search_Type;
- 
-  try
-    {
-    s.pat = pcre_compile (pat, qualifier ("pcreopts", 0));
-    s.substlist = assign_substitute (sub);
-    }
-  catch ParseError:
-    return __get_exception_info.message, NULL;
-
-  s.numchanges = 0;
-  s.patstr = pat;
-  s.global = qualifier ("global");
-  s.askwhensubst = qualifier ("askwhensubst", 1);
-
-  return s;
-}
-
 static define search_and_replace (s, ar)
 {
   variable
@@ -120,6 +106,7 @@ static define search_and_replace (s, ar)
     context,
     replace,
     finished,
+    lnronfile = NULL == s.lnronfile ? 0 : s.lnronfile,
     i = 0,
     found = 0,
     fname = NULL == s.fname ? "" : "file:" + s.fname,
@@ -134,7 +121,9 @@ static define search_and_replace (s, ar)
     {
     if (i + s.newlines > length (ar) - 1)
       break;
-
+ 
+    s.lnronfile = lnronfile + i;    
+      
     str = strjoin (ar[[i:i+s.newlines]], s.newlines ? "\n" : "");
  
     found = pcre_exec (s.pat, str, 0);
@@ -183,23 +172,8 @@ static define search_and_replace (s, ar)
             lcontext = strreplace (context, "\n", "\\n"),
             llpart = strreplace (lpart, "\n", "\\n"),
             lreplace = strreplace (replace, "\n", "\\n");
-
-          retval = ask (["@" + fname + " linenr: " + string (i+1),
-             "replace?",
-             repeat ("_", COLUMNS),
-             sprintf ("%s%s%s", lfpart, lcontext, llpart),
-             repeat ("_", COLUMNS),
-             "with?",
-             repeat ("_", COLUMNS),
-             sprintf ("%s%s%s", lfpart, lreplace, llpart),
-             repeat ("_", COLUMNS),
-             "y[es replace]",
-             "n[o  dont replace]",
-             "q[uit all the replacements]",
-             "a[ll replace all, dont ask again for this file]"],
-             ['y', 'n', 'q', 'a']; hl = [
-               struct {color = 1, row = 5, col = strlen (lfpart), dr = 1, dc = strlen (lcontext)},
-               struct {color = 2, row = 9, col = strlen (lfpart), dr = 1, dc = strlen (lreplace)}]);
+          
+          retval = s.ask (fname, s.lnronfile, lfpart, lcontext, llpart, lreplace);
 
            switch (retval)
 
@@ -247,4 +221,25 @@ static define search_and_replace (s, ar)
     return 1;
 
   return ar, 0;
+}
+
+static define init (pat, sub)
+{
+  variable s = @Search_Type;
+ 
+  try
+    {
+    s.pat = pcre_compile (pat, qualifier ("pcreopts", 0));
+    s.substlist = assign_substitute (sub);
+    }
+  catch ParseError:
+    return __get_exception_info.message, NULL;
+
+  s.numchanges = 0;
+  s.patstr = pat;
+  s.global = qualifier ("global");
+  s.askwhensubst = qualifier ("askwhensubst", 1);
+  s.ask = &_ask_;
+
+  return s;
 }

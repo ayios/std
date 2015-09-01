@@ -94,6 +94,15 @@ private define my_commands ()
     a[keys[i]].func = VED_CLINE[keys[i]];
     a[keys[i]].type = "Func_Type";
     }
+  
+  a["substitute"] = @Argvlist_Type;
+  a["substitute"].func = &__substitute;
+  a["substitute"].type = "Func_Type";
+  a["substitute"].args =
+    ["--global void do global substitutions",
+     "--pat= pattern pcre pattern (required)",
+     "--sub= pattern substitution (required)",
+     "--dont-ask-when-subst void dont ask when substitute (yes by default)"];
 
   return a;
 }
