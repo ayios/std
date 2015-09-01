@@ -5048,19 +5048,11 @@ private define _askonsubst_ (s, fn, lnr, fpart, context, lpart, replace)
                                                                                          
 define __substitute ()
 {
-  variable global = 0, ask = 1, pat = NULL, sub = NULL, ind;
+  variable global = 0, ask = 1, pat = NULL, sub = NULL, ind, range = NULL;
   variable args = __pop_list (_NARGS);
   variable buf = get_cur_buf ();
  
   args = list_to_array (args, String_Type);
-  
-  ind = is_arg ("--global", args);
-  ifnot (NULL == ind)
-    global = 1;
-  
-  ind = is_arg ("--dont-ask-when-subst", args);
-  ifnot (NULL == ind)
-    ask = 0;
   
   ind = is_arg ("--pat=", args);
   ifnot (NULL == ind)
@@ -5068,7 +5060,7 @@ define __substitute ()
   
   ind = is_arg ("--sub=", args);
   ifnot (NULL == ind)
-    sub = substr (args[ind], strlen ("--pat=") + 1, -1);
+    sub = substr (args[ind], strlen ("--sub=") + 1, -1);
 
   if (NULL == pat || NULL == sub)
     {
@@ -5076,6 +5068,37 @@ define __substitute ()
     return;
     }
  
+  ind = is_arg ("--global", args);
+  ifnot (NULL == ind)
+    global = 1;
+  
+  ind = is_arg ("--dont-ask-when-subst", args);
+  ifnot (NULL == ind)
+    ask = 0;
+ 
+  ind = is_arg ("--range=", args);
+  while (NULL != ind)
+    {
+    % add here the first execute func
+    ind = substr (args[ind], strlen ("--range=") + 1, -1);
+    ifnot (strlen (ind))
+      return;
+    ind = strchop (ind, ',', 0);
+    ifnot (2 == length (ind))
+      return;
+
+    variable i, ia;
+    range = ["", ""];
+    _for i (0, 1)
+      _for ia (0, strlen (ind[i]) - 1)
+        ifnot ('0' <= ind[0][ia] <= '9')
+          return;
+        else
+          range[i] += char (ind[i][ia]);
+
+    range = array_map (Integer_Type, &atoi, range); % add an atoi array_map'ed
+    }
+         
   variable s = search->init (pat, sub;global = global, askwhensubst = ask);
   s.fname = path_basename (buf._absfname);
   s.ask = &_askonsubst_;
@@ -5116,3 +5139,42 @@ ifnot (NULL == DISPLAY)
       loadfrom ("X", "seltoX", NULL, &on_eval_err);
 
 new_wind ();
+
+  %    comments for developing the DEV tracking system
+  %A   for attachments
+  
+  % on close (fixed), (add a new line with the id in []?)? (before or after)
+  % delete the text. commit it to git as standalone
+  % then link to commit
+
+%%% DEV %%%
+
+  %I    0001
+  %@    Add a check syntax command
+  %?    enchanchment  ..high NULL open  
+  %op   ayios
+  %
+  %#1
+  %US  ayios
+  %1  |  for sl_type use bytecompile for a start
+  %2  |  maybe a load(*) SLang C function
+  %3  |  if such file can be evalfil'ing (if standalone)
+  %=> ayios
+  %ER
+  %#1
+  %D
+  
+  %I             0002
+  %@    Add header in sl_type files
+  %?    enchanchment  ...high ayios open
+  %op  _ayios
+  %
+  %#1
+  %US
+  %1  |  (for instance) see *001:@*
+  %2  |  see *001:3*, we might want to know specific details
+  %3=> ayios
+  %ER
+  %#1
+  %D
+%%% ELOPMENT %%%
