@@ -38,34 +38,34 @@ public variable HISTDIR    = LCLDIR + "/share/history";
 
 public variable FILE_FLAGS = Assoc_Type[Integer_Type];
 
-FILE_FLAGS[">"]    = O_WRONLY|O_CREAT;
-FILE_FLAGS[">|"]   = O_WRONLY|O_TRUNC|O_CREAT;
-FILE_FLAGS[">>"]   = O_WRONLY|O_APPEND;
-FILE_FLAGS[">>|"]  = O_WRONLY|O_APPEND|O_CREAT;
-FILE_FLAGS["<"]    = O_RDONLY;
-FILE_FLAGS["<>"]   = O_RDWR|O_CREAT;
-FILE_FLAGS["<>|"]  = O_RDWR|O_TRUNC|O_CREAT;
-FILE_FLAGS["<>>"]  = O_RDWR|O_APPEND;
-FILE_FLAGS["<>>|"] = O_RDWR|O_APPEND|O_CREAT;
+FILE_FLAGS["<"]    =                   O_RDONLY;
+FILE_FLAGS[">>"]   =          O_WRONLY|O_APPEND;
+FILE_FLAGS[">"]    =           O_WRONLY|O_CREAT;
+FILE_FLAGS[">|"]   =   O_WRONLY|O_CREAT|O_TRUNC;
+FILE_FLAGS[">>|"]  =  O_WRONLY|O_CREAT|O_APPEND;
+FILE_FLAGS["<>>"]  =            O_RDWR|O_APPEND;
+FILE_FLAGS["<>"]   =             O_RDWR|O_CREAT;
+FILE_FLAGS["<>>|"] =    O_RDWR|O_CREAT|O_APPEND;
+FILE_FLAGS["<>|"]  =     O_RDWR|O_CREAT|O_TRUNC;
 
 public variable PERM = Assoc_Type[Integer_Type];
 
-PERM["PRIVATE"]  = S_IRWXU;                          %0700
-PERM["_PRIVATE"] = S_IRUSR|S_IWUSR;                  %0600
-PERM["STATIC"]   = PERM["PRIVATE"]|S_IRWXG;          %0770
-PERM["_STATIC"]  = PERM["PRIVATE"]|S_IRGRP|S_IXGRP;  %0750
-PERM["__STATIC"] = PERM["_PRIVATE"]|S_IRGRP;         %0640
-PERM["PUBLIC"]   = PERM["STATIC"]|S_IRWXO;           %0777
-PERM["_PUBLIC"]  = PERM["_STATIC"]|S_IROTH|S_IXOTH;  %0755
-PERM["__PUBLIC"] = PERM["__STATIC"]|S_IROTH;         %0644
-PERM["___PUBLIC"]= PERM["_PRIVATE"]|S_IWGRP|S_IWOTH; %0622
+PERM["PRIVATE"]  =                          S_IRWXU; % 0700
+PERM["_PRIVATE"] =                  S_IRUSR|S_IWUSR; % 0600
+PERM["STATIC"]   = PERM["PRIVATE"] |        S_IRWXG; % 0770
+PERM["_STATIC"]  = PERM["PRIVATE"] |S_IRGRP|S_IXGRP; % 0750
+PERM["__STATIC"] = PERM["_PRIVATE"]|        S_IRGRP; % 0640
+PERM["PUBLIC"]   = PERM["STATIC"]  |        S_IRWXO; % 0777
+PERM["_PUBLIC"]  = PERM["_STATIC"] |S_IROTH|S_IXOTH; % 0755
+PERM["__PUBLIC"] = PERM["__STATIC"]|        S_IROTH; % 0644
+PERM["___PUBLIC"]= PERM["_PRIVATE"]|S_IWGRP|S_IWOTH; % 0622
 
-public variable PATH = getenv ("PATH");
-public variable TERM = getenv ("TERM");
-public variable LANG = getenv ("LANG");
-public variable HOME = getenv ("HOME");
-public variable DISPLAY    = getenv ("DISPLAY");
-public variable XAUTHORITY = getenv ("XAUTHORITY");
+public variable PATH        = getenv ("PATH");
+public variable TERM        = getenv ("TERM");
+public variable LANG        = getenv ("LANG");
+public variable HOME        = getenv ("HOME");
+public variable DISPLAY     = getenv ("DISPLAY");
+public variable XAUTHORITY  = getenv ("XAUTHORITY");
 public variable LINES;
 public variable COLUMNS;
 public variable SLSH_LIB_DIR;

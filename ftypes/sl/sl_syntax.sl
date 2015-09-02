@@ -1,5 +1,7 @@
 private variable colors = [
-%functions
+% api functins
+  11,
+% intrinsic functions
   14,
 %conditional
   13,
@@ -12,7 +14,18 @@ private variable colors = [
 ];
 
 private variable regexps = [
-%functions
+% api public functions and vars
+  pcre_compile ("\
+((?<=&|\s|\[|\()(which(?=\s|,))\
+|(?<=&|\s|\[|\()(repeat(?=\s|,))\
+|(?<=&|\s|\[|\()(readfile(?=\s|,))\
+|(?<=&|\s|\[|\(|^)(send_msg(_dr)?(?=\s|,))\
+|(?<=&|\s|\[|\(|^)(tostd[out|err]+(?=\s|,))\
+|(?<=&|\s|\[|\()(exception_to_array(?=\s|,))\
+|(?<=\s|\[|^)((PERM|FILE_FLAGS)+\s*(?==|\[))\
+|(?<=\s|\[)([P|U|G]+ID\s*(?=\s))\
+|(?<=&|\s|\[|\(|^)((load|import)+f...(?=\s|,)))+"R, 0),
+% intrinsic functions
   pcre_compile ("\
 ((evalfile(?=\s))\
 |(?<!\w)(\(\)(?=\s|,))\
@@ -33,6 +46,8 @@ private variable regexps = [
 |(?<=&|\s|\[|\()(mkdir(?=\s|,))\
 |(?<=&|\s|\[|\()(sleep(?=\s|,))\
 |(?<=&|\s|\[|\()(__tmp(?=\s|,))\
+|(?<=&|\s|\[|\()(uname(?=\s|,))\
+|([s|g]et_\w*_\w*_path(?=\s|,))\
 |(?<=&|\s|\[|\()(sscanf(?=\s|,))\
 |(?<=&|\s|\[|\()(string(?=\s|,))\
 |(?<=&|\s|\[|\()(substr(?=\s|,))\
@@ -40,8 +55,6 @@ private variable regexps = [
 |(?<=&|\s|\[|\()(f?read(?=\s|,))\
 |(?<=&|\s|\[|\()(access(?=\s|,))\
 |(?<=&|\s|\[|\()(typeof(?=\s|,))\
-|(?<=&|\s|\[|\()(getgid(?=\s|,))\
-|(?<=&|\s|\[|\()(getuid(?=\s|,))\
 |(?<=&|\s|\[|\()(getcwd(?=\s|,))\
 |(?<=&|\s|\[|\()(cumsum(?=\s|,))\
 |(?<=&|\s|\[|\()(length(?=\s|,))\
@@ -49,6 +62,8 @@ private variable regexps = [
 |(?<=&|\s|\[|\()(socket(?=\s|,))\
 |(?<=&|\s|\[|\()(strtok(?=\s|,))\
 |(?<=&|\s|\[|\()(listen(?=\s|,))\
+|(?<=&|\s|\[|\()(getenv(?=\s|,))\
+|(?<=&|\s|\[|\()(getuid(?=\s|,))\
 |(?<=&|\s|\[|\()(_isnull(?=\s|,))\
 |(?<=&|\s|\[|\()(listdir(?=\s|,))\
 |(?<=&|\s|\[|\()(isblank(?=\s|,))\
@@ -62,32 +77,30 @@ private variable regexps = [
 |(?<=&|\s|\[|\()(strn?cmp(?=\s|,))\
 |(?<=&|\s|\[|\()(f?printf(?=\s|,))\
 |(?<=&|\s|\[|\()(wherenot(?=\s|,))\
-|(?<=&|\s|\[|\()(loadfile(?=\s|,))\
-|(?<=&|\s|\[|\()(loadfrom(?=\s|,))\
-|(?<=&|\s|\[|\()(loadfile(?=\s|,))\
 |(?<=&|\s|\[|\()(realpath(?=\s|,))\
 |(?<=&|\s|\[|\()(array_map(?=\s|,))\
 |(?<=&|\s|\[|\()(qualifier(?=\s|,))\
 |(?<=&|\s|\[|\()([l|f]seek(?=\s|,))\
-|(?<=&|\s|\[|\()(__pop_list(?=\s|,))\
-|(?<=&|\s|\[|\()(importfrom(?=\s|,))\
+|(?<=&|\s|\[|\()(get[gpu]id(?=\s|,))\
 |(?<=&|\s|\[|\()(wherefirst(?=\s|,))\
 |(?<=&|\s|\[|\()(array_sort(?=\s|,))\
 |(?<=&|\s|\[|\()(strbytelen(?=\s|,))\
-|(?<=&|\s|\[|\()(sigprocmask(?=\s|,))\
+|(?<=&|\s|\[|\()(__p\w*_list(?=\s|,))\
 |(?<=&|\s|\[|\()(strtrim_\w*(?=\s|,))\
-|(?<=&|\s|\[|\()(__push_list(?=\s|,))\
 |(?<=&|\s|\[|\()(list_insert(?=\s|,))\
 |(?<=&|\s|\[|\()(substrbytes(?=\s|,))\
 |(?<=&|\s|\[|\()(list_append(?=\s|,))\
 |(?<=&|\s|\[|\()(errno_string(?=\s|,))\
 |(?<=&|\s|\[|\()(string_match(?=\s|,))\
+|(?<=&|\s|\[|\(|^)(sigprocmask(?=\s|,))\
 |(?<=&|\s|\[|\()(list_to_array(?=\s|,))\
 |(?<=&|\s|\[|\()(l?stat_\w*[e|s](?=\s|,))\
 |(?<=&|\s|\[|\(|;|@)(__qualifiers(?=\s|,))\
 |(?<=&|\s|\[|\()(qualifier_exists(?=\s|,))\
 |(?<=&|\s|\[|\(|@)(__get_reference(?=\s|,))\
 |(?<=&|\s|\[|\()(assoc_\w*_\w*[s,y](?=\s|,))\
+|(?<=&|\s|\[|\()(f(get|put)s[lines]*(?=\s|,))\
+|(?<=&|\s|\[|\()(__get_exception_info(?=\s|,|\.))\
 |(?<=&|\s|\[|\()(path_\w*(nam|(i.*t)|conca)[e|t](?=\s|,)))+"R, 0),
 %conditional
   pcre_compile ("\
@@ -125,6 +138,7 @@ private variable regexps = [
 |((?<=\s)<=(?=\s))\
 |((?<=\s)<(?=\s))\
 |((?<=\s)>(?=\s))\
+|((?<=\w)->(?=\w))\
 |((?<=\D)\d+(?=\D))\
 |((?<=\s)==(?=\s)))+"R, 0),
 %type
@@ -144,6 +158,8 @@ private variable regexps = [
 |((?<!\w)finally(?=\s))\
 |((?<!\w)return(?=[\s;]))\
 |((?<!\w)break(?=;))\
+|((?<!\w)exit .*(?=;))\
+|((?<!\w)import(?=\s))\
 |((?<!\w)continue(?=;))\
 |((?<=[\(|\s])errno(?=[;|\)]))\
 |(NULL)\
@@ -184,7 +200,7 @@ private variable regexps = [
 |((?<=\s|\|)O_TEXT(?=[,\|;\)]+))\
 |((?<=\s|\|)O_TRUNC(?=[,\|;\)]+))\
 |((?<=\s|\|)O_NONBLOCK(?=[,\|;\)]+))\
-|((?<=\(|\s)[\w]+_Type(?=[,\s]))\
+|((?<=\(|\s|\[|})\w+_Type(?=[,\s\]\[;]))\
 |((?<!\w)[\w]+Error(?=[:|,])))+"R, 0),
 %errors
   pcre_compile ("\

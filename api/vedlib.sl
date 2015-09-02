@@ -90,7 +90,7 @@ private variable vis = struct
   l_mode,
   l_down,
   l_up,
-  l_keys = ['y', 'Y', 'd', '>', '<', keys->DOWN, keys->UP],
+  l_keys = ['s', 'y', 'Y', 'd', '>', '<', keys->DOWN, keys->UP],
   c_mode,
   c_left,
   c_right,
@@ -279,19 +279,19 @@ define write_prompt (str, col)
     qualifier ("row", PROMPTROW), col, COLUMNS);
 }
 
-define v_linlen (s, r)
+define __vlinlen (s, r)
 {
   r = (r == '.' ? s.ptr[0] : r) - s.rows[0];
   return strlen (s.lins[r]) - s._indent;
 }
 
-define v_lin (s, r)
+define __vline (s, r)
 {
   r = (r == '.' ? s.ptr[0] : r) - s.rows[0];
   return s.lins[r];
 }
 
-define v_lnr (s, r)
+define __vlnr (s, r)
 {
   r = (r == '.' ? s.ptr[0] : r) - s.rows[0];
   return s.lnrs[r];
@@ -300,13 +300,13 @@ define v_lnr (s, r)
 define tail (s)
 {
   variable
-    lnr = v_lnr (s, '.') + 1,
-    line = v_lin (s, '.');
+    lnr = __vlnr (s, '.') + 1,
+    line = __vline (s, '.');
 
   return sprintf (
     "[%s] (row %d) (col %d) (linenr %d/%d %.0f%%) (strlen %d) chr (%d), undo (%d/%d)",
     path_basename (s._fname), s.ptr[0], s.ptr[1] - s._indent + 1, lnr,
-    s._len + 1, (100.0 / s._len) * (lnr - 1), v_linlen (s, '.'),
+    s._len + 1, (100.0 / s._len) * (lnr - 1), __vlinlen (s, '.'),
     qualifier ("chr", decode (substr (line, s._index + 1, 1))[0]),
     s._undolevel, length (s.undo));
 }
@@ -1376,8 +1376,8 @@ private define _word_change_case_ (s, what)
     func_cond = what == "toupper" ? &islower : &isupper,
     func = what == "toupper" ? &toupper : &tolower,
     col = s._index,
-    i = v_lnr (s, '.'),
-    line = v_lin (s, '.');
+    i = __vlnr (s, '.'),
+    line = __vline (s, '.');
  
   word = find_word (s, line, col, &start, &end);
 
@@ -1425,7 +1425,7 @@ private define _gotoline_ (s)
 private define pg_down (s)
 {
   variable
-    lnr = v_lnr (s, '.'),
+    lnr = __vlnr (s, '.'),
     linlen,
     plinlen;
 
@@ -1434,17 +1434,17 @@ private define pg_down (s)
 
   if (s._is_wrapped_line)
     {
-    waddline (s, getlinestr (s, v_lin (s, '.'), 1), 0, s.ptr[0]);
+    waddline (s, getlinestr (s, __vline (s, '.'), 1), 0, s.ptr[0]);
     s._is_wrapped_line = 0;
     }
 
-  plinlen = v_linlen (s, '.');
+  plinlen = __vlinlen (s, '.');
 
   if (s.ptr[0] < s.vlins[-1])
     {
     s.ptr[0]++;
  
-    linlen = v_linlen (s, '.');
+    linlen = __vlinlen (s, '.');
  
     _adjust_col_ (s, linlen, plinlen);
 
@@ -1463,7 +1463,7 @@ private define pg_down (s)
 
   s.draw (;dont_draw);
  
-  linlen = v_linlen (s, '.');
+  linlen = __vlinlen (s, '.');
  
   _adjust_col_ (s, linlen, plinlen);
  
@@ -1478,17 +1478,17 @@ private define pg_up (s)
 
   if (s._is_wrapped_line)
     {
-    waddline (s, getlinestr (s, v_lin (s, '.'), 1), 0, s.ptr[0]);
+    waddline (s, getlinestr (s, __vline (s, '.'), 1), 0, s.ptr[0]);
     s._is_wrapped_line = 0;
     }
 
-  plinlen = v_linlen (s, '.');
+  plinlen = __vlinlen (s, '.');
 
   if (s.ptr[0] > s.vlins[0])
     {
     s.ptr[0]--;
  
-    linlen = v_linlen (s, '.');
+    linlen = __vlinlen (s, '.');
     _adjust_col_ (s, linlen, plinlen);
  
     draw_tail (s);
@@ -1503,7 +1503,7 @@ private define pg_up (s)
 
   s.draw (;dont_draw);
  
-  linlen = v_linlen (s, '.');
+  linlen = __vlinlen (s, '.');
  
   _adjust_col_ (s, linlen, plinlen);
  
@@ -1574,9 +1574,9 @@ private define pg_left (s)
     {
     variable line;
     if (s._is_wrapped_line)
-      line = getlinestr (s, v_lin (s, '.'), s._findex + 1);
+      line = getlinestr (s, __vline (s, '.'), s._findex + 1);
     else
-      line = getlinestr (s, v_lin (s, '.'), 1);
+      line = getlinestr (s, __vline (s, '.'), 1);
 
     waddline (s, line, 0, s.ptr[0]);
     }
@@ -1587,8 +1587,8 @@ private define pg_left (s)
 private define pg_right (s)
 {
   variable
-    line = v_lin (s, '.'),
-    retval = __pg_right (s, v_linlen (s, '.'));
+    line = __vline (s, '.'),
+    retval = __pg_right (s, __vlinlen (s, '.'));
 
   if (-1 == retval)
     return;
@@ -1642,7 +1642,7 @@ private define pg_page_up (s)
 
 private define pg_eos (s)
 {
-  variable linlen = v_linlen (s, '.');
+  variable linlen = __vlinlen (s, '.');
 
   markbacktick (s);
 
@@ -1669,7 +1669,7 @@ private define pg_eos (s)
 
 private define pg_eol (s)
 {
-  variable linlen = v_linlen (s, s.ptr[0]);
+  variable linlen = __vlinlen (s, s.ptr[0]);
  
   s._index = linlen - 1;
 
@@ -1682,7 +1682,7 @@ private define pg_eol (s)
 
     s._findex = linlen - s._linlen;
 
-    variable line = getlinestr (s, v_lin (s, '.'), s._findex + 1);
+    variable line = getlinestr (s, __vline (s, '.'), s._findex + 1);
  
     waddline (s, line, 0, s.ptr[0]);
 
@@ -1700,7 +1700,7 @@ private define pg_bol (s)
 
   if (s._is_wrapped_line)
     {
-    variable line = getlinestr (s, v_lin (s, '.'), 1);
+    variable line = getlinestr (s, __vline (s, '.'), 1);
     waddline (s, line, 0, s.ptr[0]);
     s._is_wrapped_line = 0;
     }
@@ -1712,7 +1712,7 @@ private define pg_bolnblnk (s)
 {
   s.ptr[1] = s._indent;
 
-  variable linlen = v_linlen (s, '.');
+  variable linlen = __vlinlen (s, '.');
 
   loop (linlen)
     {
@@ -1756,7 +1756,7 @@ private define pg_Yank (s)
 {
   variable
     reg = qualifier ("reg", "\""),
-    line = v_lin (s, '.');
+    line = __vline (s, '.');
 
   REG[reg] = line + "\n";
   seltoX (line + "\n");
@@ -2386,7 +2386,7 @@ private define search (s)
     s_histindex = 0;
  
   s_found = 0;
-  s_lnr = v_lnr (s, '.');
+  s_lnr = __vlnr (s, '.');
 
   s_fcol = s.ptr[1];
   origlnr = s_lnr;
@@ -2529,11 +2529,11 @@ private define search_word (s)
     start,
     origlnr,
     typesearch,
-    line = v_lin (s, '.');
+    line = __vline (s, '.');
  
   s_found = 0;
   s_fcol = s.ptr[1];
-  s_lnr = v_lnr (s, '.');
+  s_lnr = __vlnr (s, '.');
 
   type = '*' == s._chr ? "forward" : "backward";
  
@@ -2563,7 +2563,7 @@ private define search_word (s)
   else
     pat = "^" + pat;
 
-  if (s._index < v_linlen (s, '.'))
+  if (s._index < __vlinlen (s, '.'))
     pat += "\\W";
 
   (@typesearch) (s, pat;row = MSGROW, context);
@@ -2667,7 +2667,7 @@ private define v_calclines_up (s, vs, un, inc)
 
 private define v_calclines_up_ (s, vs, incr)
 {
-  vs.lines = [v_lin (s, '.'), vs.lines];
+  vs.lines = [__vline (s, '.'), vs.lines];
   vs.lnrs = [vs.lnrs[0] - 1, vs.lnrs];
 
   if (incr)
@@ -2679,7 +2679,7 @@ private define v_calclines_up_ (s, vs, incr)
 
 private define v_l_up (vs, s)
 {
-  ifnot (v_lnr (s, '.'))
+  ifnot (__vlnr (s, '.'))
     return;
   
   if (s.ptr[0] == s.vlins[0]) %for now FIXME
@@ -2724,7 +2724,7 @@ private define v_calclines_down (s, vs, un, dec)
 
 private define v_calclines_down_ (s, vs, dec)
 {
-  vs.lines = [vs.lines, v_lin (s, '.')];
+  vs.lines = [vs.lines, __vline (s, '.')];
   vs.lnrs = [vs.lnrs, vs.lnrs[-1] + 1];
 
   if (dec)
@@ -2736,7 +2736,7 @@ private define v_calclines_down_ (s, vs, dec)
 
 private define v_l_down (vs, s)
 {
-  if (v_lnr (s, '.') == s._len)
+  if (__vlnr (s, '.') == s._len)
       return;
 
   if (s.ptr[0] == s.vlins[-1])
@@ -2839,6 +2839,20 @@ private define v_l_loop (vs, s)
       set_modified (s);
       s.draw ();
       return;
+      }
+    
+    if ('s' == chr)
+      {
+      variable rl = get_cur_rline ();
+      variable argv = ["substitute", "--global",
+        sprintf ("--range=%d,%d", vs.lnrs[0], vs.lnrs[-1]), "--pat="];
+
+      rline->set (rl;line = strjoin (argv, " "), argv = argv,
+        col = int (sum (strlen (argv))) + length (argv),
+        ind = length (argv) - 1);
+
+      rline->readline (rl);
+      break;
       }
     }
 
@@ -3084,7 +3098,7 @@ private define v_bw_calclines_up_ (s, vs, incr)
 
 private define v_bw_up (vs, s)
 {
-  ifnot (v_lnr (s, '.'))
+  ifnot (__vlnr (s, '.'))
     return;
   
   if (s.ptr[0] == s.vlins[0])
@@ -3133,7 +3147,7 @@ private define v_bw_calclines_down_ (s, vs, dec)
 
 private define v_bw_down (vs, s)
 {
-  if (v_lnr (s, '.') == s._len)
+  if (__vlnr (s, '.') == s._len)
       return;
 
   if (s.ptr[0] == s.vlins[-1])
@@ -3181,7 +3195,7 @@ vis.bw_left = &v_bw_left;
 
 private define v_bw_right (vs, s)
 {
-  variable linlen = v_linlen (s, '.');
+  variable linlen = __vlinlen (s, '.');
 
   if (s._index - s._indent == linlen - 1 || 0 == linlen
       || s._index + 1 > vs.bw_maxlen)
@@ -3343,7 +3357,7 @@ vis.at_exit = &v_atexit;
 private define v_init (s)
 {
   toplinedr ("-- visual --");
-  variable lnr = v_lnr (s, '.');
+  variable lnr = __vlnr (s, '.');
   variable v = @vis;
   
   v._i = @s._ii;
@@ -3352,8 +3366,8 @@ private define v_init (s)
   v.startlnr = lnr;
   v.vlins = [s.ptr[0]];
   v.lnrs = [lnr];
-  v.linlen = [v_linlen (s, '.')];
-  v.lines = [v_lin (s, '.')];
+  v.linlen = [__vlinlen (s, '.')];
+  v.lines = [__vline (s, '.')];
   v.startrow = lnr;
   v.startindex = s._index;
   
@@ -3754,8 +3768,8 @@ private define ins_page_up (is, s, line)
   s._findex = s._indent;
   
   (@VED_PAGER[string (keys->PPAGE)]) (s;modified);
-  is.lnr = v_lnr (s, '.');
-  @line = v_lin (s, '.'); 
+  is.lnr = __vlnr (s, '.');
+  @line = __vline (s, '.'); 
   
   ifnot (is.lnr)
     is.prev_l = "";
@@ -3774,8 +3788,8 @@ private define ins_page_down (is, s, line)
   s._findex = s._indent;
   
   (@VED_PAGER[string (keys->NPAGE)]) (s;modified);
-  is.lnr = v_lnr (s, '.');
-  @line = v_lin (s, '.'); 
+  is.lnr = __vlnr (s, '.');
+  @line = __vline (s, '.'); 
   
   if (is.lnr == s._len)
     is.next_l = "";
@@ -3857,7 +3871,7 @@ insfuncs.down = &ins_down;
 
 private define ins_up (is, s, line)
 {
-  variable i = v_lnr (s, '.');
+  variable i = __vlnr (s, '.');
 
   ifnot (is.lnr)
     return;
@@ -3953,7 +3967,7 @@ private define ins_cr (is, s, line)
       if (s.ptr[0] == s.rows[-2])
         next_l = s.lines[is.lnr + 1];
       else
-        next_l = v_lin (s, s.ptr[0] + 1);
+        next_l = __vline (s, s.ptr[0] + 1);
 
     s.ptr[1] = indent;
     s._i = s._ii;
@@ -4223,8 +4237,8 @@ define pag_completion (s)
   
     {
     case 'b':
-      line = v_lin (s, '.');
-      blockcompletion (v_lnr (s, '.'), s, &line);
+      line = __vline (s, '.');
+      blockcompletion (__vlnr (s, '.'), s, &line);
     }
  
     {
@@ -4427,8 +4441,8 @@ private define ed_indent_in (s)
 {
   variable
     i_ = s._indent,
-    i = v_lnr (s, '.'),
-    line = v_lin (s, '.');
+    i = __vlnr (s, '.'),
+    line = __vline (s, '.');
  
   line = _indent_in_ (s, line, &i_);
   
@@ -4458,8 +4472,8 @@ private define ed_indent_in (s)
 private define ed_indent_out (s)
 {
   variable
-    i = v_lnr (s, '.'),
-    line = v_lin (s, '.');
+    i = __vlnr (s, '.'),
+    line = __vline (s, '.');
 
   line = sprintf ("%s%s", repeat (" ", s._shiftwidth), line);
 
@@ -4483,8 +4497,8 @@ private define ed_indent_out (s)
 private define ed_join_line (s)
 {
   variable
-    i = v_lnr (s, '.'),
-    line = v_lin (s, '.');
+    i = __vlnr (s, '.'),
+    line = __vline (s, '.');
 
   if (0 == s._len || i == s._len)
     return;
@@ -4504,10 +4518,10 @@ private define ed_join_line (s)
 private define ed_del_line (s)
 {
   variable
-    i = v_lnr (s, '.'),
-    line = v_lin (s, '.');
+    i = __vlnr (s, '.'),
+    line = __vline (s, '.');
 
-  if (0 == s._len && (0 == v_linlen (s, '.') || " " == line ||
+  if (0 == s._len && (0 == __vlinlen (s, '.') || " " == line ||
       line == __get_null_str (s._indent)))
     return 1;
 
@@ -4556,8 +4570,8 @@ private define ed_del_word (s, what)
     start,
     func = islower (what) ? &find_word : &find_Word,
     col = s._index,
-    i = v_lnr (s, '.'),
-    line = v_lin (s, '.');
+    i = __vlnr (s, '.'),
+    line = __vline (s, '.');
  
   if (isblank (substr (line, col + 1, 1)))
     return;
@@ -4587,8 +4601,8 @@ private define ed_chang_chr (s)
   variable
     chr = getch (),
     col = s._index,
-    i = v_lnr (s, '.'),
-    line = v_lin (s, '.');
+    i = __vlnr (s, '.'),
+    line = __vline (s, '.');
 
   if (' ' <= chr <= 126 || 902 <= chr <= 974)
     {
@@ -4607,8 +4621,8 @@ private define ed_del_chr (s)
 {
   variable
     col = s._index,
-    i = v_lnr (s, '.'),
-    line = v_lin (s, '.'),
+    i = __vlnr (s, '.'),
+    line = __vline (s, '.'),
     len = strlen (line);
 
   if ((0 == s.ptr[1] - s._indent && 'X' == s._chr) || 0 > len - s._indent)
@@ -4665,8 +4679,8 @@ private define ed_change_word (s, what)
     next_l,
     func = islower (what) ? &find_word : &find_Word,
     col = s._index,
-    lnr = v_lnr (s, '.'),
-    line = v_lin (s, '.');
+    lnr = __vlnr (s, '.'),
+    line = __vline (s, '.');
  
   if (isblank (substr (line, col + 1, 1)))
     return;
@@ -4680,7 +4694,7 @@ private define ed_change_word (s, what)
   ifnot (lnr)
     prev_l = "";
   else
-    prev_l = v_lin (s, s.ptr[0] - 1);
+    prev_l = __vline (s, s.ptr[0] - 1);
 
   if (lnr == s._len)
     next_l = "";
@@ -4758,8 +4772,8 @@ private define ed_del_to_end (s)
 {
   variable
     col = s._index,
-    i = v_lnr (s, '.'),
-    line = v_lin (s, '.'),
+    i = __vlnr (s, '.'),
+    line = __vline (s, '.'),
     len = strlen (line);
  
   if (s._index == len)
@@ -4816,14 +4830,14 @@ private define ed_editline (s)
     prev_l,
     next_l,
     lline,
-    lnr = v_lnr (s, '.'),
-    line = v_lin (s, '.'),
+    lnr = __vlnr (s, '.'),
+    line = __vline (s, '.'),
     len = strlen (line);
 
   ifnot (lnr)
     prev_l = "";
   else
-    prev_l = v_lin (s, s.ptr[0] - 1);
+    prev_l = __vline (s, s.ptr[0] - 1);
 
   if (lnr == s._len)
     next_l = "";
@@ -4868,15 +4882,15 @@ private define ed_newline (s)
     next_l,
     indent,
     col = s._index,
-    lnr = v_lnr (s, '.'),
-    line = v_lin (s, '.'),
+    lnr = __vlnr (s, '.'),
+    line = __vline (s, '.'),
     len = strlen (line);
 
   if ("prev" == dir)
     ifnot (lnr)
       prev_l = "";
     else
-      prev_l = v_lin (s, s.ptr[0] - 1);
+      prev_l = __vline (s, s.ptr[0] - 1);
   else
     prev_l = line;
  
@@ -4924,7 +4938,7 @@ private define ed_Put (s)
 
   variable
     lines = strchop (REG["\""], '\n', 0),
-    lnr = v_lnr (s, '.');
+    lnr = __vlnr (s, '.');
 
   if ('\n' == REG["\""][-1])
     {
@@ -4956,7 +4970,7 @@ private define ed_put (s)
 
   variable
     lines = strchop (REG["\""], '\n', 0),
-    lnr = v_lnr (s, '.');
+    lnr = __vlnr (s, '.');
 
   if ('\n' == REG["\""][-1])
     {
@@ -4982,8 +4996,8 @@ private define ed_toggle_case (s)
   variable
     func,
     col = s._index,
-    i = v_lnr (s, '.'),
-    line = v_lin (s, '.'),
+    i = __vlnr (s, '.'),
+    line = __vline (s, '.'),
     chr = substr (line, col + 1, 1);
 
   chr = decode (chr)[0];
@@ -5001,7 +5015,7 @@ private define ed_toggle_case (s)
  
   waddline (s, getlinestr (s, line, 1), 0, s.ptr[0]);
 
-  if (s._index - s._indent == v_linlen (s, s.ptr[0]) - 1)
+  if (s._index - s._indent == __vlinlen (s, s.ptr[0]) - 1)
     draw_tail (s);
   else
     (@VED_PAGER[string ('l')]) (s);
@@ -5038,10 +5052,7 @@ private define _askonsubst_ (s, fn, lnr, fpart, context, lpart, replace)
      repeat ("_", COLUMNS),
      sprintf ("%s%s%s", fpart, replace, lpart),
      repeat ("_", COLUMNS),
-     "y[es replace]",
-     "n[o  dont replace]",
-     "q[uit all the replacements]",
-     "a[ll replace all, dont ask again for this file]"];
+     "y[es]/n[o]/q[uit]/a[ll]"];
    variable char_ar =  ['y', 'n', 'q', 'a'];
    return widg->askprintstr (ar, char_ar, &cmp_lnrs);
 }
@@ -5083,6 +5094,7 @@ define __substitute ()
     ind = substr (args[ind], strlen ("--range=") + 1, -1);
     ifnot (strlen (ind))
       return;
+
     ind = strchop (ind, ',', 0);
     ifnot (2 == length (ind))
       return;
@@ -5091,21 +5103,44 @@ define __substitute ()
     range = ["", ""];
     _for i (0, 1)
       _for ia (0, strlen (ind[i]) - 1)
-        ifnot ('0' <= ind[0][ia] <= '9')
+        ifnot ('0' <= ind[i][ia] <= '9')
           return;
         else
           range[i] += char (ind[i][ia]);
 
     range = array_map (Integer_Type, &atoi, range); % add an atoi array_map'ed
+    if (range[0] > range[1])
+      return;
+
+    ind = NULL;
     }
          
   variable s = search->init (pat, sub;global = global, askwhensubst = ask);
   s.fname = path_basename (buf._absfname);
   s.ask = &_askonsubst_;
-  variable retval = search->search_and_replace (s, buf.lines);
+  
+  variable lnrs = [0:buf._len];
+  
+  ifnot (NULL == range)
+    {
+    if (0 > range[0])
+      return;
+    ifnot (range[0] <= range[1] <= buf._len)
+      return;
+    % BUG IN SLANG? the following fails
+    
+    % lnrs = lnrs[range[0]:range[1]];
+    
+    % with a parsing error message
+    % Expecting ']': found ':'
+    range = [range[0]:range[1]];
+    lnrs = lnrs[range];
+    }
+
+  variable retval = search->search_and_replace (s, buf.lines[lnrs]);
   ifnot (retval)
     {
-    buf.lines = ();
+    buf.lines[lnrs] = ();
     buf.draw ();
     }
 }
@@ -5140,9 +5175,23 @@ ifnot (NULL == DISPLAY)
 
 new_wind ();
 
-  %    comments for developing the DEV tracking system
-  %A   for attachments
-  
+  %    (early) development of the DEV tracking system
+  %A   attachment
+  %T   time
+  %S   status
+  %?   type
+  %P   priority
+  %@   summary
+  %O   author, original poster, reporter
+  %U   user
+  %I   id
+  %#   comment
+  %#nr comment number (id)
+  %nr  comment line number
+  %    new line (ignored)
+  %=>  assigned to
+  %=<  get assignment (%U)
+      
   % on close (fixed), (add a new line with the id in []?)? (before or after)
   % delete the text. commit it to git as standalone
   % then link to commit
@@ -5151,30 +5200,52 @@ new_wind ();
 
   %I    0001
   %@    Add a check syntax command
-  %?    enchanchment  ..high NULL open  
-  %op   ayios
+  %T    02/09/2015 10:20
+  %?    enchanchment
+  %P    ..high
+  %S    open
+  %O    ayios
   %
   %#1
-  %US  ayios
-  %1  |  for sl_type use bytecompile for a start
-  %2  |  maybe a load(*) SLang C function
-  %3  |  if such file can be evalfil'ing (if standalone)
+  %T    02/09/2015 10:20
+  %U    ayios
+  %1  | for sl_type use bytecompile for a start
+  %2  | maybe a load(*) SLang C function
+  %3  | if such file can be evalfil'ing (if standalone)
   %=> ayios
-  %ER
-  %#1
-  %D
-  
+    
   %I             0002
   %@    Add header in sl_type files
-  %?    enchanchment  ...high ayios open
-  %op  _ayios
+  %T    02/09/2015 10:30
+  %?    enchanchment
+  %P    ...high
+  %S    open
+  %O    ayios
   %
   %#1
-  %US
-  %1  |  (for instance) see *001:@*
-  %2  |  see *001:3*, we might want to know specific details
-  %3=> ayios
-  %ER
+  %T    02/09/2015 10:30
+  %U    ayios
+  %1  | (for instance) see *001:@*
+  %2  | see *001:3*, we might want to know specific details
+  %
+  %=> ayios
+  
+  %I            0003
+  %@    Highlight api functions
+  %T    02/09/2015 10:33
+  %?    enchanchment
+  %P    ...norm
+  %S    open
+  %O    lak
+  %
   %#1
-  %D
+  %T    02/09/2015 10:33
+  %U    lak
+  %1  | maybe yellow
+  %
+  %#2
+  %T    02/09/2015 10:47
+  %U    ayios
+  %=<
+
 %%% ELOPMENT %%%

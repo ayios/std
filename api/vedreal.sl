@@ -102,7 +102,8 @@ private define my_commands ()
     ["--global void do global substitutions",
      "--pat= pattern pcre pattern (required)",
      "--sub= pattern substitution (required)",
-     "--dont-ask-when-subst void dont ask when substitute (yes by default)"];
+     "--dont-ask-when-subst void dont ask when substitute (yes by default)",
+     "--range= int first linenr, last linenr"];
 
   return a;
 }
@@ -285,7 +286,7 @@ private define _read ()
 
   variable ar = getlines (file, s._indent, st);
  
-  variable lnr = v_lnr (s, '.');
+  variable lnr = __vlnr (s, '.');
 
   s.lines = [s.lines[[:lnr]], ar, s.lines[[lnr + 1:]]];
   s._len = length (s.lines) - 1;
@@ -389,4 +390,3 @@ define init_ftype (ftype)
 
   return type;
 }
-

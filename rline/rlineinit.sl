@@ -125,13 +125,14 @@ static define set (s)
 {
   s._state = 1;
   s._row = s._prow;
-  s.ptr = [s._prow, 1];
-  s._col = strlen (s._pchar);
-  s._lin = s._pchar;
-  s._ind = 0;
+  s._col = qualifier ("col", strlen (s._pchar));
+  s.ptr = qualifier ("ptr", [s._prow, 1]);
+%  s.ptr = qualifier ("ptr", [s._prow, 1]);
+  s._lin = s._pchar + qualifier ("line", "");
+  s._ind = qualifier ("ind", 0);
   s._chr = 0;
   s.lnrs = [s._prow];
-  s.argv = [""];
+  s.argv = qualifier ("argv", [""]);
 }
 
 private define _Null () {};
@@ -1835,8 +1836,9 @@ static define getline ()
   s._columns = COLUMNS;
   s._row = s._prow;
  
-  set (s);
+  set (s;;__qualifiers ());
  
+ send_msg_dr (s._lin, 1, NULL, NULL);
   if (strlen (s._lin))
     prompt (s, s._lin, s._col);
   else

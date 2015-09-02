@@ -54,7 +54,7 @@ private define add (self, s, rows)
 private define getitem (s)
 {
   variable
-    line = v_lin (s, '.'),
+    line = __vline (s, '.'),
     tok = strchop (line, '|', 0),
     col = atoi (strtok (tok[1])[2]),
     lnr = atoi (strtok (tok[1])[0]),
