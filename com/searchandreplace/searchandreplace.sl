@@ -58,16 +58,16 @@ define unified_diff (lines, fname)
     variable fn = TEMPDIR + "/" + path_basename (fname) + "_" + string (PID) + "_" +
       string (_time)[[5:]];
     writefile (lines, fn);
-    com[-1] = fn; 
+    com[-1] = fn;
     }
   else
     p.stdin.in = lines;
 
   status = p.execv (com, NULL);
-                                                         
+ 
   if (NULL == status)
     return NULL;
-                                                                          
+ 
   ifnot (2 > status.exit_status)
     return NULL;
 
@@ -76,7 +76,7 @@ define unified_diff (lines, fname)
 
   return p.stdout.out;
 }
-                                                                                                                          
+ 
 private define sed (file, s)
 {
   variable
@@ -91,7 +91,8 @@ private define sed (file, s)
     return;
  
   s.fname = file;
-
+ 
+  s.askwhensubst = NULL == WHENSUBST ? 1 : 0;
   retval = search->search_and_replace (s, readfile (file));
 
   if (NULL == retval)

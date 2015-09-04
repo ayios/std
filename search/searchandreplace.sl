@@ -2,19 +2,16 @@ private define _ask_ (s, fn, lnr, fpart, context, lpart, replace)
 {
   variable f = __get_reference ("ask");
   return (@f) (["@" + fn + " linenr: " + string (lnr+1),
-     "replace?",
-     repeat ("_", COLUMNS),
-     sprintf ("%s%s%s", fpart, context, lpart),
-     repeat ("_", COLUMNS),
-     "with?",
-     repeat ("_", COLUMNS),
-     sprintf ("%s%s%s", fpart, replace, lpart),
-     repeat ("_", COLUMNS),
-     "y[es replace]",
-     "n[o  dont replace]",
-     "q[uit all the replacements]",
-     "a[ll replace all, dont ask again for this file]"],
-     ['y', 'n', 'q', 'a']; hl = [
+    "replace?",
+    repeat ("_", COLUMNS),
+    sprintf ("%s%s%s", fpart, context, lpart),
+    repeat ("_", COLUMNS),
+    "with?",
+    repeat ("_", COLUMNS),
+    sprintf ("%s%s%s", fpart, replace, lpart),
+    repeat ("_", COLUMNS),
+    "y[es]/n[o]/q[uit]/a[ll]/c[ansel]"],
+    ['y', 'n', 'q', 'a', 'c']; hl = [
        struct {color = 1, row = 5, col = strlen (fpart), dr = 1, dc = strlen (context)},
        struct {color = 2, row = 9, col = strlen (fpart), dr = 1, dc = strlen (replace)}]);
 }
@@ -75,7 +72,7 @@ private define assign_substitute (substitution)
  
         {
         case "s" :
-          list_append (, " ");
+          list_append (list, " ");
         continue;
         }
 
@@ -122,8 +119,8 @@ static define search_and_replace (s, ar)
     if (i + s.newlines > length (ar) - 1)
       break;
  
-    s.lnronfile = lnronfile + i;    
-      
+    s.lnronfile = lnronfile + i;
+ 
     str = strjoin (ar[[i:i+s.newlines]], s.newlines ? "\n" : "");
  
     found = pcre_exec (s.pat, str, 0);
@@ -172,7 +169,7 @@ static define search_and_replace (s, ar)
             lcontext = strreplace (context, "\n", "\\n"),
             llpart = strreplace (lpart, "\n", "\\n"),
             lreplace = strreplace (replace, "\n", "\\n");
-          
+ 
           retval = s.ask (fname, s.lnronfile, lfpart, lcontext, llpart, lreplace);
 
            switch (retval)
@@ -182,7 +179,7 @@ static define search_and_replace (s, ar)
              }
 
              {
-             case 'a': s.askwhensubst = 1;
+             case 'a': s.askwhensubst = 0;
              }
 
              {
@@ -191,6 +188,11 @@ static define search_and_replace (s, ar)
                  return ar, 0;
                else
                  return 1;
+             }
+
+             {
+             case 'c':
+               return 1;
              }
           }
 
@@ -233,7 +235,7 @@ static define init (pat, sub)
     s.substlist = assign_substitute (sub);
     }
   catch ParseError:
-    return __get_exception_info.message, NULL;
+    return __get_exception_info ().message, NULL;
 
   s.numchanges = 0;
   s.patstr = pat;

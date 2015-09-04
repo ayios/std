@@ -5,7 +5,7 @@ public variable ROOTDIR = path_concat (getcwd (), path_dirname (__FILE__));
 if (ROOTDIR[[-2:]] == "/.")
   ROOTDIR = substr (ROOTDIR, 1, strlen (ROOTDIR) - 2);
  
-ROOTDIR+= "/..";
+ROOTDIR += "/..";
 
 public variable MACHINE = uname ().machine;
 public variable OS = uname ().sysname;
@@ -121,15 +121,15 @@ private define _load_ ()
     () = evalfile (file, ns);
     }
   catch OpenError:
-    throw OpenError, __get_exception_info.message, 2;
+    throw OpenError, __get_exception_info ().message, 2;
   catch ParseError:
     throw ParseError, sprintf ("file %s: %s func: %s lnr: %d", path_basename (file),
       __get_exception_info ().message, __get_exception_info ().function,
-      __get_exception_info ().line), __get_exception_info.error;
+      __get_exception_info ().line), __get_exception_info ().error;
   catch RunTimeError:
     throw RunTimeError, sprintf ("file %s: %s func: %s lnr: %d", path_basename (file),
       __get_exception_info ().message, __get_exception_info ().function,
-      __get_exception_info ().line), __get_exception_info.error;
+      __get_exception_info ().line), __get_exception_info ().error;
  
   LOADED[lib] = 1;
 
@@ -210,7 +210,7 @@ public define loadfrom (ns, lib, dons, errfunc)
       }
     else
       {
-      excar = [__get_exception_info.message];
+      excar = [__get_exception_info ().message];
       err = exception;
       }
 
@@ -282,7 +282,7 @@ public define getreffrom (ns, lib, dons, errfunc)
       }
     else
       {
-      excar = [__get_exception_info.message];
+      excar = [__get_exception_info ().message];
       err = exception;
       }
 
@@ -291,8 +291,25 @@ public define getreffrom (ns, lib, dons, errfunc)
     else
       () = array_map (Integer_Type, &fprintf, stderr, "%s\n", excar ());
  
-    throw AnyError, "", exception.error;
+    return NULL;
     }
+}
+
+private define _execfrom_ (ns, lib, func, errfunc)
+{
+  func = NULL == func ? "main" : func;
+  return getreffrom (ns, lib, "main", errfunc;fun = func, force);
+}
+
+public define exec (ns, lib, func, errfunc, args)
+{
+  func = _execfrom_ (ns, lib, func, errfunc);
+  % but what to do, if func is NULL?
+  % it can return NULL, but NULL is a valid function returned value
+  % and even the caller might not wait a value.
+  % so the caller must be sure that ns, lib, func exists.
+  % this is risky.
+  (@func) (__push_list (args);;__qualifiers ());
 }
 
 public define loadfile (file, ns, errfunc)

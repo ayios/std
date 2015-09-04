@@ -27,7 +27,7 @@ define addfname (fname)
     s = w.buffers[absfname];
     s._i = s._ii;
     }
-  
+ 
   setbuf (s._absfname);
   write_prompt (" ", 0);
   s.draw (;dont_draw);
@@ -94,7 +94,7 @@ private define my_commands ()
     a[keys[i]].func = VED_CLINE[keys[i]];
     a[keys[i]].type = "Func_Type";
     }
-  
+ 
   a["substitute"] = @Argvlist_Type;
   a["substitute"].func = &__substitute;
   a["substitute"].type = "Func_Type";
@@ -205,7 +205,7 @@ define __write_buffers ()
  
     bts = 0;
     variable retval = __writetofile (s._absfname, s.lines, s._indent, &bts);
-   
+ 
     ifnot (0 == retval)
       {
       send_msg_dr (sprintf ("%s, q to continue, without canseling function call", errno_string (retval)),
@@ -241,7 +241,7 @@ private define cl_quit ()
 
   if (length (s_history))
     rline->writehistory (list_to_array (s_history), s_histfile);
-  
+ 
   if (qualifier_exists ("force") || 'w' == com[0])
     force = 1;
 

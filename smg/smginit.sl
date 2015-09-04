@@ -44,7 +44,7 @@ array_map (Void_Type, &slsmg_define_color, [20:21:1],
 array_map (Void_Type, &slsmg_define_color, [22:23:1],
   "black", array_map (String_Type, &substr,
   ["blackongreen", "blackoncyan"], 8, -1));
-  
+ 
 static define get_color (clr)
 {
   return get_struct_field (COLOR, clr);

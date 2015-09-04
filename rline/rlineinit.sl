@@ -346,7 +346,7 @@ private define routine (s)
       delete_at (s);
     return;
     }
-    
+ 
   if (any (keys->rmap.delete == s._chr))
     {
     if (s._col <= strlen (s._lin))
@@ -1370,7 +1370,7 @@ static define __gettxt (str, row, col)
   rl._ind = 0;
   rl._lin = rl.argv[0];
   rl._pchar = "";
-  
+ 
  smg->atrcaddnstrdr (strlen (rl._lin) ? rl._lin : " ", rl._pclr, rl._prow,
    col, rl._prow, rl._col - 1, strlen (rl._lin) ? strlen (rl._lin) : 1);
 
@@ -1386,7 +1386,7 @@ static define __gettxt (str, row, col)
      rl._col - 1, strlen (rl._lin));
     }
 }
-  
+ 
 private define getpattern (s, pat)
 {
   variable pcrepat;
@@ -1838,7 +1838,6 @@ static define getline ()
  
   set (s;;__qualifiers ());
  
- send_msg_dr (s._lin, 1, NULL, NULL);
   if (strlen (s._lin))
     prompt (s, s._lin, s._col);
   else

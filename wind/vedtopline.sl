@@ -12,11 +12,11 @@ private define _line_ (str)
  
   return b;
 }
-      
+ 
 define topline (str)
 {
   () = _line_ (&str);
-  
+ 
   _topline_ (&str, COLUMNS);
   smg->atrcaddnstr (str, clr, 0, 0, COLUMNS);
 }

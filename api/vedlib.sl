@@ -81,7 +81,7 @@ typedef struct
   ask,
   lnronfile,
   } Search_Type;
-  
+ 
 private variable vis = struct
   {
   _i,
@@ -90,7 +90,9 @@ private variable vis = struct
   l_mode,
   l_down,
   l_up,
-  l_keys = ['s', 'y', 'Y', 'd', '>', '<', keys->DOWN, keys->UP],
+  l_page_up,
+  l_page_down,
+  l_keys = ['s', 'y', 'Y', 'd', '>', '<', keys->DOWN, keys->UP, keys->PPAGE, keys->NPAGE],
   c_mode,
   c_left,
   c_right,
@@ -172,12 +174,12 @@ public variable UNDELETABLE = String_Type[0];
 public variable SPECIAL = String_Type[0];
 public variable XCLIP_BIN = which ("xclip");
 public variable VED_DIR = TEMPDIR + "/ved_" + string (PID) + "_" + string (_time)[[5:]];
- 
+
 public variable
   s_histfile = HISTDIR + "/" + string (getuid ()) + "ved_search_history",
   s_histindex = NULL,
   s_history = {};
- 
+
 public variable % NOT IMPLEMENTED
   RECORD = 0,
   CRECORD,
@@ -207,7 +209,7 @@ private define build_ftype_table ()
       continue;
 
     _for ii (0, length (ft) - 1)
-      if (_isdirectory (nss[i] + "/ftypes/" + ft[ii])) 
+      if (_isdirectory (nss[i] + "/ftypes/" + ft[ii]))
         FTYPES[ft[ii]] = 0;
     }
 }
@@ -224,7 +226,7 @@ loadfrom ("pcre", "find_unique_words_in_lines", 1, &on_eval_err);
 loadfrom ("pcre", "find_unique_lines_in_lines", 1, &on_eval_err);
 
 define set_modified ();
-define seltoX ();
+define seltoX (sel){};
 define topline ();
 define toplinedr ();
 
@@ -304,7 +306,7 @@ define tail (s)
     line = __vline (s, '.');
 
   return sprintf (
-    "[%s] (row %d) (col %d) (linenr %d/%d %.0f%%) (strlen %d) chr (%d), undo (%d/%d)",
+    "[%s] (row:%d col:%d lnr:%d/%d %.0f%% strlen:%d chr:%d) undo %d/%d",
     path_basename (s._fname), s.ptr[0], s.ptr[1] - s._indent + 1, lnr,
     s._len + 1, (100.0 / s._len) * (lnr - 1), __vlinlen (s, '.'),
     qualifier ("chr", decode (substr (line, s._index + 1, 1))[0]),
@@ -553,12 +555,12 @@ define get_cur_rline ()
 define setbuf (key)
 {
   variable w = get_cur_wind ();
-  
+ 
   ifnot (any (key == w.bufnames))
     return;
  
   variable s = w.buffers[key];
-  
+ 
   variable frame = qualifier ("frame", w.cur_frame);
 
   if (frame > length (w.frame_names) - 1)
@@ -581,7 +583,7 @@ define addbuf (s)
 
   if (any (s._absfname == w.bufnames))
     return;
-  
+ 
   w.buffers[s._absfname] = s;
   w.bufnames = [w.bufnames,  s._absfname];
   w.buffers[s._absfname]._dir = realpath (path_dirname (s._absfname));
@@ -722,7 +724,7 @@ define change_frame ()
   s = get_cur_buf ();
 
   set_clr_fg (s, 1);
-  
+ 
   setbuf (s._absfname);
 
   smg->setrcdr (s.ptr[0], s.ptr[1]);
@@ -733,7 +735,7 @@ define framesize (frames)
   variable f = Integer_Type[frames];
   variable ff = Array_Type[frames];
   variable len = length (VED_ROWS);
-  
+ 
   f[*] = len / frames;
   f[0] += len mod frames;
 
@@ -747,7 +749,7 @@ define framesize (frames)
     ff[i] = VED_ROWS[[istart:iend]];
     istart = iend + 1;
     }
-  
+ 
   return ff;
 }
 
@@ -769,9 +771,9 @@ define del_frame ()
   variable setframesize = qualifier ("framesize_func", &framesize);
 
   w.frame_rows = (@setframesize) (w.frames);
-  
+ 
   variable cur_fr = get_cur_frame ();
-  
+ 
   if (frame == w.frames || cur_fr > frame)
     w.cur_frame--;
 
@@ -783,7 +785,7 @@ define del_frame ()
     s = w.buffers[w.frame_names[i]];
     s.rows = w.frame_rows[i];
     initrowsbuffvars (s);
-    
+ 
     s._i = s._ii;
 
     if (i == w.cur_frame)
@@ -806,11 +808,11 @@ define new_frame (fn)
   variable w = get_cur_wind ();
   if (w.frames == VED_MAXFRAMES)
     return;
-  
+ 
   variable i;
   variable s;
   variable b;
-  
+ 
   w.frames++;
 
   variable setframesize = qualifier ("framesize_func", &framesize);
@@ -818,14 +820,14 @@ define new_frame (fn)
   w.frame_rows = (@setframesize) (w.frames);
 
   w.cur_frame = w.frames - 1;
-  
+ 
   variable ft = get_ftype (fn);
   s = init_ftype (ft);
   variable func = __get_reference (sprintf ("%s_settype", ft));
   (@func) (s, fn, w.frame_rows[-1], NULL);
 
   w.frame_names = [w.frame_names, fn];
-  
+ 
   setbuf (s._absfname);
 
   % fine tuning maybe is needed
@@ -842,7 +844,7 @@ define new_frame (fn)
     s._findex = s._indent;
     s._index = s._indent;
     }
-    
+ 
   draw_wind ();
 }
 
@@ -852,10 +854,10 @@ define del_wind (name)
     return;
 
   variable winds = assoc_get_keys (VED_WIND);
-  
+ 
   ifnot (any (name == winds))
     return;
-  
+ 
   winds = winds[array_sort (winds)];
 
   variable i = wherefirst (name == winds);
@@ -880,7 +882,7 @@ define wind_change (to)
 
   variable w;
   variable i;
-  
+ 
   if (Integer_Type == typeof (to))
     if (length (winds) - 1 < to)
       return;
@@ -906,9 +908,9 @@ define wind_change (to)
   VED_CUR_WIND = w;
 
   w = VED_WIND[w];
-  
+ 
   on_wind_change (w);
-  
+ 
   draw_wind ();
 }
 
@@ -942,7 +944,7 @@ define wind_init (name, frames)
 define new_wind ()
 {
   variable name = _NARGS ? () : NULL;
-  
+ 
   variable i;
   variable winds = assoc_get_keys (VED_WIND);
 
@@ -952,21 +954,21 @@ define new_wind ()
   if (NULL == name)
     _for i ('a', 'z')
       {
-      name = char (i); 
+      name = char (i);
       ifnot (any (name == winds))
         break;
 
       if ('z' == i)
         return;
       }
-  
-  ifnot (qualifier_exists ("in_bg")) 
+ 
+  ifnot (qualifier_exists ("in_bg"))
     {
     ifnot (NULL == VED_CUR_WIND)
       VED_PREV_WIND = VED_CUR_WIND;
     VED_CUR_WIND = name;
     }
-  
+ 
   wind_init (name, 1;;__qualifiers ());
 
   if (qualifier_exists ("draw_wind"))
@@ -1000,7 +1002,7 @@ define bufdelete (s, bufname, force)
   assoc_delete_key (w.buffers, bufname);
  
   variable index = wherefirst (bufname == w.bufnames);
-  
+ 
   w.bufnames[index] = NULL;
   w.bufnames = w.bufnames[wherenot (_isnull (w.bufnames))];
 
@@ -1024,7 +1026,7 @@ define bufdelete (s, bufname, force)
   ifnot (NULL == isatframe)
     if (1 < w.frames)
       del_frame (isatframe);
-  
+ 
   if (iscur)
     {
     index = index ? index - 1 : length (w.bufnames) - 1;
@@ -1262,7 +1264,7 @@ private define mark (s)
   if ('a' <= mark <= 'z')
     {
     mark = string (mark);
-    mark_init (mark); 
+    mark_init (mark);
     mark_set (mark, s);
     }
 }
@@ -1276,7 +1278,7 @@ private define mark_get ()
 
   if (any (mark == marks))
     return @MARKS[mark];
-  
+ 
   return NULL;
 }
 
@@ -1331,7 +1333,7 @@ private define _indent_in_ (s, line, i_)
 {
   ifnot (strlen (line) - s._indent)
     return NULL;
-  
+ 
   ifnot (isblank (line[s._indent]))
     return NULL;
  
@@ -1622,7 +1624,7 @@ private define pg_page_down (s)
 
 private define pg_page_up (s)
 {
-  ifnot (s.lnrs[0] - 1)
+  ifnot (s.lnrs[0])
     return;
  
   markbacktick (s);
@@ -1801,7 +1803,7 @@ define _change_frame_ (s)
 }
 
 define _new_frame_ (s)
-{ 
+{
   new_frame (TEMPDIR + "/" + string (_time) + ".noname");
   s = get_cur_buf ();
 }
@@ -1830,7 +1832,7 @@ define on_wind_new (w)
   variable s = init_ftype ("txt");
   variable func = __get_reference ("txt_settype");
   (@func) (s, fn, w.frame_rows[0], NULL);
-  
+ 
   setbuf (fn);
   (@__get_reference ("__initrline"));
   topline (" -- ved --");
@@ -1865,7 +1867,7 @@ define handle_w (s)
       _change_frame_ (s);
       return;
       }
-    
+ 
     if ('s' == chr)
       {
       _new_frame_ (s);
@@ -1970,7 +1972,7 @@ define diff (lines, fname, retval)
     {
     variable fn = VED_DIR + "/" + path_basename (fname) + "_" + string (PID);
     () = writestring (fn, lines);
-    com[-1] = fn; 
+    com[-1] = fn;
     }
   else
     p.stdin.in = lines;
@@ -2006,7 +2008,7 @@ define patch (in, dir, retval)
   variable isbigout = qualifier ("isbig", 0);
   variable com = [which ("patch"), "-d", dir, "-r", VED_DIR + "/patchrej.diff"];
   variable out = "-";
-      
+ 
   if (isbigin)
     {
     variable fin = VED_DIR + "/pathchin.diff";
@@ -2016,9 +2018,9 @@ define patch (in, dir, retval)
  
   if (isbigout)
     out = VED_DIR + "/patchout.diff";
-   
+ 
   com = [com, "-o", out];
-   
+ 
   variable p = proc->init (isbigin ? 0 : 1, 1, 1);
   ifnot (isbigin)
     p.stdin.in = in;
@@ -2365,7 +2367,7 @@ private define search_forward (s, str)
     }
  
   s_found = 0;
-  
+ 
   send_msg_dr ("Nothing found", 0, PROMPTROW, s_col);
 }
 
@@ -2512,7 +2514,7 @@ private define search (s)
     if (dothesearch)
       (@typesearch) (s, pat);
     }
-  
+ 
   ifnot (input->getlang () == cur_lang)
     input->setlang (cur_lang);
 }
@@ -2646,7 +2648,7 @@ private define v_hl_line (vs, s)
       else
         smg->hlregion (vs.clr, vs.vlins[i], 0, 1,
           s._maxlen > vs.linlen[i] ? vs.linlen[i] : s._maxlen);
-  
+ 
   ifnot (qualifier_exists ("dont_draw"))
     smg->refresh ();
 }
@@ -2667,13 +2669,13 @@ private define v_calclines_up (s, vs, un, inc)
 
 private define v_calclines_up_ (s, vs, incr)
 {
-  vs.lines = [__vline (s, '.'), vs.lines];
+  vs.lines = [s.lines[vs.lnrs[0] - 1], vs.lines];
   vs.lnrs = [vs.lnrs[0] - 1, vs.lnrs];
 
   if (incr)
     vs.vlins++;
 
-  vs.vlins = [s.ptr[0], vs.vlins];
+  vs.vlins = [qualifier ("row", s.ptr[0]), vs.vlins];
   vs.linlen = [strlen (vs.lines[0]), vs.linlen];
 }
 
@@ -2681,17 +2683,17 @@ private define v_l_up (vs, s)
 {
   ifnot (__vlnr (s, '.'))
     return;
-  
-  if (s.ptr[0] == s.vlins[0]) %for now FIXME
+ 
+  if (s.ptr[0] == s.vlins[0])
     {
     s._i--;
     s.draw ();
-    
+ 
     if (vs.lnrs[-1] <= vs.startlnr)
       v_calclines_up_ (s, vs, 1);
     else
       v_calclines_up (s, vs, 0, 1);
-    
+ 
     v_hl_line (vs, s);
     return;
     }
@@ -2707,6 +2709,55 @@ private define v_l_up (vs, s)
 }
 
 vis.l_up = &v_l_up;
+
+private define v_l_page_up (vs, s)
+{
+  if (s._i < s._avlins || s._avlins > s._len)
+    return;
+ 
+  variable count = qualifier ("count", 1);
+  variable i = 1;
+  variable ii;
+ 
+  while (i <= count && s._i)
+    {
+    variable isnotiatfpg = 1;
+    ii = s._avlins;
+
+    if (s._i - s._avlins >= 0)
+      s._i -= s._avlins;
+    else
+      {
+      ii = s._i + (s.ptr[0] - s.vlins[0]);
+      s._i = 0;
+      isnotiatfpg = 0;
+      }
+
+    loop (ii)
+      {
+      if (s.ptr[0] == s.vlins[0])
+        {
+        if (vs.lnrs[-1] <= vs.startlnr)
+          v_calclines_up_ (s, vs, 1);
+        else
+          v_calclines_up (s, vs, 0, 1);
+        continue;
+        }
+ 
+      if (vs.lnrs[-1] > vs.startrow)
+        v_calclines_up (s, vs, 1, 1);
+      else
+        v_calclines_up_ (s, vs, 1;row = isnotiatfpg ? s.ptr[0] : vs.vlins[0]);
+      }
+
+    i++;
+    }
+
+  s.draw ();
+  v_hl_line (vs, s);
+}
+
+vis.l_page_up = &v_l_page_up;
 
 private define v_calclines_down (s, vs, un, dec)
 {
@@ -2724,7 +2775,7 @@ private define v_calclines_down (s, vs, un, dec)
 
 private define v_calclines_down_ (s, vs, dec)
 {
-  vs.lines = [vs.lines, __vline (s, '.')];
+  vs.lines = [vs.lines, s.lines[vs.lnrs[-1] + 1]];
   vs.lnrs = [vs.lnrs, vs.lnrs[-1] + 1];
 
   if (dec)
@@ -2733,6 +2784,54 @@ private define v_calclines_down_ (s, vs, dec)
   vs.vlins = [vs.vlins, s.ptr[0]];
   vs.linlen = [vs.linlen, strlen (vs.lines[-1])];
 }
+
+private define v_l_page_down (vs, s)
+{
+  if (vs.lnrs[-1] == s._len)
+    return;
+
+  variable count = qualifier ("count", 1);
+  variable i = 1;
+  variable ii;
+  variable notend = 1;
+ 
+  while (i <= count && notend)
+    {
+    if (s._i + s._avlins < s._len)
+      {
+      ii = s._avlins - (s.ptr[0] - s.vlins[0]);
+      ii = s._avlins;
+      s._i += s._avlins;
+      }
+    else
+      break;
+
+    loop (ii)
+      {
+      if (s.ptr[0] == s.vlins[-1])
+        {
+        if (vs.lnrs[0] < vs.startlnr)
+          v_calclines_down (s, vs, 0, 1);
+        else
+          v_calclines_down_ (s, vs, 1);
+
+         continue;
+         }
+
+      if (vs.lnrs[0] < vs.startlnr)
+        v_calclines_down (s, vs, 1, 0);
+      else
+        v_calclines_down_ (s, vs, 1);
+      }
+
+    i++;
+    }
+ 
+  s.draw ();
+  v_hl_line (vs, s);
+}
+
+vis.l_page_down = &v_l_page_down;
 
 private define v_l_down (vs, s)
 {
@@ -2743,7 +2842,7 @@ private define v_l_down (vs, s)
     {
     s._i++;
     s.draw ();
-    
+ 
     if (vs.lnrs[0] < vs.startlnr)
       v_calclines_down (s, vs, 0, 1);
     else
@@ -2751,7 +2850,7 @@ private define v_l_down (vs, s)
 
     v_hl_line (vs, s);
     return;
-    }    
+    }
 
   s.ptr[0]++;
 
@@ -2767,21 +2866,51 @@ vis.l_down = &v_l_down;
 
 private define v_l_loop (vs, s)
 {
-  variable chr, i;
+  variable chr, i, size = s.st_.st_size;
  
-  while (chr = getch (), any (vs.l_keys == chr))
+  while (chr = getch (), any ([vs.l_keys, ['0':'9']] == chr))
     {
+    VEDCOUNT = 1;
+ 
+    if ('0' <= chr <= '9')
+      {
+      VEDCOUNT = "";
+ 
+      while ('0' <= chr <= '9')
+        {
+        VEDCOUNT += char (chr);
+        chr = getch ();
+        }
+
+      VEDCOUNT = integer (VEDCOUNT);
+      }
+ 
     if (chr == keys->DOWN)
       {
-      vs.l_down (s);
+      loop (VEDCOUNT)
+        vs.l_down (s);
       continue;
       }
 
     if (chr == keys->UP)
       {
-      vs.l_up (s);
+      loop (VEDCOUNT)
+        vs.l_up (s);
       continue;
       }
+
+    if (chr == keys->PPAGE)
+      {
+      vs.l_page_up (s;count = VEDCOUNT);
+      continue;
+      }
+
+    if (chr == keys->NPAGE)
+      {
+      vs.l_page_down (s;count = VEDCOUNT);
+      continue;
+      }
+
 
     if ('y' == chr)
       {
@@ -2789,29 +2918,42 @@ private define v_l_loop (vs, s)
       seltoX (strjoin (vs.lines, "\n") + "\n");
       break;
       }
-    
+ 
     if ('>' == chr)
       {
-      _for i (0, length (vs.lnrs) - 1)
-        s.lines[vs.lnrs[i]] = repeat (" ", s._shiftwidth) + s.lines[vs.lnrs[i]];
-      
-      set_modified (s);
+      loop (VEDCOUNT)
+        _for i (0, length (vs.lnrs) - 1)
+          s.lines[vs.lnrs[i]] = repeat (" ", s._shiftwidth) + s.lines[vs.lnrs[i]];
+ 
+      s.st_.st_size = getsizear (s.lines);
+      ifnot (size == s.st_.st_size)
+        set_modified (s);
+      else
+        return;
+
       break;
       }
-    
+ 
     if ('<' == chr)
       {
-      _for i (0, length (vs.lnrs) - 1)
-        {
-        variable i_ = s._indent;
-        variable l = _indent_in_ (s, s.lines[vs.lnrs[i]], &i_);
-        if (NULL == l)
-          continue;
-        
-        s.lines[vs.lnrs[i]] = l;
-        }
+ 
+      loop (VEDCOUNT)
+        _for i (0, length (vs.lnrs) - 1)
+          {
+          variable i_ = s._indent;
+          variable l = _indent_in_ (s, s.lines[vs.lnrs[i]], &i_);
+          if (NULL == l)
+            continue;
+ 
+          s.lines[vs.lnrs[i]] = l;
+          }
+ 
+      s.st_.st_size = getsizear (s.lines);
+      ifnot (size == s.st_.st_size)
+        set_modified (s);
+      else
+        return;
 
-      set_modified (s);
       break;
       }
 
@@ -2834,13 +2976,13 @@ private define v_l_loop (vs, s)
         s.lines = [__get_null_str (s._indent)];
         s._len = 0;
         }
-       
+ 
       s.st_.st_size = getsizear (s.lines);
       set_modified (s);
       s.draw ();
       return;
       }
-    
+ 
     if ('s' == chr)
       {
       variable rl = get_cur_rline ();
@@ -2852,7 +2994,7 @@ private define v_l_loop (vs, s)
         ind = length (argv) - 1);
 
       rline->readline (rl);
-      break;
+      return;
       }
     }
 
@@ -2864,7 +3006,7 @@ private define v_linewise_mode (vs, s)
   vs.linlen = [strlen (vs.lines[0])];
 
   v_hl_line (vs, s);
-  
+ 
   v_l_loop (vs, s);
 }
 
@@ -3025,7 +3167,7 @@ private define v_char_mode (vs, s)
       variable len = length (vs.sel);
       if (1 < len)
         return;
-      
+ 
       sel = strjoin (vs.sel, "\n");
       REG["\""] = sel;
       seltoX (sel);
@@ -3100,18 +3242,18 @@ private define v_bw_up (vs, s)
 {
   ifnot (__vlnr (s, '.'))
     return;
-  
+ 
   if (s.ptr[0] == s.vlins[0])
     {
     s._i--;
     s.draw ();
-    
+ 
     if (vs.lnrs[-1] <= vs.startlnr)
       v_bw_calclines_up_ (s, vs, 1);
     else
       v_bw_calclines_up (s, vs, 0, 1);
 
-    v_bw_calclines (vs);   
+    v_bw_calclines (vs);
     v_hl_ch (vs, s);
     return;
     }
@@ -3123,7 +3265,7 @@ private define v_bw_up (vs, s)
   else
     v_bw_calclines_up_ (s, vs, 0);
 
-  v_bw_calclines (vs);   
+  v_bw_calclines (vs);
   v_hl_ch (vs, s);
 }
 
@@ -3154,16 +3296,16 @@ private define v_bw_down (vs, s)
     {
     s._i++;
     s.draw ();
-    
+ 
     if (vs.lnrs[0] < vs.startlnr)
       v_bw_calclines_down (s, vs, 0, 1);
     else
       v_bw_calclines_down_ (s, vs, 1);
 
-    v_bw_calclines (vs);   
+    v_bw_calclines (vs);
     v_hl_ch (vs, s);
     return;
-    }    
+    }
 
   s.ptr[0]++;
 
@@ -3172,7 +3314,7 @@ private define v_bw_down (vs, s)
   else
     v_bw_calclines_down_ (s, vs, 0);
 
-  v_bw_calclines (vs);   
+  v_bw_calclines (vs);
   v_hl_ch (vs, s);
 }
 
@@ -3186,8 +3328,8 @@ private define v_bw_left (vs, s)
   vs.index--;
   s.ptr[1]--;
   s._index--;
-  
-  v_bw_calclines (vs);  
+ 
+  v_bw_calclines (vs);
   v_hl_ch (vs, s);
 }
 
@@ -3200,7 +3342,7 @@ private define v_bw_right (vs, s)
   if (s._index - s._indent == linlen - 1 || 0 == linlen
       || s._index + 1 > vs.bw_maxlen)
     return;
-  
+ 
   if (s.ptr[1] < s._maxlen - 1)
     s.ptr[1]++;
   else
@@ -3279,7 +3421,7 @@ private define v_bw_mode (vs, s)
  
         if (0 == strlen (line) || (1 == strlen (line) && ' ' == line[0]))
           continue;
-        
+ 
         if (vs.startcol)
           line = sprintf ("%s%s", substr (line, 1, vs.startcol), vs.index[i] == strlen (line)
             ? "" : substr (line, vs.startcol + 1 + strlen (vs.sel[i]), -1));
@@ -3293,7 +3435,7 @@ private define v_bw_mode (vs, s)
       set_modified (s);
       break;
       }
-    
+ 
     if ('y' == chr)
       {
       sel = strjoin (vs.sel, "\n");
@@ -3301,7 +3443,7 @@ private define v_bw_mode (vs, s)
       seltoX (sel);
       break;
       }
-    
+ 
     if ('I' == chr)
       {
       variable t = rline->__gettxt ("", vs.vlins[0] - 1, vs.startcol)._lin;
@@ -3313,7 +3455,7 @@ private define v_bw_mode (vs, s)
  
         if (0 == len && vs.startcol)
           continue;
-        
+ 
         if (vs.startcol)
           line = sprintf ("%s%s%s%s",
             substr (line, 1, vs.startcol),
@@ -3339,17 +3481,35 @@ vis.bw_mode = &v_bw_mode;
 
 private define v_atexit (vs, s, draw)
 {
-  topline ("-- pager --");
- 
   if (draw)
     {
-    s._i = vs._i;
+    topline ("-- pager --");
+ 
     s.ptr[1] = vs.ptr[1];
     s.ptr[0] = vs.ptr[0];
     s._index = vs.startindex;
- 
+
+    s._i = vs._i;
     s.draw ();
+ 
+    variable len = __vlinlen (s, '.');
+    variable col = s.ptr[1], row = s.ptr[0];
+ 
+    if (len < s._index)
+      s._index = len - 1;
+ 
+    if (s.ptr[1] > len)
+      s.ptr[1] = len - 1;
+ 
+    if (row > s._len)
+      s.ptr[0] = s._len;
+
+    if (row != s.ptr[0] || col != s.ptr[1])
+      draw_tail (s);
     }
+  else
+    toplinedr ("-- pager --");
+
 }
 
 vis.at_exit = &v_atexit;
@@ -3359,7 +3519,7 @@ private define v_init (s)
   toplinedr ("-- visual --");
   variable lnr = __vlnr (s, '.');
   variable v = @vis;
-  
+ 
   v._i = @s._ii;
   v.ptr = @s.ptr;
   v.needsdraw = 0;
@@ -3370,7 +3530,7 @@ private define v_init (s)
   v.lines = [__vline (s, '.')];
   v.startrow = lnr;
   v.startindex = s._index;
-  
+ 
   return struct
     {
     wrappedmot = 0,
@@ -3398,10 +3558,10 @@ private define vis_mode (s)
 
 VED_PAGER[string ('v')] = &vis_mode;
 VED_PAGER[string ('V')] = &vis_mode;
-VED_PAGER[string (keys->CTRL_v)] = &vis_mode; 
+VED_PAGER[string (keys->CTRL_v)] = &vis_mode;
 
 %%% INSERT MODE
-  
+ 
 private define newline_str (s, indent, line)
 {
   s.autoindent (indent, line);
@@ -3766,11 +3926,11 @@ private define ins_page_up (is, s, line)
   s.lins[s.ptr[0] - s.rows[0]] = @line;
   s.lines[is.lnr] = @line;
   s._findex = s._indent;
-  
+ 
   (@VED_PAGER[string (keys->PPAGE)]) (s;modified);
   is.lnr = __vlnr (s, '.');
-  @line = __vline (s, '.'); 
-  
+  @line = __vline (s, '.');
+ 
   ifnot (is.lnr)
     is.prev_l = "";
   else
@@ -3780,17 +3940,17 @@ private define ins_page_up (is, s, line)
 }
 
 insfuncs.pag_up = &ins_page_up;
-  
+ 
 private define ins_page_down (is, s, line)
 {
   s.lins[s.ptr[0] - s.rows[0]] = @line;
   s.lines[is.lnr] = @line;
   s._findex = s._indent;
-  
+ 
   (@VED_PAGER[string (keys->NPAGE)]) (s;modified);
   is.lnr = __vlnr (s, '.');
-  @line = __vline (s, '.'); 
-  
+  @line = __vline (s, '.');
+ 
   if (is.lnr == s._len)
     is.next_l = "";
   else
@@ -4076,7 +4236,7 @@ define ctrl_completion_rout (s, line, type)
       {
       if (length (rows))
         smg->restore (rows, s.ptr, 1);
-      
+ 
       waddline (s, getlinestr (s, @line, 1), 0, s.ptr[0]);
       smg->setrcdr (s.ptr[0], s.ptr[1]);
       return;
@@ -4110,7 +4270,7 @@ define ctrl_completion_rout (s, line, type)
     if (any ([' ', '\r'] == chr))
       {
       smg->restore (rows, NULL, NULL);
-      
+ 
       if ("ins_linecompletion" == type)
         @line = ar[index - 1] + substr (@line, s._index + 1, -1);
       else if ("ins_wordcompletion" == type)
@@ -4188,17 +4348,17 @@ define ins_linecompletion (s, line)
 define blockcompletion (lnr, s, line)
 {
  variable f = __get_reference (s._type + "_blocks");
-  
+ 
   if (NULL == f)
     return;
-  
+ 
   variable assoc = (@f) (s._shiftwidth, s.ptr[1]);
   variable keys = assoc_get_keys (assoc);
   variable item = @line;
 
   ctrl_completion_rout (s, line, _function_name ();block_ar = keys);
  
-  variable i = wherefirst (@line == keys);  
+  variable i = wherefirst (@line == keys);
   if (NULL == i)
     waddline (s, getlinestr (s, @line, 1), 0, s.ptr[0]);
   else
@@ -4214,15 +4374,15 @@ define blockcompletion (lnr, s, line)
     @line = ar[0];
     if (1 == length (ar))
       waddline (s, getlinestr (s, @line, 1), 0, s.ptr[0]);
-    
+ 
     s.lines[lnr] = @line;
     s.lines = [s.lines[[:lnr]], 1 == length (ar) ? String_Type[0] : ar[[1:]],
       lnr == s._len ? String_Type[0] :  s.lines[[lnr+1:]]];
     s._len = length (s.lines) - 1;
     s.st_.st_size = getsizear (s.lines);
-  
+ 
     set_modified (s);
-  
+ 
     s._i = s._ii;
     s.draw ();
     }
@@ -4232,9 +4392,9 @@ define pag_completion (s)
 {
   variable chr = getch ();
   variable line;
-  
+ 
   switch (chr)
-  
+ 
     {
     case 'b':
       line = __vline (s, '.');
@@ -4251,14 +4411,14 @@ VED_PAGER[string (033)] = &pag_completion;
 define ins_ctrl_x_completion (is, s, line)
 {
   variable chr = getch ();
-  
+ 
   switch (chr)
-  
+ 
     {
     case keys->CTRL_l:
       ins_linecompletion (s, line);
     }
-    
+ 
     {
     case 'b':
       blockcompletion (is.lnr, s, line);
@@ -4287,7 +4447,7 @@ private define ins_getline (is, s, line)
       is.esc (s, line);
       return;
       }
-    
+ 
     if (0x1001a == is.chr) % Double Escape
       {
       s.lins[s.ptr[0] - s.rows[0]] = @line;
@@ -4300,7 +4460,7 @@ private define ins_getline (is, s, line)
       send_msg_dr ("", 0, s.ptr[0], s.ptr[1]);
       continue;
       }
-  
+ 
     if ('\r' == is.chr)
       {
       is.cr (s, line);
@@ -4445,7 +4605,7 @@ private define ed_indent_in (s)
     line = __vline (s, '.');
  
   line = _indent_in_ (s, line, &i_);
-  
+ 
   if (NULL == line)
     return;
 
@@ -4558,7 +4718,7 @@ private define ed_del_line (s)
     s._i = s._len;
  
   set_modified (s;_i = s._i);
-  
+ 
   return 0;
 }
 
@@ -4920,7 +5080,7 @@ private define ed_newline (s)
       s._i++;
     else
       s.ptr[0]++;
-  
+ 
   s.ptr[1] = indent;
   s._index = indent;
   s._findex = s._indent;
@@ -5021,28 +5181,10 @@ private define ed_toggle_case (s)
     (@VED_PAGER[string ('l')]) (s);
 }
 
-%private define record ()
-%{
-%  if (RECORD)
-%    {
-%    RECORD = 0;
-%    return;
-%    }
-%
-%  variable chr = getch ();
-%
-%  ifnot ('a' < chr > 'z')
-%    return;
-%
-%  RECORD = 1;
-%  CRECORD = char (chr);
-%  RECORDS[CRECORD] = {};
-%}
-
 private define _askonsubst_ (s, fn, lnr, fpart, context, lpart, replace)
 {
   variable cmp_lnrs = Integer_Type[0];
-  variable ar = 
+  variable ar =
     ["@" + fn + " linenr: " + string (lnr+1),
      "replace?",
      repeat ("_", COLUMNS),
@@ -5052,11 +5194,11 @@ private define _askonsubst_ (s, fn, lnr, fpart, context, lpart, replace)
      repeat ("_", COLUMNS),
      sprintf ("%s%s%s", fpart, replace, lpart),
      repeat ("_", COLUMNS),
-     "y[es]/n[o]/q[uit]/a[ll]"];
-   variable char_ar =  ['y', 'n', 'q', 'a'];
+     "y[es]/n[o]/q[uit]/a[ll]/c[ansel]"];
+   variable char_ar =  ['y', 'n', 'q', 'a', 'c'];
    return widg->askprintstr (ar, char_ar, &cmp_lnrs);
 }
-                                                                                         
+ 
 define __substitute ()
 {
   variable global = 0, ask = 1, pat = NULL, sub = NULL, ind, range = NULL;
@@ -5064,11 +5206,11 @@ define __substitute ()
   variable buf = get_cur_buf ();
  
   args = list_to_array (args, String_Type);
-  
+ 
   ind = is_arg ("--pat=", args);
   ifnot (NULL == ind)
     pat = substr (args[ind], strlen ("--pat=") + 1, -1);
-  
+ 
   ind = is_arg ("--sub=", args);
   ifnot (NULL == ind)
     sub = substr (args[ind], strlen ("--sub=") + 1, -1);
@@ -5082,13 +5224,13 @@ define __substitute ()
   ind = is_arg ("--global", args);
   ifnot (NULL == ind)
     global = 1;
-  
+ 
   ind = is_arg ("--dont-ask-when-subst", args);
   ifnot (NULL == ind)
     ask = 0;
  
   ind = is_arg ("--range=", args);
-  while (NULL != ind)
+  ifnot (NULL == ind)
     {
     % add here the first execute func
     ind = substr (args[ind], strlen ("--range=") + 1, -1);
@@ -5111,36 +5253,57 @@ define __substitute ()
     range = array_map (Integer_Type, &atoi, range); % add an atoi array_map'ed
     if (range[0] > range[1])
       return;
-
-    ind = NULL;
     }
-         
+ 
   variable s = search->init (pat, sub;global = global, askwhensubst = ask);
+  if (NULL == s)
+    {
+    variable err = ();
+    tostderr (err);
+    return;
+    }
+
   s.fname = path_basename (buf._absfname);
   s.ask = &_askonsubst_;
-  
+ 
   variable lnrs = [0:buf._len];
-  
+ 
   ifnot (NULL == range)
     {
     if (0 > range[0])
       return;
+
     ifnot (range[0] <= range[1] <= buf._len)
       return;
-    % BUG IN SLANG? the following fails
-    
-    % lnrs = lnrs[range[0]:range[1]];
-    
-    % with a parsing error message
-    % Expecting ']': found ':'
-    range = [range[0]:range[1]];
-    lnrs = lnrs[range];
+ 
+    lnrs = lnrs[[range[0]:range[1]]];
     }
-
+ 
   variable retval = search->search_and_replace (s, buf.lines[lnrs]);
+ 
   ifnot (retval)
     {
-    buf.lines[lnrs] = ();
+    variable ar= ();
+    ifnot (length (ar) == length (lnrs))
+      {
+      ifnot (lnrs[0])
+        ifnot (lnrs[-1] == buf._len)
+          buf.lines = [ar, buf.lines[[lnrs[-1] + 1:]]];
+        else
+          buf.lines = ar;
+      else
+        ifnot (lnrs[-1] == buf._len)
+          buf.lines = [buf.lines[[:lnrs[0] - 1]], ar, buf.lines[[lnrs[-1] + 1:]]];
+        else
+          buf.lines = [buf.lines[[:lnrs[0] - 1]], ar];
+
+      buf._len = length (buf.lines) - 1;
+      }
+    else
+      buf.lines[lnrs] = ar;
+
+    buf.st_.st_size = getsizear (buf.lines);
+    set_modified (buf);
     buf.draw ();
     }
 }
@@ -5191,7 +5354,7 @@ new_wind ();
   %    new line (ignored)
   %=>  assigned to
   %=<  get assignment (%U)
-      
+ 
   % on close (fixed), (add a new line with the id in []?)? (before or after)
   % delete the text. commit it to git as standalone
   % then link to commit
@@ -5213,7 +5376,7 @@ new_wind ();
   %2  | maybe a load(*) SLang C function
   %3  | if such file can be evalfil'ing (if standalone)
   %=> ayios
-    
+ 
   %I             0002
   %@    Add header in sl_type files
   %T    02/09/2015 10:30
@@ -5229,7 +5392,7 @@ new_wind ();
   %2  | see *001:3*, we might want to know specific details
   %
   %=> ayios
-  
+ 
   %I            0003
   %@    Highlight api functions
   %T    02/09/2015 10:33
