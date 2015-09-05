@@ -10,5 +10,5 @@ define sl_settype (s, fname, rows, lines)
 %  def._autoindent = 1;
   def.lexicalhl = &sl_lexicalhl;
 
-  initbuf (s, fname, rows, lines, def);
+  __vinitbuf (s, fname, rows, lines, def);
 }

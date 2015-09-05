@@ -19,7 +19,7 @@ define draw (s)
 
   s.st_ = st;
  
-  s.lines = getlines (s._absfname, s._indent, st);
+  s.lines = __vgetlines (s._absfname, s._indent, st);
 
   s._len = length (s.lines) - 1;
  
@@ -42,8 +42,7 @@ define draw (s)
 
 define viewfile (s, type, pos, _i)
 {
-  variable f = __get_reference ("setbuf");
-  (@f) (s._absfname);
+  __vsetbuf (s._absfname);
  
   topline (" -- pager -- (" + type + " BUF) --";row =  s.ptr[0], col = s.ptr[1]);
  

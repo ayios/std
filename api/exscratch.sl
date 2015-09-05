@@ -5,10 +5,7 @@ define _scratch_ (ved)
     return;
 
   viewfile (SCRATCH_VED, "SCRATCH", [1, 0], 0);
-
-  variable f = __get_reference ("setbuf");
- 
-  (@f) (ved._absfname);
+  __vsetbuf (ved._absfname);
   ved.draw ();
 
   NEEDSWINDDRAW = 1;
@@ -21,5 +18,5 @@ define scratch (argv)
   _scratch_ (ved);
 
   NEEDSWINDDRAW = 0;
-  draw_wind ();
+  __vdraw_wind ();
 }

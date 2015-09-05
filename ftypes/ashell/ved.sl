@@ -2,9 +2,9 @@ define ashell_ved (s, fname)
 {
   ashell_settype (s, fname, VED_ROWS, NULL);
  
-  setbuf (s._absfname);
+  __vsetbuf (s._absfname);
  
-  write_prompt (" ", 0);
+  __vwrite_prompt (" ", 0);
 
   s.draw ();
 

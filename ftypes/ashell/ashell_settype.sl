@@ -8,5 +8,5 @@ define ashell_settype (s, fname, rows, lines)
 
   def.lexicalhl = &ashell_lexicalhl;
 
-  initbuf (s, fname, rows, lines, def;;__qualifiers ());
+  __vinitbuf (s, fname, rows, lines, def;;__qualifiers ());
 }

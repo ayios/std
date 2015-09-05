@@ -16,9 +16,10 @@ private variable colors = [
 private variable regexps = [
 % api public functions and vars
   pcre_compile ("\
-((?<=\s|\[)(keys(?=(->)))\
+((?<=\s|\[\()(keys(?=(->)))\
 |(?<=&|\s|\[|\()(which(?=\s|,))\
 |(?<=&|\s|\[|\()(getch(?=\s|,))\
+|(?<=&|\s|\[|\()(fstat(?=\s|,))\
 |(?<=&|\s|\[|\()(COLOR(?=\s|\.))\
 |(?<=\s|\[)([P|U|G]+ID\s*(?=\s))\
 |(?<=&|\s|\[|\()(repeat(?=\s|,))\
@@ -39,6 +40,7 @@ private variable regexps = [
 |(?<=&|\s|\[|\()(any(?=\s|,))\
 |(?<=&|\s|\[|\()(pop(?=\s|,))\
 |(?<!\w)(\(\)(?=\s|,|\.|;|\)))\
+|(?<=&|\s|\[|\()(atoi(?=\s|,))\
 |(?<=&|\s|\[|\()(fork(?=\s|,))\
 |(?<=&|\s|\[|\()(bind(?=\s|,))\
 |(?<=&|\s|\[|\()(pipe(?=\s|,))\

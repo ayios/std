@@ -63,7 +63,7 @@ define _write_ (argv)
 {
   if (any (["w", "w!", "W"]  == argv[0]))
     {
-    __writefile (get_cur_buf (), "w!" == argv[0], [PROMPTROW, 1], argv[[1:]]);
+    __vwritefile (get_cur_buf (), "w!" == argv[0], [PROMPTROW, 1], argv[[1:]]);
     return;
     }
 }
@@ -78,7 +78,7 @@ define _postexec_ (header)
 
   if (NEEDSWINDDRAW)
     {
-    draw_wind ();
+    __vdraw_wind ();
     NEEDSWINDDRAW = 0;
     }
   else
@@ -800,7 +800,7 @@ private define _lock_ (argv)
     COLUMNS);
 
   while (NULL == __getpasswd);
-  draw_wind ();
+  __vdraw_wind ();
 }
 
 define init_commands ()

@@ -28,8 +28,8 @@ define addfname (fname)
     s._i = s._ii;
     }
  
-  setbuf (s._absfname);
-  write_prompt (" ", 0);
+  __vsetbuf (s._absfname);
+  __vwrite_prompt (" ", 0);
   s.draw (;dont_draw);
 }
 
@@ -204,7 +204,7 @@ define __write_buffers ()
       }
  
     bts = 0;
-    variable retval = __writetofile (s._absfname, s.lines, s._indent, &bts);
+    variable retval = __vwritetofile (s._absfname, s.lines, s._indent, &bts);
  
     ifnot (0 == retval)
       {
@@ -263,7 +263,7 @@ private define write_file ()
     args = __pop_list (_NARGS),
     ptr = s.ptr;
  
-  __writefile (s, overwrite, ptr, args);
+  __vwritefile (s, overwrite, ptr, args);
 }
 
 private define _read ()
@@ -284,7 +284,7 @@ private define _read ()
   ifnot (st.st_size)
     return;
 
-  variable ar = getlines (file, s._indent, st);
+  variable ar = __vgetlines (file, s._indent, st);
  
   variable lnr = __vlnr (s, '.');
 
@@ -312,7 +312,7 @@ private define _messages_ ()
   variable keep = get_cur_buf ();
   variable s = (@__get_reference ("ERR_VED"));
   VED_ISONLYPAGER = 1;
-  setbuf (s._absfname);
+  __vsetbuf (s._absfname);
  
   topline (" -- pager -- ( MESSAGES BUF) --";row = s.ptr[0], col = s.ptr[1]);
  
@@ -328,7 +328,7 @@ private define _messages_ ()
 
   s.st_ = st;
  
-  s.lines = getlines (s._absfname, s._indent, st);
+  s.lines = __vgetlines (s._absfname, s._indent, st);
 
   s._len = length (s.lines) - 1;
  
@@ -344,9 +344,9 @@ private define _messages_ ()
 
   VED_ISONLYPAGER = 0;
 
-  setbuf (keep._absfname);
+  __vsetbuf (keep._absfname);
  
-  draw_wind ();
+  __vdraw_wind ();
 }
 
 define _exit_ ()

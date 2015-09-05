@@ -11,7 +11,7 @@ define __on_err (err, code)
 define on_wind_change (w)
 {
   topline (" -- shell --");
-  setbuf (w.frame_names[w.cur_frame]);
+  __vsetbuf (w.frame_names[w.cur_frame]);
   STDOUTFD = get_cur_buf._fd;
 }
 
@@ -26,7 +26,7 @@ define on_wind_new (w)
 
   (@__get_reference (APP.stdouttype + "_settype")) (oved, o, VED_ROWS, NULL);
 
-  setbuf (o);
+  __vsetbuf (o);
  
   STDOUTFD = oved._fd;
 

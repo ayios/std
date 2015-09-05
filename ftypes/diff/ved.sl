@@ -3,9 +3,9 @@ define diff_ved (s, fname)
   ifnot (SCRATCH == fname)
     diff_settype (s, fname, VED_ROWS, NULL);
  
-  setbuf (s._absfname);
+  __vsetbuf (s._absfname);
  
-  write_prompt (" ", 0);
+  __vwrite_prompt (" ", 0);
 
   s.draw ();
 

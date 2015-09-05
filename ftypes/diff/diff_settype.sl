@@ -8,5 +8,5 @@ define diff_settype (s, fname, rows, lines)
 
   def.lexicalhl = &diff_lexicalhl;
 
-  initbuf (s, fname, rows, lines, def;;__qualifiers ());
+  __vinitbuf (s, fname, rows, lines, def;;__qualifiers ());
 }

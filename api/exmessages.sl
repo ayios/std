@@ -3,11 +3,8 @@ define _messages_ (argv)
   variable ved = @get_cur_buf ();
 
   viewfile (ERR_VED, "MSG", NULL, NULL);
- 
-  variable f = __get_reference ("setbuf");
+  __vsetbuf (ved._absfname);
 
-  (@f) (ved._absfname);
-
-  draw_wind ();
+  __vdraw_wind ();
 }
 

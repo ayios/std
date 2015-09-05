@@ -25,7 +25,7 @@ private define add (self, s, rows)
     c.ptr[0] = 1;
     c.ptr[1] = s.col - 1 + c._indent;
     c._index = c.ptr[1];
-    setbuf (c._absfname);
+    __vsetbuf (c._absfname);
     return 0;
     }
 
@@ -38,7 +38,7 @@ private define add (self, s, rows)
 
   variable def = deftype ();
   def._autochdir = 0;
-  initbuf (c, s.fname, rows, lines, def);
+  __vinitbuf (c, s.fname, rows, lines, def);
  
   c._len = length (lines) - 1;
   c._i = c._len >= s.lnr - 1 ? s.lnr - 1 : 0;
@@ -46,7 +46,7 @@ private define add (self, s, rows)
   c.ptr[1] = qualifier ("col", s.col - 1);
   c._index = c.ptr[1];
  
-  setbuf (c._absfname);
+  __vsetbuf (c._absfname);
 
   return 0;
 }
@@ -95,24 +95,22 @@ public define __pg_on_carriage_return (s)
     {
     w.cur_frame = 0;
     s = get_buf (l.fname);
-    setbuf (s._absfname);
+    __vsetbuf (s._absfname);
     s._i = s._len >= l.lnr - 1 ? l.lnr - 1 : 0;
     s.ptr[0] = 1;
     s.ptr[1] = l.col - 1 + s._indent;
     s._findex = s._indent;
     s._index = s.ptr[1];
-    set_clr_fg (s, 1);
+    __vset_clr_fg (s, 1);
     }
   else
     s = get_cur_buf ();
 
-  set_clr_bg (w.buffers[w.frame_names[1]], 1);
+  __vset_clr_bg (w.buffers[w.frame_names[1]], 1);
 
   s.draw ();
   s.vedloop ();
 }
-
-%VED_PAGER[string ('\r')] = &drawfile;
 
 define list_set (s, mys)
 {
