@@ -4,7 +4,7 @@ VED_ISONLYPAGER = 1;
 
 ERR = init_ftype ("txt");
 txt_settype (ERR, STDERR, VED_ROWS, NULL);
-setbuf (ERR._absfname);
+__vsetbuf (ERR._absfname);
 ERR._fd = STDERRFD;
 
 loadfrom ("api", "clientfuncs", NULL, &on_eval_err);

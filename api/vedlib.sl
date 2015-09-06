@@ -386,34 +386,107 @@ define __vfind_Word (s, line, col, start, end)
   return substr (line, @start + 1, @end - @start + 1);
 }
 
-define __vfind_nr (s, line, col, start, end)
+define __get_dec (chr, dir)
 {
-  ifnot (any ([['0':'9'], '-', '.'] == line[col]))
+  return any ([['0':'9'], '.'] == chr);
+}
+
+define __get_hex (chr, dir)
+{
+  variable c;
+  if ("lhs" == dir)
+    c = ['0'];
+  else
+    c = [['0':'9'], ['a':'f'], ['A':'F'], 'x'];
+ 
+% why is not working?
+% return any ("lhs" == dir ? ['0'] : [['0':'9'], ['a':'f'], ['A':'F']] == chr);
+  return any (c == chr);
+}
+
+%define __vald_hex (nr)
+%{
+%  try
+%    return string (integer (nr));
+%  catch SyntaxError:
+%    return NULL;
+%}
+%define __vald_dec ();
+%
+%define __vald_nr (nr, ishex)
+%{
+%  variable validate = [&__vald_dec, &__vald_hex];
+%  validate = validate[ishex];
+%  return (@validate) (nr);
+%}
+%
+%define string_get_inline_nr_as_str (str)
+%{ % %
+%} % %
+
+
+define __vfind_nr (s, line, col, start, end, ishex, isoct)
+{
+  ifnot (any ([['0':'9'], '-', '.', 'x'] == line[col]))
     return "";
 
+  variable col_ = col;
+  variable mbishex = 0;
+  variable getfunc = [&__get_dec, &__get_hex];
+
+  @ishex = 'x' == line[col];
+  getfunc = getfunc[@ishex];
+  
   ifnot (col - s._indent)
     @start = s._indent;
   else
     {
     ifnot (line[col] == '-')
-      while (col--, col >= s._indent && any ([['0':'9'], '.'] == line[col]));
+      while (col--, col >= s._indent && (@getfunc) (line[col], "lhs"));
           
     @start = col + 1;
 
     if (col)
       if (line[col] == '-')
         @start--;
-    }
- 
+      else if (line[col] == 'x') % maybe is hex
+        mbishex = 1; % when at least one digit found, and 'x' is not the char 
+    }                % where the matching stopped. the string under the cursor
+                     % can form a valid hex number
   variable len = strlen (line);
 
-  while (col++, col < len && any ([['0':'9'], '.'] == line[col]));
+  while (col++, col < len && (@getfunc) (line[col], "rhs"));
   
   @end = col - 1;
   
   variable nr = substr (line, @start + 1, @end - @start + 1);
-  if (nr == "-" || nr == ".")
+  
+  if (nr == "-" || nr == "." || nr[0] == '.' || 0 == strlen (nr))
     return "";
+
+  if (1 == strlen (nr))
+    if ('0' == nr[0])
+      if (col < len)
+        ifnot (@ishex)
+          if ('x' == line[col])
+            mbishex = 1;
+  
+  % hex incr/decr is done when cursor is on an 'x'
+  if (mbishex)  % for now and for both conditions and for safety, refuse
+    return "";  % to modify the string, if an 'x' is found on the string
+  
+  len = strlen (nr);
+  col = 0;
+
+  if (1 < len)
+    if ('0' == nr[0])
+      while (col++, col < len && (@isoct = any (['0':'7'] == nr[col]), @isoct));
+ 
+  if (@ishex || @isoct)
+    try
+      return string (integer (nr));
+    catch SyntaxError:
+      return "";
   
   return nr;
 }
@@ -1937,15 +2010,23 @@ private define _set_nr_ (s, incrordecr)
     col = s._index,
     i = __vlnr (s, '.'),
     line = __vline (s, '.');
- 
-  nr = __vfind_nr (s, line, col, &start, &end);
+  
+  variable ishex = 0;
+  variable isoct = 0;
+  nr = __vfind_nr (s, line, col, &start, &end, &ishex, &isoct);
   ifnot (strlen (nr))
     return;
   
   if ("+" == incrordecr)
-    nr = string (atoi (nr) + count);
+    nr = atoi (nr) + count;
   else
-    nr = string (atoi (nr) - count);
+    nr = atoi (nr) - count;
+  
+  variable format = sprintf ("%s%%%s",
+    ishex ? "0x0" : isoct ? "0" : "",
+    ishex ? "x" : isoct ? "o": "d");
+ 
+  nr = sprintf (format, nr);
  
   line = sprintf ("%s%s%s", substr (line, 1, start), nr, substr (line, end + 2, -1));
  
@@ -1972,37 +2053,6 @@ private define _decr_nr_ (s)
 {
   _set_nr_ (s, "-";count = VEDCOUNT == -1 ? 1 : VEDCOUNT);
 }
-
-VED_PAGER[string (keys->CTRL_a)] = &_incr_nr_;
-VED_PAGER[string (keys->CTRL_x)] = &_decr_nr_;
-VED_PAGER[string ('m')]          = &mark;
-VED_PAGER[string ('\r')]         = &__pg_on_carriage_return;
-VED_PAGER[string (0x1001a)]      = &pg_write_on_esc;
-VED_PAGER[string ('`')]          = &pg_gotomark;
-VED_PAGER[string (keys->CTRL_l)] = &pg_reread;
-VED_PAGER[string ('Y')]          = &pg_Yank;
-VED_PAGER[string (keys->DOWN)]   = &pg_down;
-VED_PAGER[string ('j')]          = &pg_down;
-VED_PAGER[string ('k')]          = &pg_up;
-VED_PAGER[string (keys->UP)]     = &pg_up;
-VED_PAGER[string ('G')]          = &pg_eof;
-VED_PAGER[string (keys->HOME)]   = &pg_bof;
-VED_PAGER[string ('g')]          = &pg_g;
-VED_PAGER[string (' ')]          = &pg_page_down;
-VED_PAGER[string (keys->NPAGE)]  = &pg_page_down;
-VED_PAGER[string (keys->CTRL_f)] = &pg_page_down;
-VED_PAGER[string (keys->CTRL_b)] = &pg_page_up;
-VED_PAGER[string (keys->PPAGE)]  = &pg_page_up;
-VED_PAGER[string (keys->RIGHT)]  = &pg_right;
-VED_PAGER[string ('l')]          = &pg_right;
-VED_PAGER[string ('h')]          = &pg_left;
-VED_PAGER[string (keys->LEFT)]   = &pg_left;
-VED_PAGER[string ('-')]          = &pg_eos;
-VED_PAGER[string (keys->END)]    = &pg_eol;
-VED_PAGER[string ('$')]          = &pg_eol;
-VED_PAGER[string ('^')]          = &pg_bolnblnk;
-VED_PAGER[string ('0')]          = &pg_bol;
-VED_PAGER[string (keys->CTRL_w)] = &handle_w;
 
 %%% FIXME DIFF UNDO
 
@@ -2219,9 +2269,6 @@ private define redo (s)
 
   s.draw ();
 }
-
-VED_PAGER[string ('u')] = &undo;
-VED_PAGER[string (keys->CTRL_r)] = &redo;
 
 %%% SEARCH
 
@@ -2658,11 +2705,6 @@ private define search_word (s)
       }
     }
 }
-
-VED_PAGER[string ('#')] = &search_word;
-VED_PAGER[string ('*')] = &search_word;
-VED_PAGER[string (keys->BSLASH)] = &search;
-VED_PAGER[string (keys->QMARK)] = &search;
 
 %%% VISUAL MODE
 
@@ -3602,10 +3644,6 @@ private define vis_mode (s)
   vs.at_exit (s, vs.needsdraw);
 }
 
-VED_PAGER[string ('v')] = &vis_mode;
-VED_PAGER[string ('V')] = &vis_mode;
-VED_PAGER[string (keys->CTRL_v)] = &vis_mode;
-
 %%% INSERT MODE
  
 private define newline_str (s, indent, line)
@@ -4452,8 +4490,6 @@ define pag_completion (s)
     }
 }
  
-VED_PAGER[string (033)] = &pag_completion;
- 
 define ins_ctrl_x_completion (is, s, line)
 {
   variable chr = getch ();
@@ -4494,7 +4530,7 @@ private define ins_getline (is, s, line)
       return;
       }
  
-    if (0x1001a == is.chr) % Double Escape
+    if (keys->ESC_esc == is.chr)
       {
       s.lins[s.ptr[0] - s.rows[0]] = @line;
       s.lines[is.lnr] = @line;
@@ -4639,7 +4675,6 @@ define insert (s, line, lnr, prev_l, next_l)
 
   input->setlang (input->get_en_lang ());
 }
-%%% END INSERT MODE
 
 %%%% ED MODE
 
@@ -5354,24 +5389,64 @@ define __substitute ()
     }
 }
 
-VED_PAGER[string ('~')] = &ed_toggle_case;
-VED_PAGER[string ('P')] = &ed_Put;
-VED_PAGER[string ('p')] = &ed_put;
-VED_PAGER[string ('o')] = &ed_newline;
-VED_PAGER[string ('O')] = &ed_newline;
-VED_PAGER[string ('c')] = &ed_change;
-VED_PAGER[string ('d')] = &ed_del;
-VED_PAGER[string ('D')] = &ed_del_to_end;
-VED_PAGER[string ('C')] = &ed_editline;
-VED_PAGER[string ('i')] = &ed_editline;
-VED_PAGER[string ('a')] = &ed_editline;
-VED_PAGER[string ('A')] = &ed_editline;
-VED_PAGER[string ('r')] = &ed_chang_chr;
-VED_PAGER[string ('J')] = &ed_join_line;
-VED_PAGER[string ('>')] = &ed_indent_out;
-VED_PAGER[string ('<')] = &ed_indent_in;
-VED_PAGER[string ('x')] = &ed_del_chr;
-VED_PAGER[string ('X')] = &ed_del_chr;
+VED_PAGER[string (keys->CTRL_a)]  = &_incr_nr_;
+VED_PAGER[string (keys->CTRL_x)]  = &_decr_nr_;
+VED_PAGER[string (keys->CTRL_l)]  = &pg_reread;
+VED_PAGER[string (keys->UP)]      = &pg_up;
+VED_PAGER[string (keys->DOWN)]    = &pg_down;
+VED_PAGER[string (keys->ESC_esc)] = &pg_write_on_esc;
+VED_PAGER[string (keys->HOME)]    = &pg_bof;
+VED_PAGER[string (keys->NPAGE)]   = &pg_page_down;
+VED_PAGER[string (keys->CTRL_f)]  = &pg_page_down;
+VED_PAGER[string (keys->CTRL_b)]  = &pg_page_up;
+VED_PAGER[string (keys->PPAGE)]   = &pg_page_up;
+VED_PAGER[string (keys->RIGHT)]   = &pg_right;
+VED_PAGER[string (keys->LEFT)]    = &pg_left;
+VED_PAGER[string (keys->END)]     = &pg_eol;
+VED_PAGER[string (keys->CTRL_w)]  = &handle_w;
+VED_PAGER[string (keys->CTRL_r)]  = &redo;
+VED_PAGER[string (keys->BSLASH)]  = &search;
+VED_PAGER[string (keys->QMARK)]   = &search;
+VED_PAGER[string (keys->CTRL_v)]  = &vis_mode;
+VED_PAGER[string (033)]           = &pag_completion;
+VED_PAGER[string ('\r')]          = &__pg_on_carriage_return;
+VED_PAGER[string ('m')]           = &mark;
+VED_PAGER[string ('`')]           = &pg_gotomark;
+VED_PAGER[string ('Y')]           = &pg_Yank;
+VED_PAGER[string ('j')]           = &pg_down;
+VED_PAGER[string ('k')]           = &pg_up;
+VED_PAGER[string ('G')]           = &pg_eof;
+VED_PAGER[string ('g')]           = &pg_g;
+VED_PAGER[string (' ')]           = &pg_page_down;
+VED_PAGER[string ('l')]           = &pg_right;
+VED_PAGER[string ('h')]           = &pg_left;
+VED_PAGER[string ('-')]           = &pg_eos;
+VED_PAGER[string ('$')]           = &pg_eol;
+VED_PAGER[string ('^')]           = &pg_bolnblnk;
+VED_PAGER[string ('0')]           = &pg_bol;
+VED_PAGER[string ('u')]           = &undo;
+VED_PAGER[string ('#')]           = &search_word;
+VED_PAGER[string ('*')]           = &search_word;
+VED_PAGER[string ('v')]           = &vis_mode;
+VED_PAGER[string ('V')]           = &vis_mode;
+VED_PAGER[string ('~')]           = &ed_toggle_case;
+VED_PAGER[string ('P')]           = &ed_Put;
+VED_PAGER[string ('p')]           = &ed_put;
+VED_PAGER[string ('o')]           = &ed_newline;
+VED_PAGER[string ('O')]           = &ed_newline;
+VED_PAGER[string ('c')]           = &ed_change;
+VED_PAGER[string ('d')]           = &ed_del;
+VED_PAGER[string ('D')]           = &ed_del_to_end;
+VED_PAGER[string ('C')]           = &ed_editline;
+VED_PAGER[string ('i')]           = &ed_editline;
+VED_PAGER[string ('a')]           = &ed_editline;
+VED_PAGER[string ('A')]           = &ed_editline;
+VED_PAGER[string ('r')]           = &ed_chang_chr;
+VED_PAGER[string ('J')]           = &ed_join_line;
+VED_PAGER[string ('>')]           = &ed_indent_out;
+VED_PAGER[string ('<')]           = &ed_indent_in;
+VED_PAGER[string ('x')]           = &ed_del_chr;
+VED_PAGER[string ('X')]           = &ed_del_chr;
 VED_PAGER[string (keys->rmap.delete[0])]    = &ed_del_chr;
 VED_PAGER[string (keys->rmap.backspace[0])] = &ed_del_chr;
 VED_PAGER[string (keys->rmap.backspace[1])] = &ed_del_chr;
@@ -5458,3 +5533,11 @@ new_wind ();
   %=<
 
 %%% ELOPMENT %%%
+
+%%% THOUGHTS
+% VED_ISONLYPAGER should be local to buffer
+% ADD EXEC dir 
+%%% i-> ineed Assoc_Type[EXEC_TYPE] HASH_TABLE? i->need[func] (args)
+%%% i- 
+% Assoc_Type (REF_TYPE, &assign);
+% try - catch vedloop - protect the doc - use a bytecompiled function -
