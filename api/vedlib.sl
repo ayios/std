@@ -404,45 +404,27 @@ define __get_hex (chr, dir)
   return any (c == chr);
 }
 
-%define __vald_hex (nr)
-%{
-%  try
-%    return string (integer (nr));
-%  catch SyntaxError:
-%    return NULL;
-%}
-%define __vald_dec ();
-%
-%define __vald_nr (nr, ishex)
-%{
-%  variable validate = [&__vald_dec, &__vald_hex];
-%  validate = validate[ishex];
-%  return (@validate) (nr);
-%}
-%
 %define string_get_inline_nr_as_str (str)
 %{ % %
 %} % %
 
-
-define __vfind_nr (s, line, col, start, end, ishex, isoct)
+define __vfind_nr (indent, line, col, start, end, ishex, isoct, isbin)
 {
   ifnot (any ([['0':'9'], '-', '.', 'x'] == line[col]))
     return "";
 
-  variable col_ = col;
   variable mbishex = 0;
   variable getfunc = [&__get_dec, &__get_hex];
 
   @ishex = 'x' == line[col];
   getfunc = getfunc[@ishex];
   
-  ifnot (col - s._indent)
-    @start = s._indent;
+  ifnot (col - indent)
+    @start = indent;
   else
     {
     ifnot (line[col] == '-')
-      while (col--, col >= s._indent && (@getfunc) (line[col], "lhs"));
+      while (col--, col >= indent && (@getfunc) (line[col], "lhs"));
           
     @start = col + 1;
 
@@ -478,13 +460,18 @@ define __vfind_nr (s, line, col, start, end, ishex, isoct)
   len = strlen (nr);
   col = 0;
 
-  if (1 < len)
+  ifnot (len mod 4)
+    while (col++, col < len && (@isbin = any (['0','1'] == nr[col]), @isbin)); 
+
+  col = 0;
+
+  if (1 < len && 0 == @isbin)
     if ('0' == nr[0])
       while (col++, col < len && (@isoct = any (['0':'7'] == nr[col]), @isoct));
- 
-  if (@ishex || @isoct)
+
+  if (@ishex || @isoct || @isbin)
     try
-      return string (integer (nr));
+      return string (integer (sprintf ("%s%s", @isbin ? "0b" : "", nr)));
     catch SyntaxError:
       return "";
   
@@ -2013,20 +2000,29 @@ private define _set_nr_ (s, incrordecr)
   
   variable ishex = 0;
   variable isoct = 0;
-  nr = __vfind_nr (s, line, col, &start, &end, &ishex, &isoct);
+  variable isbin = 0;
+
+  nr = __vfind_nr (s._indent, line, col, &start, &end, &ishex, &isoct, &isbin);
   ifnot (strlen (nr))
     return;
-  
+
+  variable isdbl = _slang_guess_type (nr) == Double_Type;
+  variable convf = [&atoi, &atof];
+  convf = convf[isdbl];
+
   if ("+" == incrordecr)
-    nr = atoi (nr) + count;
+    nr = (@convf) (nr) + count;
   else
-    nr = atoi (nr) - count;
+    nr = (@convf) (nr) - count;
   
   variable format = sprintf ("%s%%%s",
     ishex ? "0x0" : isoct ? "0" : "",
-    ishex ? "x" : isoct ? "o": "d");
+    ishex ? "x" : isoct ? "o" : isbin ? "B" : isdbl ? "f" : "d");
  
   nr = sprintf (format, nr);
+  if (isbin)
+    while (strlen (nr) mod 4)
+      nr = "0" + nr;
  
   line = sprintf ("%s%s%s", substr (line, 1, start), nr, substr (line, end + 2, -1));
  
