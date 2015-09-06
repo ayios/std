@@ -42,6 +42,7 @@ define draw (s)
 
 define viewfile (s, type, pos, _i)
 {
+  variable ismsg = 0;
   __vsetbuf (s._absfname);
  
   topline (" -- pager -- (" + type + " BUF) --";row =  s.ptr[0], col = s.ptr[1]);
@@ -66,11 +67,25 @@ define viewfile (s, type, pos, _i)
         s._chr = getch (;disable_langchange);
         }
 
-      VEDCOUNT = integer (VEDCOUNT);
+      try
+        VEDCOUNT = integer (VEDCOUNT);
+      catch SyntaxError:
+        {
+        ismsg = 1;
+        send_msg_dr ("count: too many digits >= " +
+          string (256 * 256 * 256 * 128), 1, s.ptr[0], s.ptr[1]);
+        continue;
+        }
       }
 
-    (@VED_PAGER[string (s._chr)]) (s);
+    s.vedloopcallback ();
  
+    if (ismsg)
+      {
+      send_msg_dr (" ", 0, s.ptr[0], s.ptr[1]);
+      ismsg = 0;
+      }
+
     if (any ([':', 'q'] == s._chr))
       break;
     }

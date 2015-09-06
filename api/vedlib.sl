@@ -1174,28 +1174,43 @@ private define _vedloopcallback_ (s)
 private define _vedloop_ (s)
 {
   variable rl;
+  variable ismsg = 0;
 
   forever
     {
     s = get_cur_buf ();
     VEDCOUNT = -1;
-    s._chr = getch ();
+    s._chr = getch (;disable_langchange);
  
-    if ('0' <= s._chr <= '9')
+    if ('1' <= s._chr <= '9')
       {
       VEDCOUNT = "";
  
       while ('0' <= s._chr <= '9')
         {
         VEDCOUNT += char (s._chr);
-        s._chr = getch ();
+        s._chr = getch (;disable_langchange);
         }
-
-      VEDCOUNT = integer (VEDCOUNT);
+ 
+      try
+        VEDCOUNT = integer (VEDCOUNT);
+      catch SyntaxError:
+        {
+        ismsg = 1;
+        send_msg_dr ("count: too many digits >= " +
+          string (256 * 256 * 256 * 128), 1, s.ptr[0], s.ptr[1]);
+        continue;
+        }
       }
-
+ 
     s.vedloopcallback ();
  
+    if (ismsg)
+      {
+      send_msg_dr (" ", 0, s.ptr[0], s.ptr[1]);
+      ismsg = 0;
+      }
+
     if (':' == s._chr && 0 == VED_ISONLYPAGER && VED_RLINE)
       {
       topline (" -- command line --");
@@ -5537,3 +5552,4 @@ new_wind ();
 %%% i- 
 % Assoc_Type (REF_TYPE, &assign);
 % try - catch vedloop - protect the doc - use a bytecompiled function -
+% esc cycle: narrow linewise mode -> pager mode -> insert mode
