@@ -4828,23 +4828,23 @@ private define ed_del_word (s, what)
     col = s._index,
     i = __vlnr (s, '.'),
     line = __vline (s, '.');
- 
+
   if (isblank (substr (line, col + 1, 1)))
     return;
- 
+
   word = (@func) (s, line, col, &start, &end);
- 
+
   REG["\""] = word;
 
   line = sprintf ("%s%s", substr (line, 1, start), substr (line, end + 2, -1));
- 
+
   s.lins[s.ptr[0] - s.rows[0]] = line;
   s.lines[i] = line;
   s.ptr[1] = start;
   s._index = start;
 
   set_modified (s);
- 
+
   s.st_.st_size = getsizear (s.lines);
 
   waddline (s, __vgetlinestr (s, line, 1), 0, s.ptr[0]);
@@ -4873,6 +4873,41 @@ private define ed_chang_chr (s)
     }
 }
 
+private define ed_del_trailws (s)
+{
+  variable
+    col = s._index,
+    i = __vlnr (s, '.');
+
+  variable
+    line = __vline (s, '.'),
+    line_ = strtrim_end (line),
+    len_  = strlen (line_),
+    len   = strlen (line);
+
+   ifnot (len_)
+     (len = 0, line = __get_null_str (s._indent));
+   else
+     if (len == len_)
+       return;
+     else
+       (len = col < len_ ? col : len_, line = line_);
+
+  s.lines[i] = line;
+  s.lins[s.ptr[0] - s.rows[0]] = line;
+
+  s._index = s._indent + len;
+  s.ptr[1] = s._index;
+
+  s.st_.st_size = getsizear (s.lines);
+
+  set_modified (s);
+
+  waddline (s, __vgetlinestr (s, line, 1), 0, s.ptr[0]);
+
+  __vdraw_tail (s);
+}
+
 private define ed_del_chr (s)
 {
   variable
@@ -4883,7 +4918,7 @@ private define ed_del_chr (s)
 
   if ((0 == s.ptr[1] - s._indent && 'X' == s._chr) || 0 > len - s._indent)
     return;
- 
+
   if (any (['x', keys->rmap.delete] == s._chr))
     {
     REG["\""] = substr (line, col + 1, 1);
@@ -4902,10 +4937,10 @@ private define ed_del_chr (s)
       s.ptr[1]--;
       s._index--;
       }
- 
+
   ifnot (strlen (line))
     line = __get_null_str (s._indent);
- 
+
   if (s.ptr[1] - s._indent < 0)
     s.ptr[1] = s._indent;
 
@@ -4916,11 +4951,11 @@ private define ed_del_chr (s)
   s.lines[i] = line;
 
   s.st_.st_size = getsizear (s.lines);
- 
+
   set_modified (s);
- 
+
   waddline (s, __vgetlinestr (s, line, 1), 0, s.ptr[0]);
- 
+
   __vdraw_tail (s);
 }
 
@@ -4937,16 +4972,16 @@ private define ed_change_word (s, what)
     col = s._index,
     lnr = __vlnr (s, '.'),
     line = __vline (s, '.');
- 
+
   if (isblank (substr (line, col + 1, 1)))
     return;
- 
+
   word = (@func) (s, line, col, &start, &end);
- 
+
   REG["\""] = word;
 
   line = sprintf ("%s%s", substr (line, 1, start), substr (line, end + 2, -1));
- 
+
   ifnot (lnr)
     prev_l = "";
   else
@@ -4956,18 +4991,18 @@ private define ed_change_word (s, what)
     next_l = "";
   else
     next_l = s.lines[lnr + 1];
- 
+
   if (s._index - s._indent > s._maxlen)
     lline = __vgetlinestr (s, line, s._findex + 1);
   else
     lline = __vgetlinestr (s, line, 1);
- 
+
   if (strlen (lline))
     {
     waddline (s, lline, 0, s.ptr[0]);
     smg->refresh ();
     }
- 
+
   s.ptr[1] = start;
   s._index = start;
 
@@ -4977,7 +5012,7 @@ private define ed_change_word (s, what)
 private define ed_change (s)
 {
   variable chr = getch ();
- 
+
   if (any (['w', 'W'] == chr))
     {
     if ('w' == chr)
@@ -4997,7 +5032,7 @@ private define ed_change (s)
 private define ed_del (s)
 {
   variable chr = getch ();
- 
+
   if (any (['d', 'w', 'W'] == chr))
     {
     if ('d' == chr)
@@ -5008,7 +5043,7 @@ private define ed_del (s)
       s.draw ();
       return;
       }
- 
+
     if ('w' == chr)
       {
       ed_del_word (s, 'w');
@@ -5020,7 +5055,7 @@ private define ed_del (s)
       ed_del_word (s, 'W');
       return;
       }
- 
+
     }
 }
 
@@ -5031,23 +5066,23 @@ private define ed_del_to_end (s)
     i = __vlnr (s, '.'),
     line = __vline (s, '.'),
     len = strlen (line);
- 
+
   if (s._index == len)
     return;
- 
+
   ifnot (s.ptr[1] - s._indent)
     {
     if (strlen (line))
       REG["\""] = line;
 
     line = __get_null_str (s._indent);
- 
+
     s.ptr[1] = s._indent;
     s._index = s._indent;
 
     s.lines[i] = line;
     s.lins[s.ptr[0] - s.rows[0]] = line;
- 
+
     set_modified (s);
 
     s.st_.st_size = getsizear (s.lines);
@@ -5058,7 +5093,7 @@ private define ed_del_to_end (s)
 
     return;
     }
- 
+
   variable reg = substr (line, col, -1);
   if (strlen (line))
     REG["\""] = reg;
@@ -5067,7 +5102,7 @@ private define ed_del_to_end (s)
 
   s.lins[s.ptr[0] - s.rows[0]] = line;
   s.lines[i] = line;
- 
+
   s.st_.st_size = getsizear (s.lines);
 
   s.ptr[1]--;
@@ -5112,12 +5147,12 @@ private define ed_editline (s)
     s._index = len;
     s.ptr[1] = len;
     }
- 
+
   if (s._index - s._indent > s._maxlen)
     lline = __vgetlinestr (s, line, s._findex + 1);
   else
     lline = __vgetlinestr (s, line, 1);
- 
+
   if (strlen (lline))
     {
     waddline (s, lline, 0, s.ptr[0]);
@@ -5149,7 +5184,7 @@ private define ed_newline (s)
       prev_l = __vline (s, s.ptr[0] - 1);
   else
     prev_l = line;
- 
+
   if ("prev" == dir)
     next_l = line;
   else
@@ -5157,7 +5192,7 @@ private define ed_newline (s)
       next_l = "";
     else
       next_l = s.lines[lnr+1];
- 
+
   s._len++;
 
   if (0 == lnr && "prev" == dir)
@@ -5166,23 +5201,23 @@ private define ed_newline (s)
     s.lines = [s.lines[[:"next" == dir ? lnr : lnr - 1]],
       newline_str (s, &indent, line),
       s.lines[["next" == dir ? lnr + 1 : lnr:]]];
- 
+
   s.st_.st_size = getsizear (s.lines);
- 
+
   s._i = lnr == 0 ? 0 : s._ii;
- 
+
   if ("next" == dir)
     if (s.ptr[0] == s.rows[-2] && s.ptr[0] + 1 > s._avlins)
       s._i++;
     else
       s.ptr[0]++;
- 
+
   s.ptr[1] = indent;
   s._index = indent;
   s._findex = s._indent;
- 
+
   s.draw (;dont_draw);
- 
+
   line = newline_str (s, &indent, line);
   insert (s, &line, "next" == dir ? lnr + 1 : lnr, prev_l, next_l;;__qualifiers ());
 }
@@ -5211,11 +5246,11 @@ private define ed_Put (s)
       substr (s.lines[lnr], s._index + 1, -1);
 
   s._i = lnr == 0 ? 0 : s._ii;
- 
+
   s.st_.st_size = getsizear (s.lines);
- 
+
   set_modified (s);
- 
+
   s.draw ();
 }
 
@@ -5239,11 +5274,11 @@ private define ed_put (s)
       substr (s.lines[lnr], s._index + 2, -1);
 
   s._i = lnr == 0 ? 0 : s._ii;
- 
+
   s.st_.st_size = getsizear (s.lines);
- 
+
   set_modified (s);
- 
+
   s.draw ();
 }
 
@@ -5261,14 +5296,14 @@ private define ed_toggle_case (s)
   func = islower (chr) ? &toupper : &tolower;
 
   chr = char ((@func) (chr));
- 
+
   s.st_.st_size -= strbytelen (line);
   line = substr (line, 1, col) + chr + substr (line, col + 2, - 1);
   s.lins[s.ptr[0] - s.rows[0]] = line;
   s.lines[i] = line;
   s.st_.st_size += strbytelen (line);
   set_modified (s);
- 
+
   waddline (s, __vgetlinestr (s, line, 1), 0, s.ptr[0]);
 
   if (s._index - s._indent == __vlinlen (s, s.ptr[0]) - 1)
@@ -5294,19 +5329,19 @@ private define _askonsubst_ (s, fn, lnr, fpart, context, lpart, replace)
    variable char_ar =  ['y', 'n', 'q', 'a', 'c'];
    return widg->askprintstr (ar, char_ar, &cmp_lnrs);
 }
- 
+
 define __substitute ()
 {
   variable global = 0, ask = 1, pat = NULL, sub = NULL, ind, range = NULL;
   variable args = __pop_list (_NARGS);
   variable buf = get_cur_buf ();
- 
+
   args = list_to_array (args, String_Type);
- 
+
   ind = is_arg ("--pat=", args);
   ifnot (NULL == ind)
     pat = substr (args[ind], strlen ("--pat=") + 1, -1);
- 
+
   ind = is_arg ("--sub=", args);
   ifnot (NULL == ind)
     sub = substr (args[ind], strlen ("--sub=") + 1, -1);
@@ -5316,15 +5351,15 @@ define __substitute ()
     send_msg_dr ("--pat= and --sub= are required", 1, buf.ptr[0], buf.ptr[1]);
     return;
     }
- 
+
   ind = is_arg ("--global", args);
   ifnot (NULL == ind)
     global = 1;
- 
+
   ind = is_arg ("--dont-ask-when-subst", args);
   ifnot (NULL == ind)
     ask = 0;
- 
+
   ind = is_arg ("--range=", args);
   ifnot (NULL == ind)
     {
@@ -5350,7 +5385,7 @@ define __substitute ()
     if (range[0] > range[1])
       return;
     }
- 
+
   variable s = search->init (pat, sub;global = global, askwhensubst = ask);
   if (NULL == s)
     {
@@ -5361,9 +5396,9 @@ define __substitute ()
 
   s.fname = path_basename (buf._absfname);
   s.ask = &_askonsubst_;
- 
+
   variable lnrs = [0:buf._len];
- 
+
   ifnot (NULL == range)
     {
     if (0 > range[0])
@@ -5371,12 +5406,12 @@ define __substitute ()
 
     ifnot (range[0] <= range[1] <= buf._len)
       return;
- 
+
     lnrs = lnrs[[range[0]:range[1]]];
     }
- 
+
   variable retval = search->search_and_replace (s, buf.lines[lnrs]);
- 
+
   ifnot (retval)
     {
     variable ar= ();
@@ -5463,10 +5498,10 @@ VED_PAGER[string ('<')]           = &ed_indent_in;
 VED_PAGER[string ('x')]           = &ed_del_chr;
 VED_PAGER[string ('X')]           = &ed_del_chr;
 VED_PAGER[string (keys->rmap.delete[0])]    = &ed_del_chr;
-VED_PAGER[string (keys->rmap.backspace[0])] = &ed_del_chr;
-VED_PAGER[string (keys->rmap.backspace[1])] = &ed_del_chr;
-VED_PAGER[string (keys->rmap.backspace[2])] = &ed_del_chr;
- 
+VED_PAGER[string (keys->rmap.backspace[0])] = &ed_del_trailws;
+VED_PAGER[string (keys->rmap.backspace[1])] = &ed_del_trailws;
+VED_PAGER[string (keys->rmap.backspace[2])] = &ed_del_trailws;
+
 ifnot (NULL == DISPLAY)
   ifnot (NULL == XAUTHORITY)
     ifnot (NULL == XCLIP_BIN)
@@ -5561,6 +5596,25 @@ new_wind ();
 % esc cycle: narrow linewise mode -> pager mode -> insert mode
 
 % ed->L["ins"].m (R, "func"). (args);
+
+% (a,b,c) = ( __push_list ({0, 1, 2}), _stk_roll (3));
+
 % stack (vals) (NULL|SUCCESS|IDLE)
+
+
+%%genereal :)
+%% api for patterns (standard lexar)
+ % roughly
+
+% match $word not follow [pat] . . . \
+% atleast 1 ws or char[[;|}]] and eol \
+% but not eof || atleast newline which != NULL
+% $word = start[a'z'] ends[...]
+
+% and translates that to pattern (by default choose the accepted
+% library by projects which (either adopted its syntax, or use
+% its machine, or have bindings) that is for today; PCRE)
+
 %%% DO
 % backspace on pager, deletes ws in front of cursor
+
