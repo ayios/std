@@ -43,6 +43,49 @@ private define _edit_other ()
   addfname (fname);
 }
 
+private define _buffer_other_ ()
+{
+  variable dir = qualifier ("argv0") == "bn";
+  variable w = get_cur_wind ();
+  variable cb = get_cur_bufname ();
+  variable ar = String_Type[0];
+  variable ind;
+  variable b;
+  variable i;
+
+  _for i (0, length (w.bufnames) - 1)
+    {
+    b = w.bufnames[i];
+    ifnot (any (b == SPECIAL))
+      ar = [ar, b];
+    }
+
+  if (1 == length (ar))
+    return;
+
+  ind = where (ar == cb)[0];
+
+  ifnot (dir)
+    if (0 == ind)
+      ind = length (ar) - 1;
+    else
+      ind--;
+  else
+    if (ind == length (ar) - 1)
+      ind = 0;
+    else
+      ind++;
+
+  b = ar[ind];
+
+  b = w.buffers[b];
+  b._i = b._ii;
+
+  __vsetbuf (b._absfname);
+  __vwrite_prompt (" ", 0);
+  b.draw (;dont_draw);
+}
+
 private define _bdelete ()
 {
   variable force = qualifier ("argv0")[-1] != '!';
@@ -354,15 +397,17 @@ define _exit_ ()
   cl_quit (;;__qualifiers  ());
 }
 
-VED_CLINE["w"] = &write_file;
-VED_CLINE["W"] = &write_file;
-VED_CLINE["w!"] = &write_file;
-VED_CLINE["q"] = &cl_quit;
-VED_CLINE["Q"] = &cl_quit;
-VED_CLINE["q!"] = &cl_quit;
-VED_CLINE["wq"] = &write_quit;
-VED_CLINE["Wq"] = &write_quit;
-VED_CLINE["r"] = &_read;
+VED_CLINE["bp"] =       &_buffer_other_;
+VED_CLINE["bn"] =       &_buffer_other_;
+VED_CLINE["w"]  =       &write_file;
+VED_CLINE["W"]  =       &write_file;
+VED_CLINE["w!"] =       &write_file;
+VED_CLINE["q"]  =       &cl_quit;
+VED_CLINE["Q"]  =       &cl_quit;
+VED_CLINE["q!"] =       &cl_quit;
+VED_CLINE["wq"] =       &write_quit;
+VED_CLINE["Wq"] =       &write_quit;
+VED_CLINE["r"]  =       &_read;
 VED_CLINE["messages"] = &_messages_;
 
 private define doquit ()

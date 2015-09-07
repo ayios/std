@@ -1,3 +1,5 @@
+loadfrom ("dev/ed", "init", "ed", &on_eval_err);
+
 typedef struct
   {
   _i,
@@ -192,7 +194,7 @@ private define _invalid ()
 
 public variable
   VED_PAGER = Assoc_Type[Ref_Type, &_invalid],
-  VEDCOUNT = 0;
+  VEDCOUNT;
  
 private define build_ftype_table ()
 {
@@ -226,7 +228,7 @@ loadfrom ("pcre", "find_unique_words_in_lines", 1, &on_eval_err);
 loadfrom ("pcre", "find_unique_lines_in_lines", 1, &on_eval_err);
 
 define set_modified ();
-define seltoX (sel){};
+define seltoX (sel){}
 define topline ();
 define toplinedr ();
 
@@ -338,7 +340,8 @@ define __vfpart_of_word (s, line, col, start)
     @start = s._indent;
   else
     {
-    while (col--, col >= s._indent && any (WCHARS == substr (line, col + 1, 1)));
+    while (col--, col >= s._indent &&
+      any (WCHARS == substr (line, col + 1, 1)));
 
     @start = col + 1;
     }
@@ -352,7 +355,8 @@ define __vfind_word (s, line, col, start, end)
     @start = s._indent;
   else
     {
-    while (col--, col >= s._indent && any (WCHARS == substr (line, col + 1, 1)));
+    while (col--, col >= s._indent &&
+      any (WCHARS == substr (line, col + 1, 1)));
 
     @start = col + 1;
     }
@@ -4423,7 +4427,7 @@ define ctrl_completion_rout (s, line, type)
     ifnot (indexchanged)
       smg->restore (rows, NULL, NULL);
  
-   % BUG HERE
+    % BUG HERE
     if (indexchanged)
       if (index > 1)
         if (index > LINES - 4)
@@ -5468,6 +5472,8 @@ ifnot (NULL == DISPLAY)
     ifnot (NULL == XCLIP_BIN)
       loadfrom ("X", "seltoX", NULL, &on_eval_err);
 
+loadfrom ("dev/ed", "ed", "ed", &on_eval_err);
+
 new_wind ();
 
   %    (early) development of the DEV tracking system
@@ -5553,3 +5559,8 @@ new_wind ();
 % Assoc_Type (REF_TYPE, &assign);
 % try - catch vedloop - protect the doc - use a bytecompiled function -
 % esc cycle: narrow linewise mode -> pager mode -> insert mode
+
+% ed->L["ins"].m (R, "func"). (args);
+% stack (vals) (NULL|SUCCESS|IDLE)
+%%% DO
+% backspace on pager, deletes ws in front of cursor

@@ -6,14 +6,17 @@ define sl_blocks (swi, col)
   variable tw = repeat (" ", swi + col);
   variable iw = repeat (" ", col);
  
-  BLOCKS["if else"] = iw + "if ()\n" + tw + "\n" + iw + "else\n" + tw;
-
+  BLOCKS["if else"] =
+    iw + "if ()\n" + tw + "\n" + iw + "else\n" + tw;
+  BLOCKS["variable struct"] =
+    iw + "variable struct\n" + tw + "{\n" + tw + "}";
   BLOCKS["if else_if else"] =
-    iw + "if ()\n" + tw + "\n" + iw + "else if\n" + tw + "\n" + iw + "else\n" + tw;
-
-  BLOCKS["_for i (0, length (ar) - 1)"] = iw + "for i (0, length (ar) - 1)";
-
-  BLOCKS["private define"] = "private define ()\n{\n" + sw + "\n}";
+    iw + "if ()\n" + tw + "\n" + iw + "else if\n" +
+    tw + "\n" + iw + "else\n" + tw;
+  BLOCKS["_for i (0, length (ar) - 1)"] =
+    iw + "for i (0, length (ar) - 1)";
+  BLOCKS["private define"] =
+    "private define ()\n{\n" + sw + "\n}";
 
   return BLOCKS;
 }
