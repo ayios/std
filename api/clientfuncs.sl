@@ -1,7 +1,7 @@
 define draw (s)
 {
   variable st = NULL == s._fd ? lstat_file (s._absfname) : fstat (s._fd);
- 
+
   if (NULL == st)
     {
     s._i = s._ii;
@@ -18,11 +18,11 @@ define draw (s)
       }
 
   s.st_ = st;
- 
+
   s.lines = __vgetlines (s._absfname, s._indent, st);
 
   s._len = length (s.lines) - 1;
- 
+
   variable _i = qualifier ("_i");
   variable pos = qualifier ("pos");
   variable len = length (s.rows) - 1;
@@ -31,7 +31,7 @@ define draw (s)
     (s.ptr[0] = pos[0], s.ptr[1] = pos[1]);
   else
     (s.ptr[1] = 0, s.ptr[0] = s._len + 1 <= len ? s.rows[0] : s.rows[-2]);
- 
+
   ifnot (NULL == _i)
     s._i = _i;
   else
@@ -44,14 +44,14 @@ define viewfile (s, type, pos, _i)
 {
   variable ismsg = 0;
   __vsetbuf (s._absfname);
- 
+
   topline (" -- pager -- (" + type + " BUF) --";row =  s.ptr[0], col = s.ptr[1]);
- 
+
   ifnot (NULL == pos)
     (s.ptr[0] = pos[0], s.ptr[1] = pos[1]);
 
   draw (s;pos = pos, _i = _i);
- 
+
   forever
     {
     VEDCOUNT = -1;
@@ -60,7 +60,7 @@ define viewfile (s, type, pos, _i)
     if ('1' <= s._chr <= '9')
       {
       VEDCOUNT = "";
- 
+
       while ('0' <= s._chr <= '9')
         {
         VEDCOUNT += char (s._chr);

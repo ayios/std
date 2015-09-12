@@ -5,7 +5,7 @@ define sl_blocks (swi, col)
   variable sw = repeat (" ", swi);
   variable tw = repeat (" ", swi + col);
   variable iw = repeat (" ", col);
- 
+
   BLOCKS["if else"] =
     iw + "if ()\n" + tw + "\n" + iw + "else\n" + tw;
   BLOCKS["variable struct"] =
@@ -25,13 +25,13 @@ define sl_autoindent (s, line)
 {
   if (line == "}" || 0 == strlen (line) || line[0] == '%')
     return s._indent;
- 
+
   variable linelen = strlen (line);
   variable txtlen = strlen (strtrim_beg (line));
   variable indent = linelen - txtlen;
   variable lc = line[-1];
   variable txtline = substr (line, indent + 1, -1);
- 
+
   ifnot (txtlen)
     return indent;
 
@@ -45,12 +45,12 @@ define sl_autoindent (s, line)
       if (any (0 == array_map (Integer_Type, &strncmp, line, ar, ln)))
         indent += s._shiftwidth;
       }
- 
+
     if (lc == ';' && string_match (line, "\\s*return.*;"))
       return indent - s._shiftwidth;
- 
+
     return indent;
     }
- 
+
   return indent + s._shiftwidth;
 }

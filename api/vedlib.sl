@@ -83,11 +83,13 @@ typedef struct
   ask,
   lnronfile,
   } Search_Type;
- 
+
 private variable vis = struct
   {
   _i,
+  cur,
   ptr,
+  mode,
   clr = COLOR.visual,
   l_mode,
   l_down,
@@ -195,14 +197,14 @@ private define _invalid ()
 public variable
   VED_PAGER = Assoc_Type[Ref_Type, &_invalid],
   VEDCOUNT;
- 
+
 private define build_ftype_table ()
 {
   variable i;
   variable ii;
   variable ft;
   variable nss = [LCLDIR, STDDIR, USRDIR];
- 
+
   % priority local < std < usr
   _for i (0, length (nss) - 1)
     {
@@ -258,7 +260,7 @@ define __get_null_str (indent)
 {
   return sprintf ("%s\000", repeat (" ", indent));
 }
- 
+
 define __vgetlines (fname, indent, st)
 {
   if (-1 == access (fname, F_OK) || 0 == st.st_size)
@@ -319,7 +321,7 @@ define __vdraw_tail (s)
 {
   if (s._is_wrapped_line)
     smg->hlregion (1, s.ptr[0], COLUMNS - 2, 1, 2);
- 
+
   smg->atrcaddnstrdr (__vtail (s;;__qualifiers ()), VED_INFOCLRFG, s.rows[-1], 0, s.ptr[0], s.ptr[1],
     COLUMNS);
 }
@@ -345,7 +347,7 @@ define __vfpart_of_word (s, line, col, start)
 
     @start = col + 1;
     }
- 
+
   return substr (line, @start + 1, origcol - @start + 1);
 }
 
@@ -360,13 +362,13 @@ define __vfind_word (s, line, col, start, end)
 
     @start = col + 1;
     }
- 
+
   variable len = strlen (line);
 
   while (col++, col < len && any (WCHARS == substr (line, col + 1, 1)));
- 
+
   @end = col - 1;
- 
+
   return substr (line, @start + 1, @end - @start + 1);
 }
 
@@ -380,13 +382,13 @@ define __vfind_Word (s, line, col, start, end)
 
     @start = col + 1;
     }
- 
+
   variable len = strlen (line);
 
   while (col++, col < len && 0 == isblank (substr (line, col + 1, 1)));
- 
+
   @end = col - 1;
- 
+
   return substr (line, @start + 1, @end - @start + 1);
 }
 
@@ -402,7 +404,7 @@ define __get_hex (chr, dir)
     c = ['0'];
   else
     c = [['0':'9'], ['a':'f'], ['A':'F'], 'x'];
- 
+
 % why is not working?
 % return any ("lhs" == dir ? ['0'] : [['0':'9'], ['a':'f'], ['A':'F']] == chr);
   return any (c == chr);
@@ -422,14 +424,14 @@ define __vfind_nr (indent, line, col, start, end, ishex, isoct, isbin)
 
   @ishex = 'x' == line[col];
   getfunc = getfunc[@ishex];
-  
+
   ifnot (col - indent)
     @start = indent;
   else
     {
     ifnot (line[col] == '-')
       while (col--, col >= indent && (@getfunc) (line[col], "lhs"));
-          
+
     @start = col + 1;
 
     if (col)
@@ -442,11 +444,11 @@ define __vfind_nr (indent, line, col, start, end, ishex, isoct, isbin)
   variable len = strlen (line);
 
   while (col++, col < len && (@getfunc) (line[col], "rhs"));
-  
+
   @end = col - 1;
-  
+
   variable nr = substr (line, @start + 1, @end - @start + 1);
-  
+
   if (nr == "-" || nr == "." || nr[0] == '.' || 0 == strlen (nr))
     return "";
 
@@ -456,11 +458,11 @@ define __vfind_nr (indent, line, col, start, end, ishex, isoct, isbin)
         ifnot (@ishex)
           if ('x' == line[col])
             mbishex = 1;
-  
+
   % hex incr/decr is done when cursor is on an 'x'
   if (mbishex)  % for now and for both conditions and for safety, refuse
     return "";  % to modify the string, if an 'x' is found on the string
-  
+
   len = strlen (nr);
   col = 0;
 
@@ -478,7 +480,7 @@ define __vfind_nr (indent, line, col, start, end, ishex, isoct, isbin)
       return string (integer (sprintf ("%s%s", @isbin ? "0b" : "", nr)));
     catch SyntaxError:
       return "";
-  
+
   return nr;
 }
 
@@ -494,7 +496,7 @@ define __vwritetofile (file, lines, indent, bts)
     i,
     retval,
     fp = fopen (file, "w");
- 
+
   if (NULL == fp)
     return errno;
 
@@ -506,7 +508,7 @@ define __vwritetofile (file, lines, indent, bts)
 
   if (-1 == fclose (fp))
     return errno;
- 
+
   return 0;
 }
 
@@ -514,7 +516,7 @@ define __vwritefile (s, overwrite, ptr, argv)
 {
   variable file;
   variable bts = 0;
- 
+
   if (NULL == argv || 0 == length (argv))
     {
     if (s._flags & VED_RDONLY)
@@ -540,16 +542,16 @@ define __vwritefile (s, overwrite, ptr, argv)
         }
       }
     }
- 
+
   variable retval = __vwritetofile (file, s.lines, s._indent, &bts);
- 
+
   if (retval)
     {
     send_msg_dr (errno_string (retval), 1, ptr[0], ptr[1]);
     return;
     }
- 
-  tostderr (s._absfname + ": " + string (bts) + " bytes written");
+
+  tostderr (s._absfname + ": " + string (bts) + " bytes written\n");
 
   if (file == s._absfname)
     s._flags &= ~VED_MODIFIED;
@@ -595,7 +597,7 @@ private define _initrowsbuffvars_ (s)
   s.clrs = Integer_Type[length (s.rows)];
   s.clrs[*] = 0;
   s.clrs[-1] = VED_INFOCLRFG;
- 
+
   s._avlins = length (s.rows) - 2;
 }
 
@@ -617,19 +619,19 @@ define get_cur_rline ()
 define __vsetbuf (key)
 {
   variable w = get_cur_wind ();
- 
+
   ifnot (any (key == w.bufnames))
     return;
- 
+
   variable s = w.buffers[key];
- 
+
   variable frame = qualifier ("frame", w.cur_frame);
 
   if (frame > length (w.frame_names) - 1)
     return;
 
   w.frame_names[frame] = key;
- 
+
   if (s._autochdir && 0 == VED_ISONLYPAGER)
     () = chdir (s._dir);
 }
@@ -645,7 +647,7 @@ private define _addbuf_ (s)
 
   if (any (s._absfname == w.bufnames))
     return;
- 
+
   w.buffers[s._absfname] = s;
   w.bufnames = [w.bufnames,  s._absfname];
   w.buffers[s._absfname]._dir = realpath (path_dirname (s._absfname));
@@ -685,19 +687,19 @@ define __vinitbuf (s, fname, rows, lines, t)
   s.lines = NULL == lines ? __vgetlines (s._fname, s._indent, s.st_) : lines;
   s._flags = 0;
   s._is_wrapped_line = 0;
- 
+
   s.ptr = Integer_Type[2];
 
   s._len = length (s.lines) - 1;
- 
+
   _initrowsbuffvars_ (s);
 
   s.ptr[0] = s.rows[0];
   s.ptr[1] = s._indent;
- 
+
   s._findex = s._indent;
   s._index = s._indent;
- 
+
   s.undo = String_Type[0];
   s._undolevel = 0;
   s.undoset = {};
@@ -729,7 +731,7 @@ define __vdraw_wind ()
     __vset_clr_bg (s, NULL);
     s.draw (;dont_draw);
     }
- 
+
   cur.draw ();
   smg->setrc (cur.ptr[0], cur.ptr[1]);
   if (cur._autochdir && 0 == VED_ISONLYPAGER)
@@ -743,7 +745,7 @@ define __vdraw_wind ()
 define get_buf (name)
 {
   variable w = get_cur_wind ();
- 
+
   ifnot (any (name == w.bufnames))
     return NULL;
 
@@ -786,7 +788,7 @@ define change_frame ()
   s = get_cur_buf ();
 
   __vset_clr_fg (s, 1);
- 
+
   __vsetbuf (s._absfname);
 
   smg->setrcdr (s.ptr[0], s.ptr[1]);
@@ -797,7 +799,7 @@ define framesize (frames)
   variable f = Integer_Type[frames];
   variable ff = Array_Type[frames];
   variable len = length (VED_ROWS);
- 
+
   f[*] = len / frames;
   f[0] += len mod frames;
 
@@ -811,7 +813,7 @@ define framesize (frames)
     ff[i] = VED_ROWS[[istart:iend]];
     istart = iend + 1;
     }
- 
+
   return ff;
 }
 
@@ -833,9 +835,9 @@ define del_frame ()
   variable setframesize = qualifier ("framesize_func", &framesize);
 
   w.frame_rows = (@setframesize) (w.frames);
- 
+
   variable cur_fr = get_cur_frame ();
- 
+
   if (frame == w.frames || cur_fr > frame)
     w.cur_frame--;
 
@@ -847,7 +849,7 @@ define del_frame ()
     s = w.buffers[w.frame_names[i]];
     s.rows = w.frame_rows[i];
     _initrowsbuffvars_ (s);
- 
+
     s._i = s._ii;
 
     if (i == w.cur_frame)
@@ -857,7 +859,7 @@ define del_frame ()
 
     s.ptr[0] = s.rows[0];
     s.ptr[1] = s._indent;
- 
+
     s._findex = s._indent;
     s._index = s._indent;
     }
@@ -870,11 +872,11 @@ define new_frame (fn)
   variable w = get_cur_wind ();
   if (w.frames == VED_MAXFRAMES)
     return;
- 
+
   variable i;
   variable s;
   variable b;
- 
+
   w.frames++;
 
   variable setframesize = qualifier ("framesize_func", &framesize);
@@ -882,14 +884,14 @@ define new_frame (fn)
   w.frame_rows = (@setframesize) (w.frames);
 
   w.cur_frame = w.frames - 1;
- 
+
   variable ft = get_ftype (fn);
   s = init_ftype (ft);
   variable func = __get_reference (sprintf ("%s_settype", ft));
   (@func) (s, fn, w.frame_rows[-1], NULL);
 
   w.frame_names = [w.frame_names, fn];
- 
+
   __vsetbuf (s._absfname);
 
   % fine tuning maybe is needed
@@ -902,11 +904,11 @@ define new_frame (fn)
     s.clrs[-1] = VED_INFOCLRBG;
     s.ptr[0] = s.rows[0];
     s.ptr[1] = s._indent;
- 
+
     s._findex = s._indent;
     s._index = s._indent;
     }
- 
+
   __vdraw_wind ();
 }
 
@@ -916,10 +918,10 @@ define del_wind (name)
     return;
 
   variable winds = assoc_get_keys (VED_WIND);
- 
+
   ifnot (any (name == winds))
     return;
- 
+
   winds = winds[array_sort (winds)];
 
   variable i = wherefirst (name == winds);
@@ -944,7 +946,7 @@ define wind_change (to)
 
   variable w;
   variable i;
- 
+
   if (Integer_Type == typeof (to))
     if (length (winds) - 1 < to)
       return;
@@ -970,9 +972,9 @@ define wind_change (to)
   VED_CUR_WIND = w;
 
   w = VED_WIND[w];
- 
+
   on_wind_change (w);
- 
+
   __vdraw_wind ();
 }
 
@@ -1006,7 +1008,7 @@ define wind_init (name, frames)
 define new_wind ()
 {
   variable name = _NARGS ? () : NULL;
- 
+
   variable i;
   variable winds = assoc_get_keys (VED_WIND);
 
@@ -1023,14 +1025,14 @@ define new_wind ()
       if ('z' == i)
         return;
       }
- 
+
   ifnot (qualifier_exists ("in_bg"))
     {
     ifnot (NULL == VED_CUR_WIND)
       VED_PREV_WIND = VED_CUR_WIND;
     VED_CUR_WIND = name;
     }
- 
+
   wind_init (name, 1;;__qualifiers ());
 
   if (qualifier_exists ("draw_wind"))
@@ -1046,7 +1048,7 @@ define bufdelete (s, bufname, force)
 
   ifnot (any (bufname == w.bufnames))
     return;
- 
+
   if (s._flags & VED_MODIFIED && force)
     {
     variable bts = 0;
@@ -1062,9 +1064,9 @@ define bufdelete (s, bufname, force)
   variable iscur = get_cur_bufname () == bufname;
 
   assoc_delete_key (w.buffers, bufname);
- 
+
   variable index = wherefirst (bufname == w.bufnames);
- 
+
   w.bufnames[index] = NULL;
   w.bufnames = w.bufnames[wherenot (_isnull (w.bufnames))];
 
@@ -1084,17 +1086,17 @@ define bufdelete (s, bufname, force)
       __vdraw_wind ();
       return;
       }
- 
+
   ifnot (NULL == isatframe)
     if (1 < w.frames)
       del_frame (isatframe);
- 
+
   if (iscur)
     {
     index = index ? index - 1 : length (w.bufnames) - 1;
- 
+
     __vsetbuf (w.bufnames[index]);
- 
+
     s = get_cur_buf ();
     s.draw ();
     }
@@ -1115,7 +1117,7 @@ private define _draw_ (s)
     s.lins = [" "];
     s.lnrs = [0];
     s._ii = 0;
- 
+
     smg->aratrcaddnstrdr ([repeat (" ", COLUMNS), __vtail (s)], [0, VED_INFOCLRFG],
       [s.rows[0], s.rows[-1]], [0, 0], s.rows[0], 0, COLUMNS);
 
@@ -1151,13 +1153,15 @@ private define _draw_ (s)
 
   ar = array_map (String_Type, &substr, s.lins, 1, s._maxlen);
 
+  variable indices = [0:length (ar) - 1];
+
   if (length (ar) < length (s.rows) - 1)
     {
     variable t = String_Type[length (s.rows) - length (ar) - 1];
     t[*] = " ";
     ar = [ar, t];
     }
- 
+
   ar = [ar, __vtail (s;;__qualifiers ())];
 
   _for i (0, length (ar) - 1)
@@ -1165,8 +1169,8 @@ private define _draw_ (s)
 
   smg->aratrcaddnstr (ar, s.clrs, s.rows, s.cols, COLUMNS);
 
-  s.lexicalhl (ar[[:-2]], s.vlins);
- 
+  s.lexicalhl (ar[indices], s.vlins);
+
   (@[&smg->setrcdr, &smg->setrc][qualifier_exists ("dont_draw")]) (s.ptr[0], s.ptr[1]);
 }
 
@@ -1175,27 +1179,27 @@ private define _vedloopcallback_ (s)
   (@VED_PAGER[string (s._chr)]) (s);
 }
 
-private define _vedloop_ (s)
+private define _loop_ (s)
 {
-  variable rl;
   variable ismsg = 0;
+  variable rl;
 
   forever
     {
     s = get_cur_buf ();
     VEDCOUNT = -1;
     s._chr = getch (;disable_langchange);
- 
+
     if ('1' <= s._chr <= '9')
       {
       VEDCOUNT = "";
- 
+
       while ('0' <= s._chr <= '9')
         {
         VEDCOUNT += char (s._chr);
         s._chr = getch (;disable_langchange);
         }
- 
+
       try
         VEDCOUNT = integer (VEDCOUNT);
       catch SyntaxError:
@@ -1206,9 +1210,9 @@ private define _vedloop_ (s)
         continue;
         }
       }
- 
+
     s.vedloopcallback ();
- 
+
     if (ismsg)
       {
       send_msg_dr (" ", 0, s.ptr[0], s.ptr[1]);
@@ -1240,6 +1244,19 @@ private define _vedloop_ (s)
     }
 }
 
+private define _vedloop_ (s)
+{
+  try
+    {
+    _loop_ (s);
+    }
+  catch AnyError:
+    {
+    (@__get_reference ("__vmessages"));
+    _loop_ (s);   % for now
+    }
+}
+
 %%% SYNTAX PUBLIC FUNCTIONS
 
 define __hl_groups (lines, vlines, colors, regexps)
@@ -1253,9 +1270,12 @@ define __hl_groups (lines, vlines, colors, regexps)
     color,
     regexp,
     context;
- 
+
   _for i (0, length (lines) - 1)
     {
+    if (0 == strlen (lines[i]) || "\000" == lines[i])
+      continue;
+
     _for ii (0, length (regexps) - 1)
       {
       color = colors[ii];
@@ -1273,7 +1293,7 @@ define __hl_groups (lines, vlines, colors, regexps)
       }
     }
 }
- 
+
 %%% SYN CALLBACK FUNCTIONS
 
 private define autoindent (s, indent, line)
@@ -1337,7 +1357,7 @@ define markbacktick (s)
 private define mark (s)
 {
   variable mark = getch (;disable_langchange);
- 
+
   if ('a' <= mark <= 'z')
     {
     mark = string (mark);
@@ -1350,19 +1370,19 @@ private define mark_get ()
 {
   variable marks = assoc_get_keys (MARKS);
   variable mark = getch (;disable_langchange);
- 
+
   mark = string (mark);
 
   if (any (mark == marks))
     return @MARKS[mark];
- 
+
   return NULL;
 }
 
 % PAGER
 %% PG LIB
 %%% GENERIC (USED BY OTHER MODES)
- 
+
 private define __pg_left (s)
 {
   ifnot (s.ptr[1] - s._indent)
@@ -1374,15 +1394,15 @@ private define __pg_left (s)
   if (s._is_wrapped_line && 0 == s.ptr[1] - s._indent)
     {
     s._findex--;
- 
+
     ifnot (s._findex)
       s._is_wrapped_line = 0;
- 
+
     return 1;
     }
 
   s.ptr[1]--;
- 
+
   return 0;
 }
 
@@ -1397,10 +1417,10 @@ private define __pg_right (s, linlen)
     s._index++;
     return 0;
     }
- 
+
   s._index++;
   s._findex++;
- 
+
   return 1;
 }
 
@@ -1410,10 +1430,10 @@ private define _indent_in_ (s, line, i_)
 {
   ifnot (strlen (line) - s._indent)
     return NULL;
- 
+
   ifnot (isblank (line[s._indent]))
     return NULL;
- 
+
   while (isblank (line[@i_]) && @i_ < s._shiftwidth + s._indent)
     @i_++;
 
@@ -1457,7 +1477,7 @@ private define _word_change_case_ (s, what)
     col = s._index,
     i = __vlnr (s, '.'),
     line = __vline (s, '.');
- 
+
   word = __vfind_word (s, line, col, &start, &end);
 
   variable ar = decode (word);
@@ -1474,7 +1494,7 @@ private define _word_change_case_ (s, what)
   s._index = start;
 
   set_modified (s);
- 
+
   s.st_.st_size = getsizear (s.lines);
 
   waddline (s, line, 0, s.ptr[0]);
@@ -1522,9 +1542,9 @@ private define pg_down (s)
   if (s.ptr[0] < s.vlins[-1])
     {
     s.ptr[0]++;
- 
+
     linlen = __vlinlen (s, '.');
- 
+
     _adjust_col_ (s, linlen, plinlen);
 
     __vdraw_tail (s);
@@ -1536,16 +1556,16 @@ private define pg_down (s)
     return;
 
   s._i++;
- 
+
   ifnot (s.ptr[0] == s.vlins[-1])
     s.ptr[0]++;
 
   s.draw (;dont_draw);
- 
+
   linlen = __vlinlen (s, '.');
- 
+
   _adjust_col_ (s, linlen, plinlen);
- 
+
   smg->setrcdr (s.ptr[0], s.ptr[1]);
 }
 
@@ -1566,12 +1586,12 @@ private define pg_up (s)
   if (s.ptr[0] > s.vlins[0])
     {
     s.ptr[0]--;
- 
+
     linlen = __vlinlen (s, '.');
     _adjust_col_ (s, linlen, plinlen);
- 
+
     __vdraw_tail (s);
- 
+
     return;
     }
 
@@ -1581,11 +1601,11 @@ private define pg_up (s)
   s._i--;
 
   s.draw (;dont_draw);
- 
+
   linlen = __vlinlen (s, '.');
- 
+
   _adjust_col_ (s, linlen, plinlen);
- 
+
   smg->setrcdr (s.ptr[0], s.ptr[1]);
 }
 
@@ -1633,19 +1653,19 @@ private define pg_bof (s)
   markbacktick (s);
 
   s._i = 0;
- 
+
   s.ptr[0] = s.rows[0];
   s.ptr[1] = s._indent;
   s._findex = s._indent;
   s._index = s._indent;
- 
+
   s.draw ();
 }
 
 private define pg_left (s)
 {
   variable retval = __pg_left (s);
- 
+
   if (-1 == retval)
     return;
 
@@ -1686,7 +1706,7 @@ private define pg_page_down (s)
 {
   if (s._i + s._avlins > s._len)
     return;
- 
+
   markbacktick (s);
 
   s._is_wrapped_line = 0;
@@ -1703,7 +1723,7 @@ private define pg_page_up (s)
 {
   ifnot (s.lnrs[0])
     return;
- 
+
   markbacktick (s);
 
   if (s.lnrs[0] >= s._avlins)
@@ -1742,14 +1762,14 @@ private define pg_eos (s)
     s._findex = s._indent;
     s._index = linlen - 1 + s._indent;
     }
- 
+
   __vdraw_tail (s);
 }
 
 private define pg_eol (s)
 {
   variable linlen = __vlinlen (s, s.ptr[0]);
- 
+
   s._index = linlen - 1;
 
   if (linlen < s._linlen)
@@ -1762,12 +1782,12 @@ private define pg_eol (s)
     s._findex = linlen - s._linlen;
 
     variable line = __vgetlinestr (s, __vline (s, '.'), s._findex + 1);
- 
+
     waddline (s, line, 0, s.ptr[0]);
 
     s._is_wrapped_line = 1;
     }
- 
+
   __vdraw_tail (s);
 }
 
@@ -1829,6 +1849,12 @@ private define pg_g (s)
     _word_change_case_ (s, "tolower");
     return;
     }
+
+  if ('v' == chr)
+    {
+    (@__get_reference ("v_lastvi")) (s);
+    return;
+    }
 }
 
 private define pg_Yank (s)
@@ -1846,7 +1872,7 @@ private define pg_reread (s)
   s.lines = __vgetlines (s._fname, s._indent, s.st_);
 
   s._len = length (s.lines) - 1;
- 
+
   ifnot (s._len)
     {
     s._ii = 0;
@@ -1867,7 +1893,7 @@ private define pg_reread (s)
     }
 
   s.ptr[1] = 0;
- 
+
   s._i = s._ii;
 
   s.draw ();
@@ -1909,7 +1935,7 @@ define on_wind_new (w)
   variable s = init_ftype ("txt");
   variable func = __get_reference ("txt_settype");
   (@func) (s, fn, w.frame_rows[0], NULL);
- 
+
   __vsetbuf (fn);
   (@__get_reference ("__initrline"));
   topline (" -- ved --");
@@ -1936,7 +1962,7 @@ define _goto_wind_ (s, chr)
 define handle_w (s)
 {
   variable chr = getch ();
- 
+
   if (any (['w', 's', keys->CTRL_w, 'd', 'k', 'n', ',', '.', ['0':'9']] == chr))
     {
     if (any (['w', keys->CTRL_w, keys->DOWN] == chr))
@@ -1944,7 +1970,7 @@ define handle_w (s)
       _change_frame_ (s);
       return;
       }
- 
+
     if ('s' == chr)
       {
       _new_frame_ (s);
@@ -1988,7 +2014,7 @@ private define pg_write_on_esc (s)
   sleep (0.001);
   smg->setrcdr (s.ptr[0], s.ptr[1]);
 }
- 
+
 define pg_gotomark (s)
 {
   variable m = mark_get ();
@@ -2016,7 +2042,7 @@ private define _set_nr_ (s, incrordecr)
     col = s._index,
     i = __vlnr (s, '.'),
     line = __vline (s, '.');
-  
+
   variable ishex = 0;
   variable isoct = 0;
   variable isbin = 0;
@@ -2033,25 +2059,25 @@ private define _set_nr_ (s, incrordecr)
     nr = (@convf) (nr) + count;
   else
     nr = (@convf) (nr) - count;
-  
+
   variable format = sprintf ("%s%%%s",
     ishex ? "0x0" : isoct ? "0" : "",
     ishex ? "x" : isoct ? "o" : isbin ? "B" : isdbl ? "f" : "d");
- 
+
   nr = sprintf (format, nr);
   if (isbin)
     while (strlen (nr) mod 4)
       nr = "0" + nr;
- 
+
   line = sprintf ("%s%s%s", substr (line, 1, start), nr, substr (line, end + 2, -1));
- 
+
   s.lins[s.ptr[0] - s.rows[0]] = line;
   s.lines[i] = line;
   s.ptr[1] = start;
   s._index = start;
 
   set_modified (s);
- 
+
   s.st_.st_size = getsizear (s.lines);
 
   waddline (s, line, 0, s.ptr[0]);
@@ -2101,13 +2127,13 @@ define diff (lines, fname, retval)
     @retval = -1;
     return p.stderr.out;
     }
- 
+
   ifnot (status.exit_status)
     {
     @retval = 0;
     return String_Type[0];
     }
- 
+
   @retval = 1;
 
   return p.stdout.out;
@@ -2119,19 +2145,19 @@ define patch (in, dir, retval)
   variable isbigout = qualifier ("isbig", 0);
   variable com = [which ("patch"), "-d", dir, "-r", VED_DIR + "/patchrej.diff"];
   variable out = "-";
- 
+
   if (isbigin)
     {
     variable fin = VED_DIR + "/pathchin.diff";
     () = writestring (fin, in);
     com = [com, "-i", fin];
     }
- 
+
   if (isbigout)
     out = VED_DIR + "/patchout.diff";
- 
+
   com = [com, "-o", out];
- 
+
   variable p = proc->init (isbigin ? 0 : 1, 1, 1);
   ifnot (isbigin)
     p.stdin.in = in;
@@ -2143,13 +2169,13 @@ define patch (in, dir, retval)
     @retval = NULL;
     return "couldn't invoke patch process";
     }
- 
+
   ifnot (2 > status.exit_status)
     {
     @retval = -1;
     return p.stderr.out;
     }
- 
+
   if (1 == status.exit_status)
     {
     @retval = 1;
@@ -2164,7 +2190,7 @@ define patch (in, dir, retval)
 define set_modified (s)
 {
   s._flags |= VED_MODIFIED;
- 
+
   variable
     retval,
     d = diff (strjoin (s.lines, "\n") + "\n", s._absfname, &retval);
@@ -2174,7 +2200,7 @@ define set_modified (s)
     send_msg_dr (d, 1, s.ptr[0], s.ptr[1]);
     return;
     }
- 
+
   if (-1 == retval)
     {
     % change
@@ -2183,10 +2209,7 @@ define set_modified (s)
     }
 
   ifnot (retval)
-    {
-    send_msg_dr ("found no changes", 0, s.ptr[0], s.ptr[1]);
     return;
-    }
 
   s.undo = [s.undo, d];
   list_append (s.undoset, [qualifier ("_i", s._ii), s.ptr[0], s.ptr[1]]);
@@ -2204,7 +2227,7 @@ private define undo (s)
     in,
     isbig = 256 * 256 <= s.st_.st_size,
     d;
- 
+
   if (0 == s._undolevel)
     {
     s.lines = __vgetlines (s._absfname, s._indent, s.st_);
@@ -2217,13 +2240,13 @@ private define undo (s)
   in = s.undo[s._undolevel - 1];
 
   d = patch (in, s._dir, &retval;isbig = isbig);
- 
+
   if (NULL == retval)
     {
     send_msg_dr (d, 1, s.ptr[0], s.ptr[1]);
     return;
     }
- 
+
   if (-1 == retval || 1 == retval)
     {
     % change
@@ -2233,13 +2256,13 @@ private define undo (s)
 
   s.lines = strchop (d, '\n', 0);
   s._len = length (s.lines) - 1;
- 
+
   s._i = s.undoset[s._undolevel - 1][0];
   s.ptr[0] = s.undoset[s._undolevel - 1][1];
   s.ptr[1] = s.undoset[s._undolevel - 1][2];
 
   s._undolevel--;
- 
+
   s._flags |= VED_MODIFIED;
 
   s.draw ();
@@ -2257,20 +2280,20 @@ private define redo (s)
     d;
 
   d = patch (in, path_dirname (s._fname), &retval;isbig = isbig);
- 
+
   if (NULL == retval)
     {
     send_msg_dr (d, 1, s.ptr[0], s.ptr[1]);
     return;
     }
- 
+
   if (-1 == retval || 1 == retval)
     {
     % change
     send_msg_dr (d, 1, s.ptr[0], s.ptr[1]);
     return;
     }
- 
+
   s.lines = strchop (d, '\n', 0);
   s._len = length (s.lines) - 1;
 
@@ -2347,7 +2370,7 @@ private define search_backward (s, str)
     wrapped = 0,
     clrs = Integer_Type[0],
     rows = Integer_Type[4];
- 
+
   rows[*] = MSGROW;
 
   try
@@ -2359,7 +2382,7 @@ private define search_backward (s, str)
     send_msg_dr ("error compiling pcre pattern", 1, PROMPTROW, s_col);
     return;
     }
- 
+
   i = s_lnr;
 
   while (i > -1 || (i > s_lnr && wrapped))
@@ -2401,7 +2424,7 @@ private define search_backward (s, str)
       else
         i--;
     }
- 
+
   s_found = 0;
   send_msg_dr ("Nothing found", 0, PROMPTROW, s_col);
 }
@@ -2419,7 +2442,7 @@ private define search_forward (s, str)
     wrapped = 0,
     clrs = Integer_Type[0],
     rows = Integer_Type[4];
- 
+
   rows[*] = MSGROW;
 
   try
@@ -2431,9 +2454,9 @@ private define search_forward (s, str)
     send_msg_dr ("error compiling pcre pattern", 1, PROMPTROW, s_col);
     return;
     }
- 
+
   i = s_lnr;
- 
+
   while (i <= s._len || (i < s_lnr && wrapped))
     {
     line = __vgetlinestr (s, s.lines[i], 1);
@@ -2452,13 +2475,13 @@ private define search_forward (s, str)
       pos = [qualifier ("row", PROMPTROW), s_col];
       if (qualifier_exists ("context"))
         pos[1] = match[1];
- 
+
       smg->aratrcaddnstrdr (ar, clrs, rows, cols, pos[0], pos[1], COLUMNS);
 
       s_lnr = i;
       s_fcol = match[0];
       s_found = 1;
- 
+
       return;
       }
     else
@@ -2473,9 +2496,9 @@ private define search_forward (s, str)
       else
         i++;
     }
- 
+
   s_found = 0;
- 
+
   send_msg_dr ("Nothing found", 0, PROMPTROW, s_col);
 }
 
@@ -2491,10 +2514,10 @@ private define search (s)
     pchr,
     str,
     pat = "";
- 
+
   if (length (s_history))
     s_histindex = 0;
- 
+
   s_found = 0;
   s_lnr = __vlnr (s, '.');
 
@@ -2505,10 +2528,10 @@ private define search (s)
   pchr = type == "forward" ? "/" : "?";
   str = pchr;
   s_col = 1;
- 
+
   typesearch = type == "forward" ? &search_forward : &search_backward;
   __vwrite_prompt (str, s_col);
- 
+
   forever
     {
     dothesearch = 0;
@@ -2519,7 +2542,7 @@ private define search (s)
       s_exit_rout (s, NULL, 0);
       break;
       }
- 
+
     if ((' ' <= chr < 64505) &&
         0 == any (chr == [keys->rmap.backspace, keys->rmap.delete,
         [keys->UP:keys->RIGHT], [keys->F1:keys->F12]]))
@@ -2532,7 +2555,7 @@ private define search (s)
       s_col++;
       dothesearch = 1;
       }
- 
+
     if (any (chr == keys->rmap.backspace) && strlen (pat))
       if (s_col - 1)
         {
@@ -2540,7 +2563,7 @@ private define search (s)
           pat = substr (pat, 1, strlen (pat) - 1);
         else
           pat = substr (pat, 1, s_col - 2) + substr (pat, s_col, -1);
- 
+
         s_lnr = origlnr;
 
         s_col--;
@@ -2555,19 +2578,19 @@ private define search (s)
         (pat = substr (pat, 1, s_col - 1) + substr (pat, s_col + 1, -1),
          dothesearch = 1);
       }
- 
+
     if (any (chr == keys->rmap.left) && s_col != 1)
       s_col--;
- 
+
     if (any (chr == keys->rmap.right) && s_col != strlen (pat) + 1)
       s_col++;
- 
+
     if ('\r' == chr)
       {
       s_exit_rout (s, pat, s_found);
       break;
       }
- 
+
     if (chr == keys->UP)
       ifnot (NULL == s_histindex)
         {
@@ -2622,7 +2645,7 @@ private define search (s)
     if (dothesearch)
       (@typesearch) (s, pat);
     }
- 
+
   ifnot (input->getlang () == cur_lang)
     input->setlang (cur_lang);
 }
@@ -2640,13 +2663,13 @@ private define search_word (s)
     origlnr,
     typesearch,
     line = __vline (s, '.');
- 
+
   s_found = 0;
   s_fcol = s.ptr[1];
   s_lnr = __vlnr (s, '.');
 
   type = '*' == s._chr ? "forward" : "backward";
- 
+
   typesearch = type == "forward" ? &search_forward : &search_backward;
 
   if (type == "forward")
@@ -2665,7 +2688,7 @@ private define search_word (s)
 
   if (isblank (substr (line, lcol + 1, 1)))
     return;
- 
+
   pat = __vfind_word (s, line, lcol, &start, &end);
 
   if (s_col - s._indent)
@@ -2687,7 +2710,7 @@ private define search_word (s)
       }
 
     chr = getch (;disable_langchange);
- 
+
     ifnot (any ([keys->CTRL_n, 033, '\r'] == chr))
       continue;
 
@@ -2696,13 +2719,13 @@ private define search_word (s)
       s_exit_rout (s, NULL, 0);
       return;
       }
- 
+
     if ('\r' == chr)
       {
       s_exit_rout (s, pat, s_found);
       return;
       }
- 
+
     if (chr == keys->CTRL_n)
       {
       if (type == "forward")
@@ -2751,13 +2774,14 @@ private define v_hl_line (vs, s)
       else
         smg->hlregion (vs.clr, vs.vlins[i], 0, 1,
           s._maxlen > vs.linlen[i] ? vs.linlen[i] : s._maxlen);
- 
+
   ifnot (qualifier_exists ("dont_draw"))
     smg->refresh ();
 }
 
 private define v_calclines_up (s, vs, un, inc)
 {
+  vs.cur--;
   if (un)
     v_unhl_line (vs, s, -1);
 
@@ -2772,6 +2796,7 @@ private define v_calclines_up (s, vs, un, inc)
 
 private define v_calclines_up_ (s, vs, incr)
 {
+  vs.cur--;
   vs.lines = [s.lines[vs.lnrs[0] - 1], vs.lines];
   vs.lnrs = [vs.lnrs[0] - 1, vs.lnrs];
 
@@ -2786,17 +2811,17 @@ private define v_l_up (vs, s)
 {
   ifnot (__vlnr (s, '.'))
     return;
- 
+
   if (s.ptr[0] == s.vlins[0])
     {
     s._i--;
     s.draw ();
- 
+
     if (vs.lnrs[-1] <= vs.startlnr)
       v_calclines_up_ (s, vs, 1);
     else
       v_calclines_up (s, vs, 0, 1);
- 
+
     v_hl_line (vs, s);
     return;
     }
@@ -2817,11 +2842,11 @@ private define v_l_page_up (vs, s)
 {
   if (s._i < s._avlins || s._avlins > s._len)
     return;
- 
+
   variable count = qualifier ("count", 1);
   variable i = 1;
   variable ii;
- 
+
   while (i <= count && s._i)
     {
     variable isnotiatfpg = 1;
@@ -2846,7 +2871,7 @@ private define v_l_page_up (vs, s)
           v_calclines_up (s, vs, 0, 1);
         continue;
         }
- 
+
       if (vs.lnrs[-1] > vs.startrow)
         v_calclines_up (s, vs, 1, 1);
       else
@@ -2864,6 +2889,7 @@ vis.l_page_up = &v_l_page_up;
 
 private define v_calclines_down (s, vs, un, dec)
 {
+  vs.cur++;
   if (un)
     v_unhl_line (vs, s, 0);
 
@@ -2878,6 +2904,7 @@ private define v_calclines_down (s, vs, un, dec)
 
 private define v_calclines_down_ (s, vs, dec)
 {
+  vs.cur++;
   vs.lines = [vs.lines, s.lines[vs.lnrs[-1] + 1]];
   vs.lnrs = [vs.lnrs, vs.lnrs[-1] + 1];
 
@@ -2897,7 +2924,7 @@ private define v_l_page_down (vs, s)
   variable i = 1;
   variable ii;
   variable notend = 1;
- 
+
   while (i <= count && notend)
     {
     if (s._i + s._avlins < s._len)
@@ -2929,7 +2956,7 @@ private define v_l_page_down (vs, s)
 
     i++;
     }
- 
+
   s.draw ();
   v_hl_line (vs, s);
 }
@@ -2945,7 +2972,7 @@ private define v_l_down (vs, s)
     {
     s._i++;
     s.draw ();
- 
+
     if (vs.lnrs[0] < vs.startlnr)
       v_calclines_down (s, vs, 0, 1);
     else
@@ -2970,15 +2997,15 @@ vis.l_down = &v_l_down;
 private define v_l_loop (vs, s)
 {
   variable chr, i, size = s.st_.st_size;
- 
+
   while (chr = getch (), any ([vs.l_keys, ['0':'9']] == chr))
     {
     VEDCOUNT = 1;
- 
+
     if ('0' <= chr <= '9')
       {
       VEDCOUNT = "";
- 
+
       while ('0' <= chr <= '9')
         {
         VEDCOUNT += char (chr);
@@ -2987,7 +3014,7 @@ private define v_l_loop (vs, s)
 
       VEDCOUNT = integer (VEDCOUNT);
       }
- 
+
     if (chr == keys->DOWN)
       {
       loop (VEDCOUNT)
@@ -3021,13 +3048,13 @@ private define v_l_loop (vs, s)
       seltoX (strjoin (vs.lines, "\n") + "\n");
       break;
       }
- 
+
     if ('>' == chr)
       {
       loop (VEDCOUNT)
         _for i (0, length (vs.lnrs) - 1)
           s.lines[vs.lnrs[i]] = repeat (" ", s._shiftwidth) + s.lines[vs.lnrs[i]];
- 
+
       s.st_.st_size = getsizear (s.lines);
       ifnot (size == s.st_.st_size)
         set_modified (s);
@@ -3036,10 +3063,9 @@ private define v_l_loop (vs, s)
 
       break;
       }
- 
+
     if ('<' == chr)
       {
- 
       loop (VEDCOUNT)
         _for i (0, length (vs.lnrs) - 1)
           {
@@ -3047,10 +3073,10 @@ private define v_l_loop (vs, s)
           variable l = _indent_in_ (s, s.lines[vs.lnrs[i]], &i_);
           if (NULL == l)
             continue;
- 
+
           s.lines[vs.lnrs[i]] = l;
           }
- 
+
       s.st_.st_size = getsizear (s.lines);
       ifnot (size == s.st_.st_size)
         set_modified (s);
@@ -3073,19 +3099,19 @@ private define v_l_loop (vs, s)
       s.ptr[1] = s._indent;
       s._index = s._indent;
       s._findex = s._indent;
- 
+
       if (-1 == s._len)
         {
         s.lines = [__get_null_str (s._indent)];
         s._len = 0;
         }
- 
+
       s.st_.st_size = getsizear (s.lines);
       set_modified (s);
       s.draw ();
       return;
       }
- 
+
     if ('s' == chr)
       {
       variable rl = get_cur_rline ();
@@ -3106,10 +3132,13 @@ private define v_l_loop (vs, s)
 
 private define v_linewise_mode (vs, s)
 {
-  vs.linlen = [strlen (vs.lines[0])];
+  if (1 == length (vs.lines))
+    vs.linlen = [strlen (vs.lines[0])];
+  else
+    vs.linlen = strlen (vs.lines);
 
   v_hl_line (vs, s);
- 
+
   v_l_loop (vs, s);
 }
 
@@ -3121,7 +3150,7 @@ private define v_c_left (vs, s, cur)
 
   if (-1 == retval)
     return;
- 
+
   vs.index[cur]--;
 
   if (retval)
@@ -3201,7 +3230,7 @@ private define v_c_right (vs, s, cur)
 
   if (-1 == retval)
     return;
- 
+
   vs.index[cur]++;
 
   if (retval)
@@ -3217,7 +3246,7 @@ private define v_c_right (vs, s, cur)
     : s._is_wrapped_line
       ? vs.startcol[cur] - vs.wrappedmot
       : vs.startcol[cur];
- 
+
   if (vs.index[cur] <= vs.startindex[cur])
     vs.sel[cur] = substr (vs.sel[cur], 2, -1);
   else
@@ -3234,9 +3263,8 @@ private define v_char_mode (vs, s)
     sel,
     chr,
     cur = 0;
- 
+
   vs.startcol = [vs.col[0]];
-  vs.startindex = vs.index;
   vs.index = [vs.index];
 
   vs.sel = [substr (vs.lines[cur], vs.index[cur] + 1, 1)];
@@ -3270,7 +3298,7 @@ private define v_char_mode (vs, s)
       variable len = length (vs.sel);
       if (1 < len)
         return;
- 
+
       sel = strjoin (vs.sel, "\n");
       REG["\""] = sel;
       seltoX (sel);
@@ -3335,6 +3363,7 @@ private define v_bw_calclines_up (s, vs, un, inc)
 private define v_bw_calclines_up_ (s, vs, incr)
 {
   v_calclines_up_ (s, vs, incr);
+
   vs.index = [vs.index[0], vs.index];
   vs.sel = [substr (vs.lines[0], vs.index[0] + 1, 1), vs.sel];
   vs.col  = [vs.col[0], vs.col];
@@ -3345,12 +3374,12 @@ private define v_bw_up (vs, s)
 {
   ifnot (__vlnr (s, '.'))
     return;
- 
+
   if (s.ptr[0] == s.vlins[0])
     {
     s._i--;
     s.draw ();
- 
+
     if (vs.lnrs[-1] <= vs.startlnr)
       v_bw_calclines_up_ (s, vs, 1);
     else
@@ -3399,7 +3428,7 @@ private define v_bw_down (vs, s)
     {
     s._i++;
     s.draw ();
- 
+
     if (vs.lnrs[0] < vs.startlnr)
       v_bw_calclines_down (s, vs, 0, 1);
     else
@@ -3431,7 +3460,7 @@ private define v_bw_left (vs, s)
   vs.index--;
   s.ptr[1]--;
   s._index--;
- 
+
   v_bw_calclines (vs);
   v_hl_ch (vs, s);
 }
@@ -3445,7 +3474,7 @@ private define v_bw_right (vs, s)
   if (s._index - s._indent == linlen - 1 || 0 == linlen
       || s._index + 1 > vs.bw_maxlen)
     return;
- 
+
   if (s.ptr[1] < s._maxlen - 1)
     s.ptr[1]++;
   else
@@ -3458,13 +3487,13 @@ private define v_bw_right (vs, s)
 
   s._index++;
   vs.index++;
- 
+
   v_bw_calclines (vs);
   v_hl_ch (vs, s);
 }
 
 vis.bw_right = &v_bw_right;
- 
+
 private define v_bw_mode (vs, s)
 {
   variable
@@ -3521,10 +3550,10 @@ private define v_bw_mode (vs, s)
         {
         lnr = vs.lnrs[i];
         line = s.lines[lnr];
- 
+
         if (0 == strlen (line) || (1 == strlen (line) && ' ' == line[0]))
           continue;
- 
+
         if (vs.startcol)
           line = sprintf ("%s%s", substr (line, 1, vs.startcol), vs.index[i] == strlen (line)
             ? "" : substr (line, vs.startcol + 1 + strlen (vs.sel[i]), -1));
@@ -3538,7 +3567,7 @@ private define v_bw_mode (vs, s)
       set_modified (s);
       break;
       }
- 
+
     if ('y' == chr)
       {
       sel = strjoin (vs.sel, "\n");
@@ -3546,7 +3575,7 @@ private define v_bw_mode (vs, s)
       seltoX (sel);
       break;
       }
- 
+
     if ('I' == chr)
       {
       variable t = rline->__gettxt ("", vs.vlins[0] - 1, vs.startcol)._lin;
@@ -3555,10 +3584,10 @@ private define v_bw_mode (vs, s)
         lnr = vs.lnrs[i];
         line = s.lines[lnr];
         len = strlen (line);
- 
+
         if (0 == len && vs.startcol)
           continue;
- 
+
         if (vs.startcol)
           line = sprintf ("%s%s%s%s",
             substr (line, 1, vs.startcol),
@@ -3582,28 +3611,62 @@ private define v_bw_mode (vs, s)
 
 vis.bw_mode = &v_bw_mode;
 
+private variable LastVi = NULL;
+
+define v_lastvi (s)
+{
+  variable vs = LastVi;
+
+  if (NULL == vs)
+    return;
+
+  ifnot (vs.mode == "lw")
+    return;
+
+  if (vs.lnrs[-1] > length (s.lines) - 1)
+    return;
+
+  vs.needsdraw = 0;
+
+  s.ptr[0] = vs.ptr[0];
+  s.ptr[1] = vs.ptr[1];
+
+  s._i = vs._i;
+  s.draw ();
+  vs.lines = s.lines[vs.lnrs];
+
+  vs.l_mode (s);
+
+  vs.at_exit (s, vs.needsdraw);
+}
+
 private define v_atexit (vs, s, draw)
 {
+  variable keep;
   if (draw)
     {
     topline ("-- pager --");
- 
+
+    keep = @s.ptr;
     s.ptr[1] = vs.ptr[1];
     s.ptr[0] = vs.ptr[0];
+    vs.ptr = keep;
     s._index = vs.startindex;
 
+    keep = @s._i;
     s._i = vs._i;
+    vs._i = keep;
     s.draw ();
- 
+
     variable len = __vlinlen (s, '.');
     variable col = s.ptr[1], row = s.ptr[0];
- 
+
     if (len < s._index)
       s._index = len - 1;
- 
+
     if (s.ptr[1] > len)
       s.ptr[1] = len - 1;
- 
+
     if (row > s._len)
       s.ptr[0] = s._len;
 
@@ -3611,8 +3674,13 @@ private define v_atexit (vs, s, draw)
       __vdraw_tail (s);
     }
   else
+    {
     toplinedr ("-- pager --");
+    vs.ptr = @s.ptr;
+    vs._i = @s._i;
+    }
 
+  LastVi = vs;
 }
 
 vis.at_exit = &v_atexit;
@@ -3622,7 +3690,7 @@ private define v_init (s)
   toplinedr ("-- visual --");
   variable lnr = __vlnr (s, '.');
   variable v = @vis;
- 
+
   v._i = @s._ii;
   v.ptr = @s.ptr;
   v.needsdraw = 0;
@@ -3633,7 +3701,9 @@ private define v_init (s)
   v.lines = [__vline (s, '.')];
   v.startrow = lnr;
   v.startindex = s._index;
- 
+  v.cur = s._index;
+  v.startcol = [s.ptr[0]];
+
   return struct
     {
     wrappedmot = 0,
@@ -3647,7 +3717,10 @@ private define v_init (s)
 private define vis_mode (s)
 {
   variable
+    mode = ["bw", "lw", "cw"],
     vs = v_init (s);
+
+  vs.mode = mode[wherefirst ([keys->CTRL_v, 'V', 'v'] == s._chr)];
 
   if (s._chr == 'v')
     vs.c_mode (s);
@@ -3660,7 +3733,7 @@ private define vis_mode (s)
 }
 
 %%% INSERT MODE
- 
+
 private define newline_str (s, indent, line)
 {
   s.autoindent (indent, line);
@@ -3695,7 +3768,7 @@ private define ins_tab (is, s, line)
     while (s.ptr[1]++, i++, (s.ptr[1] < s._maxlen && i < s._shiftwidth));
   else
     i = 0;
- 
+
   s._findex += (s._shiftwidth - i);
 
   variable
@@ -3722,9 +3795,9 @@ private define ins_char (is, s, line)
     __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
     return;
     }
- 
+
   s._is_wrapped_line = 1;
- 
+
   if (s.ptr[1] == s._maxlen)
     s._findex++;
 
@@ -3765,7 +3838,7 @@ private define ins_del_prev (is, s, line)
       @line = s.lines[is.lnr];
     else
       @line = s.lines[is.lnr] + @line;
- 
+
     s.lines[is.lnr] = @line;
     s.lines[is.lnr + 1] = NULL;
     s.lines = s.lines[wherenot (_isnull (s.lines))];
@@ -3796,7 +3869,7 @@ private define ins_del_prev (is, s, line)
   @line = substr (@line, 1, s._index - 1) + substr (@line, s._index + 1, - 1);
 
   len = strlen (@line);
- 
+
   s._index--;
 
   ifnot (s.ptr[1])
@@ -3828,7 +3901,7 @@ private define ins_del_prev (is, s, line)
     lline = substr (@line, s._index + 1, -1);
     waddlineat (s, lline, 0, s.ptr[0], s.ptr[1], s._maxlen);
     }
- 
+
   __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
 
   is.modified = 1;
@@ -3894,7 +3967,7 @@ private define ins_del_next (is, s, line)
     waddline (s, __vgetlinestr (s, @line, s._findex + 1 - s._indent), 0, s.ptr[0]);
   else
     waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
- 
+
   __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
   is.modified = 1;
 }
@@ -3906,14 +3979,14 @@ private define ins_eol (is, s, line)
   variable
     lline,
     len = strlen (@line);
- 
+
   s._index = len;
 
   if (len > s._linlen)
     {
     s._findex = len - s._linlen;
     lline = __vgetlinestr (s, @line, s._findex + 1 - s._indent);
- 
+
     waddline (s, lline, 0, s.ptr[0]);
 
     s.ptr[1] = s._maxlen;
@@ -3971,16 +4044,16 @@ private define ins_right (is, s, line)
     return;
 
   s._index++;
- 
+
   ifnot (s.ptr[1] == s._maxlen)
     s.ptr[1]++;
- 
+
   if (s._index + 1 > s._maxlen)
     {
     s._findex++;
     s._is_wrapped_line = 1;
     }
- 
+
   variable lline;
 
   if (s.ptr[1] + 1 > s._maxlen)
@@ -4010,7 +4083,7 @@ private define ins_left (is, s, line)
       lline = __vgetlinestr (s, @line, s._index - s._indent);
 
       waddline (s, lline, 0, s.ptr[0]);
- 
+
       __vdraw_tail (s;chr = decode (substr (@line, s._index, 1))[0]);
 
       if (s._index - 1 == s._indent)
@@ -4025,36 +4098,36 @@ private define ins_page_up (is, s, line)
   s.lins[s.ptr[0] - s.rows[0]] = @line;
   s.lines[is.lnr] = @line;
   s._findex = s._indent;
- 
+
   (@VED_PAGER[string (keys->PPAGE)]) (s;modified);
   is.lnr = __vlnr (s, '.');
   @line = __vline (s, '.');
- 
+
   ifnot (is.lnr)
     is.prev_l = "";
   else
     is.prev_l = s.lines[is.lnr - 1];
- 
+
   is.next_l = s.lines[is.lnr + 1];
 }
 
 insfuncs.pag_up = &ins_page_up;
- 
+
 private define ins_page_down (is, s, line)
 {
   s.lins[s.ptr[0] - s.rows[0]] = @line;
   s.lines[is.lnr] = @line;
   s._findex = s._indent;
- 
+
   (@VED_PAGER[string (keys->NPAGE)]) (s;modified);
   is.lnr = __vlnr (s, '.');
   @line = __vline (s, '.');
- 
+
   if (is.lnr == s._len)
     is.next_l = "";
   else
     is.next_l = s.lines[is.lnr + 1];
- 
+
   is.prev_l = s.lines[is.lnr - 1];
 }
 
@@ -4067,7 +4140,7 @@ private define ins_down (is, s, line)
 
   s.lins[s.ptr[0] - s.rows[0]] = @line;
   s.lines[is.lnr] = @line;
- 
+
   s._findex = s._indent;
 
   is.lnr++;
@@ -4090,13 +4163,13 @@ private define ins_down (is, s, line)
   @line = s.lines[is.lnr];
 
   variable len = strlen (@line);
- 
+
   if (s._index > len)
     {
     s.ptr[1] = len ? len : s._indent;
     s._index = len ? len : s._indent;
     }
- 
+
   if (s.ptr[0] < s.vlins[-1])
     {
     s.ptr[0]++;
@@ -4155,11 +4228,11 @@ private define ins_up (is, s, line)
     s._is_wrapped_line = 0;
     s.ptr[1] = s._maxlen;
     }
- 
+
   s._index = s.ptr[1];
- 
+
   @line = s.lines[is.lnr];
- 
+
   variable len = strlen (@line);
 
   if (s._index > len)
@@ -4167,7 +4240,7 @@ private define ins_up (is, s, line)
     s.ptr[1] = len ? len : s._indent;
     s._index = len ? len : s._indent;
     }
- 
+
   if (s.ptr[0] > s.vlins[0])
     {
     s.ptr[0]--;
@@ -4178,9 +4251,9 @@ private define ins_up (is, s, line)
       : ' ');
     return;
     }
- 
+
   s._i = s._ii - 1;
- 
+
   variable chr = strlen (@line)
     ? s._index > s._indent
       ? decode (substr (@line, s._index + 1, 1))[0]
@@ -4207,7 +4280,7 @@ private define ins_cr (is, s, line)
     lang = input->getlang ();
 
     s._chr = 'o';
- 
+
     (@VED_PAGER[string ('o')]) (s;modified);
 
     return;
@@ -4242,9 +4315,9 @@ private define ins_cr (is, s, line)
       s.lines = [s.lines[[:is.lnr - 1]], lline, @line, s.lines[[is.lnr + 1:]]];
 
     s._len++;
- 
+
     s.draw (;dont_draw);
- 
+
     waddline (s, @line, 0, s.ptr[0]);
     __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
 
@@ -4266,17 +4339,17 @@ private define ins_esc (is, s, line)
 
   if (0 < s._index - s._indent)
     s._index--;
- 
+
   if (is.modified)
     {
     s.lins[s.ptr[0] - s.rows[0]] = @line;
     s.lines[is.lnr] = @line;
 
     set_modified (s);
- 
+
     s.st_.st_size = getsizear (s.lines);
     }
- 
+
   topline (" -- pager --");
   __vdraw_tail (s);
 }
@@ -4335,7 +4408,7 @@ define ctrl_completion_rout (s, line, type)
       {
       if (length (rows))
         smg->restore (rows, s.ptr, 1);
- 
+
       waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
       smg->setrcdr (s.ptr[0], s.ptr[1]);
       return;
@@ -4361,7 +4434,7 @@ define ctrl_completion_rout (s, line, type)
         }
       else
         item = substr (item, 1, strlen (item) - 1);
- 
+
       smg->restore (rows, NULL, NULL);
       continue;
       }
@@ -4369,7 +4442,7 @@ define ctrl_completion_rout (s, line, type)
     if (any ([' ', '\r'] == chr))
       {
       smg->restore (rows, NULL, NULL);
- 
+
       if ("ins_linecompletion" == type)
         @line = ar[index - 1] + substr (@line, s._index + 1, -1);
       else if ("ins_wordcompletion" == type)
@@ -4381,7 +4454,7 @@ define ctrl_completion_rout (s, line, type)
         }
 
       waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
- 
+
       variable len = strlen (@line);
 
       %bug here (if len > maxlen) (wrapped line)
@@ -4393,7 +4466,7 @@ define ctrl_completion_rout (s, line, type)
       s.ptr[1] = s._index;
 
       __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
- 
+
       return;
       }
 
@@ -4423,10 +4496,10 @@ define ctrl_completion_rout (s, line, type)
       }
     else if (any ([iwchars] == chr))
       item += char (chr);
- 
+
     ifnot (indexchanged)
       smg->restore (rows, NULL, NULL);
- 
+
     % BUG HERE
     if (indexchanged)
       if (index > 1)
@@ -4447,16 +4520,16 @@ define ins_linecompletion (s, line)
 define blockcompletion (lnr, s, line)
 {
  variable f = __get_reference (s._type + "_blocks");
- 
+
   if (NULL == f)
     return;
- 
+
   variable assoc = (@f) (s._shiftwidth, s.ptr[1]);
   variable keys = assoc_get_keys (assoc);
   variable item = @line;
 
   ctrl_completion_rout (s, line, _function_name ();block_ar = keys);
- 
+
   variable i = wherefirst (@line == keys);
   if (NULL == i)
     waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
@@ -4473,54 +4546,54 @@ define blockcompletion (lnr, s, line)
     @line = ar[0];
     if (1 == length (ar))
       waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
- 
+
     s.lines[lnr] = @line;
     s.lines = [s.lines[[:lnr]], 1 == length (ar) ? String_Type[0] : ar[[1:]],
       lnr == s._len ? String_Type[0] :  s.lines[[lnr+1:]]];
     s._len = length (s.lines) - 1;
     s.st_.st_size = getsizear (s.lines);
- 
+
     set_modified (s);
- 
+
     s._i = s._ii;
     s.draw ();
     }
 }
- 
+
 define pag_completion (s)
 {
   variable chr = getch ();
   variable line;
- 
+
   switch (chr)
- 
+
     {
     case 'b':
       line = __vline (s, '.');
       blockcompletion (__vlnr (s, '.'), s, &line);
     }
- 
+
     {
     return;
     }
 }
- 
+
 define ins_ctrl_x_completion (is, s, line)
 {
   variable chr = getch ();
- 
+
   switch (chr)
- 
+
     {
     case keys->CTRL_l:
       ins_linecompletion (s, line);
     }
- 
+
     {
     case 'b':
       blockcompletion (is.lnr, s, line);
     }
- 
+
     {
     return;
     }
@@ -4534,7 +4607,7 @@ define ins_wordcompletion (s, line)
 private define ins_getline (is, s, line)
 {
   is = struct {@insfuncs, @is};
- 
+
   forever
     {
     is.chr = getch (;on_lang = &_on_lang_change_, on_lang_args = {"insert", s.ptr});
@@ -4544,7 +4617,7 @@ private define ins_getline (is, s, line)
       is.esc (s, line);
       return;
       }
- 
+
     if (keys->ESC_esc == is.chr)
       {
       s.lins[s.ptr[0] - s.rows[0]] = @line;
@@ -4557,13 +4630,13 @@ private define ins_getline (is, s, line)
       send_msg_dr ("", 0, s.ptr[0], s.ptr[1]);
       continue;
       }
- 
+
     if ('\r' == is.chr)
       {
       is.cr (s, line);
       return;
       }
- 
+
     if (keys->CTRL_n == is.chr)
       {
       ins_wordcompletion (s, line);
@@ -4581,7 +4654,7 @@ private define ins_getline (is, s, line)
       is.up (s, line);
       continue;
       }
- 
+
     if (keys->DOWN == is.chr)
       {
       is.down (s, line);
@@ -4605,7 +4678,7 @@ private define ins_getline (is, s, line)
       is.left (s, line);
       continue;
       }
- 
+
     if (any (keys->rmap.right == is.chr))
       {
       is.right (s, line);
@@ -4653,7 +4726,7 @@ private define ins_getline (is, s, line)
       is.del_next (s, line);
       continue;
       }
- 
+
     if ('\t' == is.chr)
       {
       is.ins_tab (s, line);
@@ -4699,9 +4772,9 @@ private define ed_indent_in (s)
     i_ = s._indent,
     i = __vlnr (s, '.'),
     line = __vline (s, '.');
- 
+
   line = _indent_in_ (s, line, &i_);
- 
+
   if (NULL == line)
     return;
 
@@ -4721,7 +4794,7 @@ private define ed_indent_in (s)
   s.st_.st_size += s._shiftwidth;
 
   waddline (s, line, 0, s.ptr[0]);
- 
+
   __vdraw_tail (s);
 }
 
@@ -4763,9 +4836,9 @@ private define ed_join_line (s)
   s.lines[i + 1] = NULL;
   s.lines = s.lines[wherenot (_isnull (s.lines))];
   s._len--;
- 
+
   s._i = s._ii;
- 
+
   set_modified (s);
 
   s.draw ();
@@ -4798,9 +4871,9 @@ private define ed_del_line (s)
   s.lines[i] = NULL;
   s.lines = s.lines[wherenot (_isnull (s.lines))];
   s._len--;
- 
+
   s._i = s._ii;
- 
+
   s.ptr[1] = s._indent;
   s._index = s._indent;
   s._findex = s._indent;
@@ -4812,9 +4885,9 @@ private define ed_del_line (s)
 
   if (s._i > s._len)
     s._i = s._len;
- 
+
   set_modified (s;_i = s._i);
- 
+
   return 0;
 }
 
@@ -5134,7 +5207,7 @@ private define ed_editline (s)
     next_l = "";
   else
     next_l = s.lines[lnr + 1];
- 
+
   if ('C' == s._chr)
     line = substr (line, 1, s._index);
   else if ('a' == s._chr && len)
@@ -5527,7 +5600,7 @@ new_wind ();
   %    new line (ignored)
   %=>  assigned to
   %=<  get assignment (%U)
- 
+
   % on close (fixed), (add a new line with the id in []?)? (before or after)
   % delete the text. commit it to git as standalone
   % then link to commit
@@ -5549,7 +5622,7 @@ new_wind ();
   %2  | maybe a load(*) SLang C function
   %3  | if such file can be evalfil'ing (if standalone)
   %=> ayios
- 
+
   %I             0002
   %@    Add header in sl_type files
   %T    02/09/2015 10:30
@@ -5565,7 +5638,7 @@ new_wind ();
   %2  | see *001:3*, we might want to know specific details
   %
   %=> ayios
- 
+
   %I            0003
   %@    Highlight api functions
   %T    02/09/2015 10:33
@@ -5588,9 +5661,9 @@ new_wind ();
 
 %%% THOUGHTS
 % VED_ISONLYPAGER should be local to buffer
-% ADD EXEC dir 
+% ADD EXEC dir
 %%% i-> ineed Assoc_Type[EXEC_TYPE] HASH_TABLE? i->need[func] (args)
-%%% i- 
+%%% i-
 % Assoc_Type (REF_TYPE, &assign);
 % try - catch vedloop - protect the doc - use a bytecompiled function -
 % esc cycle: narrow linewise mode -> pager mode -> insert mode
@@ -5617,4 +5690,3 @@ new_wind ();
 
 %%% DO
 % backspace on pager, deletes ws in front of cursor
-

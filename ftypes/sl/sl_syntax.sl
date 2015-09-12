@@ -1,4 +1,6 @@
 private variable colors = [
+%comments
+  3,
 % api functins
   11,
 % intrinsic functions
@@ -9,11 +11,11 @@ private variable colors = [
   12,
 %errors
   17,
-%comments
-  3,
 ];
 
 private variable regexps = [
+%comments
+  pcre_compile ("((^\s*%.*)|((?<=[\)|;|\s])% .*))"R, 0),
 % api public functions and vars
   pcre_compile ("\
 ((?<=\s|\[\()(keys(?=(->)))\
@@ -64,7 +66,7 @@ private variable regexps = [
 |(?<=&|\s|\[|\()(typeof(?=\s|,))\
 |(?<=&|\s|\[|\()(getcwd(?=\s|,))\
 |(?<=&|\s|\[|\()(cumsum(?=\s|,))\
-|(?<=&|\s|\[|\()(length(?=\s|,))\
+|(?<=&|\s|\[|\(|:)(length(?=\s|,))\
 |(?<=&|\s|\[|\()(execve(?=\s|,))\
 |(?<=&|\s|\[|\()(socket(?=\s|,))\
 |(?<=&|\s|\[|\()(strtok(?=\s|,))\
@@ -211,12 +213,13 @@ private variable regexps = [
 |((?<!\w)[\w]+Error(?=[:|,])))+"R, 0),
 %errors
   pcre_compile ("\
-((?<=\S)\s+$\
+(((?<=\S)\s+$)\
 |(^\s+$))+"R, 0),
-%comments
-  pcre_compile ("((^\s*%.*)|((?<=[\)|;|\s])% .*))"R, 0),
 ];
 
+%  pcre_compile ("\
+%(((?<=\S)\s+$)\
+%|(^\s+$))+"R, 0),
 define sl_lexicalhl (s, lines, vlines)
 {
   __hl_groups (lines, vlines, colors, regexps);

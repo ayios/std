@@ -27,7 +27,7 @@ define addfname (fname)
     s = w.buffers[absfname];
     s._i = s._ii;
     }
- 
+
   __vsetbuf (s._absfname);
   __vwrite_prompt (" ", 0);
   s.draw (;dont_draw);
@@ -110,7 +110,7 @@ private define _bdelete ()
       s._absfname), 0, NULL, NULL);
     variable chr;
     while (chr = getch (), 0 == any (chr == ['y', 'n']));
- 
+
     if ('n' == chr)
       force = 0;
 
@@ -137,7 +137,7 @@ private define my_commands ()
     a[keys[i]].func = VED_CLINE[keys[i]];
     a[keys[i]].type = "Func_Type";
     }
- 
+
   a["substitute"] = @Argvlist_Type;
   a["substitute"].func = &__substitute;
   a["substitute"].type = "Func_Type";
@@ -172,7 +172,7 @@ private define tabhook (s)
 {
   ifnot (any (s.argv[0] == ["b", "bd", "bd!"]))
     return -1;
- 
+
   variable bufnames = _filter_bufs_ (qualifier ("ved"));
   variable args = array_map (String_Type, &sprintf, "%s void ", bufnames);
   return rline->argroutine (s;args = args, accept_ws);
@@ -226,14 +226,14 @@ define __write_buffers ()
 
     ifnot (s._flags & VED_MODIFIED)
       continue;
- 
+
     if (0 == qualifier_exists ("force") ||
       (qualifier_exists ("force") && s._absfname != get_cur_bufname ()))
       {
       send_msg_dr (sprintf ("%s: save changes? y[es]/n[o]/c[cansel]", fn), 0, NULL, NULL);
 
       while (chr = getch (), 0 == any (chr == ['y', 'n', 'c']));
- 
+
       if ('n' == chr)
         continue;
 
@@ -245,10 +245,10 @@ define __write_buffers ()
         continue;
         }
       }
- 
+
     bts = 0;
     variable retval = __vwritetofile (s._absfname, s.lines, s._indent, &bts);
- 
+
     ifnot (0 == retval)
       {
       send_msg_dr (sprintf ("%s, q to continue, without canseling function call", errno_string (retval)),
@@ -266,7 +266,7 @@ define __write_buffers ()
     else
       tostderr (s._absfname + ": " + string (bts) + " bytes written");
     }
- 
+
   if (hasnewmsg)
     send_msg_dr ("you have new error messages", 1, NULL, NULL);
 
@@ -284,7 +284,7 @@ private define cl_quit ()
 
   if (length (s_history))
     rline->writehistory (list_to_array (s_history), s_histfile);
- 
+
   if (qualifier_exists ("force") || 'w' == com[0])
     force = 1;
 
@@ -305,7 +305,7 @@ private define write_file ()
     overwrite = "w!" == qualifier ("argv0"),
     args = __pop_list (_NARGS),
     ptr = s.ptr;
- 
+
   __vwritefile (s, overwrite, ptr, args);
 }
 
@@ -328,7 +328,7 @@ private define _read ()
     return;
 
   variable ar = __vgetlines (file, s._indent, st);
- 
+
   variable lnr = __vlnr (s, '.');
 
   s.lines = [s.lines[[:lnr]], ar, s.lines[[lnr + 1:]]];
@@ -350,17 +350,17 @@ private define write_quit ()
     exit_me (0);
 }
 
-private define _messages_ ()
+define __vmessages ()
 {
   variable keep = get_cur_buf ();
   variable s = (@__get_reference ("ERR_VED"));
   VED_ISONLYPAGER = 1;
   __vsetbuf (s._absfname);
- 
+
   topline (" -- pager -- ( MESSAGES BUF) --";row = s.ptr[0], col = s.ptr[1]);
- 
+
   variable st = fstat (s._fd);
- 
+
   if (s.st_.st_size)
     if (st.st_atime == s.st_.st_atime && st.st_size == s.st_.st_size)
       {
@@ -370,15 +370,15 @@ private define _messages_ ()
       }
 
   s.st_ = st;
- 
+
   s.lines = __vgetlines (s._absfname, s._indent, st);
 
   s._len = length (s.lines) - 1;
- 
+
   variable len = length (s.rows) - 1;
 
   (s.ptr[1] = 0, s.ptr[0] = s._len + 1 <= len ? s._len + 1 : s.rows[-2]);
- 
+
   s._i = s._len + 1 <= len ? 0 : s._len + 1 - len;
 
   s.draw ();
@@ -388,7 +388,7 @@ private define _messages_ ()
   VED_ISONLYPAGER = 0;
 
   __vsetbuf (keep._absfname);
- 
+
   __vdraw_wind ();
 }
 
@@ -408,7 +408,7 @@ VED_CLINE["q!"] =       &cl_quit;
 VED_CLINE["wq"] =       &write_quit;
 VED_CLINE["Wq"] =       &write_quit;
 VED_CLINE["r"]  =       &_read;
-VED_CLINE["messages"] = &_messages_;
+VED_CLINE["messages"] = &__vmessages;
 
 private define doquit ()
 {
@@ -425,9 +425,9 @@ define init_ftype (ftype)
 {
   ifnot (FTYPES[ftype])
     FTYPES[ftype] = 1;
- 
+
   variable type = @Ftype_Type;
- 
+
   loadfrom ("ftypes/" + ftype, ftype + "_functions", NULL, &on_eval_err);
 
   type._type = ftype;
