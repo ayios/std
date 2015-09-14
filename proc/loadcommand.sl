@@ -6,6 +6,7 @@ __set_argc_argv (__argv[[1:]]);
 
 variable openstdout = 1;
 variable COMDIR;
+variable _exit_me_;
 variable PPID = getenv ("PPID");
 variable BG = getenv ("BG");
 variable BGPIDFILE;
@@ -64,7 +65,7 @@ define exit_me (x)
 
   ifnot (NULL == BG)
     exit_me_bg (x);
- 
+
   variable buf;
 
   () = write (WRFD, "exit");
@@ -72,6 +73,8 @@ define exit_me (x)
 
   exit (x);
 }
+
+_exit_me_ = NULL == BG ? &exit_me : &exit_me_bg;
 
 define tostderr (str)
 {
@@ -86,7 +89,7 @@ define tostdout ()
 define on_eval_err (ar, err)
 {
   array_map (&tostderr, ar);
-  exit_me (err);
+  (@_exit_me_) (err);
 }
 
 ifnot (access (stdoutfile, F_OK))
@@ -126,7 +129,7 @@ if (NULL == BG)
 define sigint_handler (sig)
 {
   tostderr ("process interrupted by the user");
-  exit_me (130);
+  (@_exit_me_) (130);
 }
 
 if (NULL == BG)
@@ -157,9 +160,9 @@ define send_msg_dr (msg)
   sock->send_str (WRFD, "send_msg_dr");
 
   () = sock->get_bit (RDFD);
- 
+
   sock->send_str (WRFD, msg);
- 
+
   () = sock->get_bit (RDFD);
 }
 
@@ -175,19 +178,19 @@ define ask (questar, charar)
   sock->send_str (WRFD, "ask");
 
   () = sock->get_bit (RDFD);
- 
+
   sock->send_str (WRFD, strjoin (questar, "\n"));
- 
+
   () = sock->get_bit (RDFD);
- 
+
   variable chr;
- 
+
   if (qualifier_exists ("get_int"))
     {
     variable
       len,
       retval = "";
- 
+
     send_msg_dr ("integer: ");
 
     chr = getch ();
@@ -199,7 +202,7 @@ define ask (questar, charar)
 
       if (any ([0x110, 0x8, 0x07F] == chr))
         retval = retval[[:-2]];
- 
+
       send_msg_dr ("integer: " + retval);
 
       chr = getch ();
@@ -212,11 +215,11 @@ define ask (questar, charar)
     send_msg_dr (strjoin (array_map (String_Type, &char, charar), "/") + " ");
     while (chr = getch (), 0 == any (chr == charar));
     }
- 
+
   sock->send_str (WRFD, "restorestate");
 
   () = sock->get_bit (RDFD);
- 
+
   if (NULL == BG)
     {
     sigprocmask (SIG_UNBLOCK, [SIGINT]);
@@ -229,4 +232,10 @@ define ask (questar, charar)
   return chr;
 }
 
-loadfrom ("com/" + com, "comInit", NULL, &on_eval_err);
+try
+  loadfrom ("com/" + com, "comInit", NULL, &on_eval_err);
+catch AnyError:
+  {
+  array_map (&tostderr, exception_to_array ());
+  (@_exit_me_) (1);
+  }

@@ -4,7 +4,7 @@ define _idle_ (argv)
   input->at_exit ();
 
   variable retval = go_idled ();
- 
+
   ifnot (retval)
     {
     smg->resume ();
@@ -13,4 +13,3 @@ define _idle_ (argv)
 
  (@__get_reference ("_exit_")) (;;__qualifiers  ());
 }
-

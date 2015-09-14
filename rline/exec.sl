@@ -16,7 +16,7 @@ public define __getpasswd ()
   else
     {
     passwd = getpasswd ();
- 
+
     if (-1 == os->authenticate (USER, passwd))
       {
       send_msg_dr ("Authentication error", 1, NULL, NULL);
@@ -70,7 +70,7 @@ private define _glob_ (argv)
       argv = [argv, array_map (String_Type, &path_concat, dirname, ar)];
       continue;
       }
- 
+
    if (string_match (args[i], "*"))
       {
       glob = 1;
@@ -86,10 +86,10 @@ private define _glob_ (argv)
       argv = [argv, array_map (String_Type, &path_concat, dirname, ar)];
       continue;
       }
- 
+
    argv = [argv, args[i]];
    }
- 
+
   return argv;
 }
 
@@ -113,9 +113,9 @@ private define _execProc_Type_ (func, argv)
     if (NULL == passwd)
       return;
     }
- 
+
   argv = _glob_ (argv);
- 
+
   (@func) (argv;;struct {@__qualifiers (), issudo = issudo, passwd = passwd});
 }
 

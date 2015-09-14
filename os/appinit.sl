@@ -11,7 +11,7 @@ static define runapp ()
     tostderr (app + ": No such application");
     return;
     }
- 
+
   variable setid = @Setid_Type;
 
   variable issu = is_arg ("--su", argv);
@@ -31,14 +31,14 @@ static define runapp ()
     list_append (args, argv[i]);
 
   smg->reset ();
- 
+
   loadfrom ("app/" + app, APPSINFO[app].init, app, &on_eval_err;force);
- 
+
   variable ref = __get_reference (app + "->" + app);
   () = (@ref) (__push_list (args);;setid);
- 
+
   smg->init ();
- 
+
   draw (ERR);
 }
 
@@ -49,14 +49,14 @@ static define app_atexit (s)
     variable status = waitpid (s.p_.pid, 0);
 
     s.p_.atexit ();
- 
+
     ifnot (NULL == s._fd)
       () = close (s._fd);
- 
+
     variable pid = s.p_.pid;
 
     assoc_delete_key (APPS[s._appname], string (s.p_.pid));
- 
+
     variable ind = wherefirst_eq (CONNECTED_PIDS, pid);
 
     CONNECTED_PIDS[ind] = 0;
@@ -73,7 +73,7 @@ static define app_atexit (s)
 
     return;
     }
- 
+
   _log_ (s._appname + ": is in idled state", LOGERR);
 }
 
@@ -92,13 +92,13 @@ static define apploop (s)
   forever
     {
     retval = sock->get_int (s._fd);
- 
+
     ifnot (Integer_Type == typeof (retval))
       {
       _log_ (sprintf ("%s loop: expected Integer_Type, received %S", s._appname, typeof (retval)), LOGERR);
       return; %don't handled, but it should never happen
       }
- 
+
     if (retval == APP_GET_ALL)
       {
       sock->send_str (s._fd, strjoin (_APPS_, "\n"));
@@ -114,15 +114,15 @@ static define apploop (s)
     if (retval == GO_ATEXIT)
       {
       s._state &= ~CONNECTED;
- 
+
       if (1 == length (CONNECTED_APPS))
         {
         app_atexit (s);
         return;
         }
- 
+
       app_atexit (s);
- 
+
       s = _get_s_ ();
 
       __send_reconnect (s);
@@ -140,12 +140,12 @@ static define apploop (s)
       app = sock->send_bit_get_str (s._fd, 1);
 
       __set_idled (s);
- 
+
       s = __new_app (app);
- 
+
       ifnot (NULL == s)
         continue;
- 
+
       s = _get_s_ ();
 
       __send_reconnect (s);
@@ -155,9 +155,9 @@ static define apploop (s)
     if (retval == APP_RECON_OTH)
       {
       app = sock->send_bit_get_str (s._fd, 1);
- 
+
       __set_idled (s);
- 
+
       s = __reconnect_to_app (app);
 
       if (NULL == s)
@@ -170,47 +170,6 @@ static define apploop (s)
 
       __send_reconnect (s);
       continue;
-      }
-    }
-}
-
-static define apptable ()
-{
-  variable i;
-  variable ii;
-  variable app;
-  variable dir;
-  variable apps;
-  variable dirs = [USRDIR, STDDIR, LCLDIR];
-
-  _for i (0, length (dirs) - 1)
-    {
-    dir = dirs[i];
-    apps = listdir (dir + "/app");
-    if (NULL == apps || (NULL != apps && 0 == length (apps)))
-      continue;
-
-    apps = apps[where (array_map (Integer_Type, &_isdirectory,
-      array_map (String_Type, &path_concat, dir + "/app/", apps)))];
-
-    _for ii (0, length (apps) - 1)
-      {
-      app = apps[ii];
-      if (-1 == access (dir + "/app/" + app + "/" + app + "Init.sl", F_OK)
-        &&-1 == access (dir + "/" + app + "/" + app + "Init.slc", F_OK))
-        continue;
-
-      APPSINFO[app] = @AppInfo_Type;
- 
-      APPSINFO[app].init = app + "Init";
- 
-      ifnot (access (dir + "/app/" + app + "help.txt", F_OK))
-        APPSINFO[app].help = dir + "/app/" + app + "/help.txt";
-
-      ifnot (access (dir + "/app/" + app + "info.txt", F_OK))
-        APPSINFO[app].info = dir + "/app/" + app + "/info.txt";
-
-      APPS[app] = Assoc_Type[App_Type];
       }
     }
 }
@@ -273,7 +232,7 @@ static define doproc (s, argv)
   addflags (p, s);
 
   (argv, env) = getargvenv (p, s, argv);
- 
+
   s.p_ = p;
 
   if (NULL == p.execve (argv, env, 1))
@@ -283,6 +242,6 @@ static define doproc (s, argv)
     }
 
   _log_ (s._appname  + " pid: " + string (s.p_.pid), LOGNORM);
- 
+
   return 0;
 }

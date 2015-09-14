@@ -1,10 +1,10 @@
 private variable LOADED = Assoc_Type[Integer_Type, 0];
 
 public variable ROOTDIR = path_concat (getcwd (), path_dirname (__FILE__));
- 
+
 if (ROOTDIR[[-2:]] == "/.")
   ROOTDIR = substr (ROOTDIR, 1, strlen (ROOTDIR) - 2);
- 
+
 ROOTDIR += "/..";
 
 public variable MACHINE = uname ().machine;
@@ -112,10 +112,10 @@ private define _load_ ()
     ns = "Global";
 
   variable lib = ns + "->" + file;
- 
+
   if (LOADED[lib] && 0 == qualifier_exists ("force"))
     return __get_reference (ns + "->" + fun);
- 
+
   try
     {
     () = evalfile (file, ns);
@@ -130,7 +130,7 @@ private define _load_ ()
     throw RunTimeError, sprintf ("file %s: %s func: %s lnr: %d", path_basename (file),
       __get_exception_info ().message, __get_exception_info ().function,
       __get_exception_info ().line), __get_exception_info ().error;
- 
+
   LOADED[lib] = 1;
 
   return __get_reference (ns + "->" + fun);
@@ -142,11 +142,11 @@ private define _findns_ (ns, lns, lib)
   variable foundns = NULL;
   variable i;
   variable nss = [ADIR, LCLDIR, STDDIR, USRDIR];
- 
+
   _for i (0, length (nss) - 1)
     {
     @lns =  nss[i]+ "/" + ns;
- 
+
     ifnot (access (@lns, F_OK))
       foundns = 1;
 
@@ -158,7 +158,7 @@ private define _findns_ (ns, lns, lib)
         break;
         }
     }
- 
+
   if (NULL == foundns)
     throw OpenError,  "(load error) " + ns + ": no such namespace", 2;
 
@@ -172,7 +172,7 @@ private define _loadfrom_ (ns, lib, dons)
   variable lns;
 
   _findns_ (ns, &lns, lib);
- 
+
   ns = NULL == dons
     ? NULL
     : Integer_Type == typeof (dons)
@@ -198,7 +198,7 @@ public define loadfrom (ns, lib, dons, errfunc)
   variable err;
 
   try
-    _loadfrom_ (ns, lib, dons);
+    _loadfrom_ (ns, lib, dons;;__qualifiers ());
   catch AnyError:
     {
     exception = __get_exception_info ().object;
@@ -248,7 +248,7 @@ public define importfrom (ns, module, dons, errfunc)
       () = array_map (Integer_Type, &fprintf, stderr, "%s\n", excar ());
     }
 }
- 
+
 public define getreffrom (ns, lib, dons, errfunc)
 {
   variable fun = qualifier ("fun", "main");
@@ -256,7 +256,7 @@ public define getreffrom (ns, lib, dons, errfunc)
   variable exception;
   variable excar;
   variable err;
- 
+
   _findns_ (ns, &lns, lib);
 
   ns = NULL == dons
@@ -290,7 +290,7 @@ public define getreffrom (ns, lib, dons, errfunc)
       (@errfunc) (excar, err);
     else
       () = array_map (Integer_Type, &fprintf, stderr, "%s\n", excar ());
- 
+
     return NULL;
     }
 }
@@ -316,7 +316,7 @@ public define loadfile (file, ns, errfunc)
 {
   variable exception;
   variable excar;
- 
+
   try
     {
     () = _load_ (file, ns;;struct {fun = "", @__qualifiers ()});

@@ -8,12 +8,12 @@ define getpasswd ()
 
   while (chr = getch (), chr != '\r')
     {
-    if (chr == keys->BACKSPACE && strlen (passwd))
+    if (any (keys->rmap.backspace == chr) && strlen (passwd))
       passwd = substr (passwd, 1, strlen (passwd) - 1);
     else
-      passwd+= char (chr);
+      passwd += char (chr);
     }
- 
+
   send_msg (" ", 0);
 
   return passwd;

@@ -89,13 +89,13 @@ private define _ask_ (cmp_lnrs, wrfd, rdfd)
 {
   variable i;
   variable ocmp_lnrs = @cmp_lnrs;
- 
+
   sock->send_bit (wrfd, 1);
- 
+
   variable str = sock->get_str (rdfd);
 
   () = widg->askprintstr (str, NULL, &cmp_lnrs);
- 
+
   sock->send_bit (wrfd, 1);
 
   if (length (cmp_lnrs) < length (ocmp_lnrs))
@@ -114,9 +114,9 @@ private define _ask_ (cmp_lnrs, wrfd, rdfd)
 private define _sendmsgdr_ (wrfd, rdfd)
 {
   sock->send_bit (wrfd, 1);
- 
+
   variable str = sock->get_str (rdfd);
- 
+
   send_msg_dr (str, 0, NULL, NULL);
 
   sock->send_bit (wrfd, 1);
@@ -126,7 +126,7 @@ private define _restorestate_ (cmp_lnrs, wrfd)
 {
   if (length (cmp_lnrs))
     smg->restore (cmp_lnrs, NULL, 1);
- 
+
   sock->send_bit (wrfd, 1);
 }
 
@@ -141,10 +141,10 @@ define waitfunc (wrfd, rdfd)
     {
     buf = sock->get_str (rdfd);
     buf = strtrim_end (buf);
- 
+
     if ("exit" == buf)
       return;
- 
+
     if ("restorestate" == buf)
       {
       _restorestate_ (cmp_lnrs, wrfd);
@@ -194,15 +194,15 @@ private define _waitpid_ (p)
 {
   variable wrfd = open (WRFIFO, O_WRONLY);
   variable rdfd = open (RDFIFO, O_RDONLY);
- 
+
   waitfunc (wrfd, rdfd);
 
   sock->send_bit (wrfd, 1);
- 
+
   variable status = waitpid (p.pid, 0);
- 
+
   p.atexit ();
- 
+
   SHELLLASTEXITSTATUS = status.exit_status;
 }
 
@@ -220,7 +220,7 @@ define _preexec_ (argv, header, issudo, env)
 
   if (@header)
     shell_pre_header (argv);
- 
+
   if ('!' == argv[0][0])
     argv[0] = substr (argv[0], 2, -1);
 
@@ -250,10 +250,10 @@ define parse_redir (lastarg, file, flags)
   variable index = 0;
   variable chr = lastarg[index];
   variable redir = chr == '>';
- 
+
   ifnot (redir)
     return 0;
- 
+
   variable lfile;
   variable lflags = ">";
   variable len = strlen (lastarg);
@@ -262,14 +262,14 @@ define parse_redir (lastarg, file, flags)
 
   if (len == index)
     return -1;
- 
+
   chr = lastarg[index];
 
   if (chr == '>' || chr == '|')
     {
     lflags += char (chr);
     index++;
- 
+
     if (len == index)
       return -1;
     }
@@ -280,13 +280,13 @@ define parse_redir (lastarg, file, flags)
     {
     lflags += char (chr);
     index++;
- 
+
     if (len == index)
       return -1;
     }
- 
+
   lfile = substr (lastarg, index + 1, -1);
- 
+
   ifnot (access (lfile, F_OK))
     {
     ifnot ('|' == lflags[-1])
@@ -307,7 +307,7 @@ define parse_redir (lastarg, file, flags)
           licom = 0;
           lflags = ">|";
           }
- 
+
     if (-1 == access (lfile, W_OK))
       {
       tostderr (lfile + ": is not writable");
@@ -320,7 +320,7 @@ define parse_redir (lastarg, file, flags)
       return -1;
       }
     }
- 
+
   @flags = lflags;
   @file = lfile;
   return 1;
@@ -331,7 +331,7 @@ define parse_argv (argv, isbg)
   variable flags = ">>|";
   variable file = isbg ? STDOUTBG : APP.realshell ? get_cur_buf()._absfname : SCRATCH;
   variable retval = parse_redir (argv[-1], &file, &flags);
- 
+
   return file, flags, retval;
 }
 
@@ -354,7 +354,7 @@ define _getpasswd_ ()
   else
     {
     passwd = getpasswd ();
- 
+
     if (-1 == os->authenticate (USER, passwd))
       passwd = NULL;
 
@@ -388,13 +388,13 @@ define _getbgstatus_ (pid)
       return;
     else
       pidfile = BGDIR + "/" + pid + ".RUNNING";
- 
+
   if (0 == isnotsudo && UID)
     {
     variable passwd = _getpasswd_ ();
     if (NULL == passwd)
       return;
- 
+
     _sendsig_ (string (SIGKILL), pid, passwd);
     }
   else
@@ -403,7 +403,7 @@ define _getbgstatus_ (pid)
       tostderr (pid + ": " + errno_string (errno) + "\n");
       return;
       }
- 
+
   if (isnotsudo || (isnotsudo == 0 == UID))
     {
     variable rdfd = open (RDFIFO, O_RDONLY);
@@ -416,7 +416,7 @@ define _getbgstatus_ (pid)
     }
 
   variable status = waitpid (atoi (pid), 0);
- 
+
   variable out = read_fd (STDOUTFDBG;pos = OUTBG.st_.st_size);
 
   ifnot (NULL == out)
@@ -431,12 +431,12 @@ define _getbgstatus_ (pid)
       tostdout (pid + ": exit status " + string (status.exit_status) + "\n");
     else
       toscratch (pid + ": exit status " + string (status.exit_status) + "\n");
- 
+
 
   BGPIDS[pid].atexit ();
 
   assoc_delete_key (BGPIDS, pid);
- 
+
   () = remove (pidfile);
 }
 
@@ -465,9 +465,9 @@ define _forkbg_ (p, argv, env)
     p.argv = ["sudo", argv[[7:]]];
   else
     p.argv = argv[[2:]];
- 
+
   BGPIDS[string (pid)] = p;
- 
+
   if (APP.realshell)
     tostdout ("forked " + string (pid) + " &\n");
   else
@@ -477,11 +477,11 @@ define _forkbg_ (p, argv, env)
 define _fork_ (p, argv, env)
 {
   variable errfd = @FD_Type (_fileno (STDERRFD));
- 
+
   () = p.execve (argv, env, 1);
 
   _waitpid_ (p);
- 
+
   variable err = read_fd (errfd;pos = ERR_VED.st_.st_size);
 
   ifnot (NULL == err)
@@ -516,7 +516,7 @@ define execute (argv)
   argv = ();
 
   variable isscratch = is_arg ("--pager", argv);
- 
+
   ifnot (NULL == isscratch)
     {
     isbg = 0;
@@ -533,7 +533,7 @@ define execute (argv)
     if (-1 == retval)
       {
       variable err = read_fd (STDERRFD;pos = ERR_VED.st_.st_size);
- 
+
       if (APP.realshell)
         tostdout (err + "\n");
       else
@@ -544,7 +544,7 @@ define execute (argv)
       _postexec_ (header);
       return;
       }
- 
+
     if (1 == retval)
       {
       argv[-1] = NULL;
@@ -567,9 +567,9 @@ define execute (argv)
 
   p.stderr.file = STDERR;
   p.stderr.wr_flags = ">>|";
- 
+
   env = [env, "stdoutfile=" + stdoutfile, "stdoutflags=" + stdoutflags];
- 
+
   ifnot (isbg)
     _fork_ (p, argv, env);
   else
@@ -633,7 +633,7 @@ define _kill_bg_job (argv)
     }
 
   _getbgstatus_ (pid;force);
- 
+
   if (APP.realshell)
     tostdout (pid + ": killed\n");
   else
@@ -657,17 +657,17 @@ define _list_bg_jobs_ (argv)
     draw (get_cur_buf ());
     return;
     }
- 
+
   _for i (0, length (pids) - 1)
     ar = [ar, pids[i] + ": " + strjoin (BGPIDS[pids[i]].argv, " ") + "\n"];
- 
+
   array_map (&tostdout, ar);
 
   shell_post_header ();
 
   draw (get_cur_buf ());
 }
- 
+
 define _cd_ (argv)
 {
   _builtinpre_ (argv);
@@ -708,14 +708,14 @@ define _search_ (argv)
   stdoutflags = ">|";
   p.stderr.file = STDERR;
   p.stderr.wr_flags = ">>|";
- 
+
   env = [env, "stdoutfile=" + stdoutfile, "stdoutflags=" + stdoutflags];
 
   _fork_ (p, argv, env);
 
   ifnot (SHELLLASTEXITSTATUS)
     runapp (["ved", GREPFILE], proc->defenv ());
- 
+
   shell_post_header ();
   draw (get_cur_buf ());
 }
@@ -748,20 +748,20 @@ define _which_ (argv)
 define runapp (argv, env)
 {
   smg->suspend ();
- 
+
   argv[0] = ROOTDIR + "/bin/" + argv[0];
 
   variable issudo = qualifier ("issudo");
- 
+
   variable p = proc->init (issudo, 0, 0);
   if (issudo)
     {
     p.stdin.in = qualifier ("passwd");
     argv = [SUDO_BIN, "-S", "-E", "-p", "", argv];
     }
- 
+
   variable status;
- 
+
   ifnot (NULL == env)
     status = p.execve (argv, env, NULL);
   else
@@ -778,11 +778,11 @@ private define _build_comlist (a)
     ii,
     ex = qualifier_exists ("ex"),
     d = [USRDIR, STDDIR, LCLDIR];
- 
+
   _for i (0, length (d) - 1)
     {
     c = listdir (d[i] + "/com");
- 
+
     ifnot (NULL == c)
       _for ii (0, length (c) - 1)
         {
@@ -807,7 +807,7 @@ define init_commands ()
 {
   variable
     a = Assoc_Type[Argvlist_Type, @Argvlist_Type];
- 
+
   _build_comlist (a;;__qualifiers ());
 
   ifnot (NULL == APP.excom)
@@ -842,7 +842,7 @@ define init_commands ()
       a["eval"].func = __get_reference ("_eval_");
       }
     }
- 
+
   a["lock"] = @Argvlist_Type;
   a["lock"].func = &_lock_;
 
@@ -860,7 +860,7 @@ define init_commands ()
 
   a["killbgjob"] = @Argvlist_Type;
   a["killbgjob"].func = &_kill_bg_job;
- 
+
   a["q"] = @Argvlist_Type;
   a["q"].func = APP.func.exit;
 

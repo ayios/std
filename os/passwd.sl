@@ -12,7 +12,7 @@ static define encryptpasswd (passwd)
 static define confirmpasswd (data, passwd)
 {
   @passwd = getpasswd ();
- 
+
   return crypt->decrypt (data, @passwd);
 }
 

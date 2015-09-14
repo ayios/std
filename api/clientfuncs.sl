@@ -79,7 +79,7 @@ define viewfile (s, type, pos, _i)
       }
 
     s.vedloopcallback ();
- 
+
     if (ismsg)
       {
       send_msg_dr (" ", 0, s.ptr[0], s.ptr[1]);

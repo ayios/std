@@ -1,19 +1,19 @@
 APP.func = @Appfunc_Type;
 
-define _exit_ (argv)
+define _exit_ ()
 {
   variable rl = get_cur_rline ();
 
   ifnot (NULL == rl)
     rline->writehistory (rl.history, rl.histfile);
- 
+
   variable searchhist = (@__get_reference ("s_history"));
 
   if (length (searchhist))
     rline->writehistory (list_to_array (searchhist), (@__get_reference ("s_histfile")));
 
   APP.func.at_exit ();
- 
+
   exit_me (0);
 }
 

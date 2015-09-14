@@ -18,7 +18,7 @@ define go_idled ()
   sock->send_int (SOCKET, GO_IDLED);
 
   variable retval = sock->get_int (SOCKET);
- 
+
   if (RECONNECT == retval)
     return 0;
 

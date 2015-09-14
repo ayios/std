@@ -11,10 +11,10 @@ private define redirstreamtofile (stream, file, flags, mode)
     throw OpenError, " ", errno_string (errno);
 
   oldfd = dup_fd (fileno (stream));
- 
+
   if (-1 == dup2_fd (newfd, _fileno (stream)))
     throw OpenError, " ", "dup2_fd failed " + errno_string (errno);
- 
+
   return newfd, oldfd;
 }
 
@@ -36,7 +36,7 @@ private define _parse_flags_mode_ (file, flags, mode)
         @flags = FILE_FLAGS["<>>|"];
       else
         @flags = FILE_FLAGS[@flags];
- 
+
   ifnot (NULL == @mode)
     if (String_Type == typeof (@mode))
       ifnot (assoc_key_exists (PERM, @mode))
@@ -49,7 +49,7 @@ private define _parse_flags_mode_ (file, flags, mode)
 private define _redir_ (stream, file, flags, mode)
 {
   _parse_flags_mode_ (file, &flags, &mode);
- 
+
   try
     return redirstreamtofile (stream, file, flags, mode);
   catch OpenError:
@@ -61,12 +61,7 @@ private define _redir_ (stream, file, flags, mode)
     }
 }
 
-define redirstdout (file, flags, mode)
+define redir (fp, file, flags, mode)
 {
-  return _redir_ (stdout, file, flags, mode;;__qualifiers ());
-}
-
-define redirstderr (file, flags, mode)
-{
-  return _redir_ (stderr, file, flags, mode;;__qualifiers ());
+  return _redir_ (fp, file, flags, mode;;__qualifiers ());
 }

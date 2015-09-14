@@ -13,7 +13,7 @@ private define _echo_ (argv)
   argv = argv[[1:]];
 
   variable hasnewline = wherefirst ("-n" == argv);
- 
+
   ifnot (NULL == hasnewline)
     {
     argv[hasnewline] = NULL;
@@ -52,7 +52,7 @@ private define _echo_ (argv)
       SHELLLASTEXITSTATUS = 1;
       return;
       }
- 
+
     ifnot (retval)
       {
       tostdout (strjoin (argv, " ") + hasnewline);
@@ -81,7 +81,7 @@ private define _echo_ (argv)
             tostderr (file + ":" + errno_string (errno));
       }
     }
- 
+
   _builtinpost_ ();
 }
 
@@ -95,13 +95,13 @@ private define _rehash_ ();
 private define my_commands ()
 {
   variable a = init_commands ();
- 
+
   a["echo"] = @Argvlist_Type;
   a["echo"].func = &_echo_;
 
   a["rehash"] = @Argvlist_Type;
   a["rehash"].func = &_rehash_;
- 
+
   a["intro"] = @Argvlist_Type;
   a["intro"].func = &_intro_;
 
@@ -127,7 +127,7 @@ private define tabhook (s)
 {
   ifnot (s._ind)
     return -1;
- 
+
   ifnot (s.argv[0] == "killbgjob")
     return -1;
 
@@ -135,7 +135,7 @@ private define tabhook (s)
 
   ifnot (length (pids))
     return -1;
- 
+
   variable i;
   _for i (0, length (pids) - 1)
     pids[i] = pids[i] + " void " + strjoin (BGPIDS[pids[i]].argv, " ");
@@ -157,7 +157,7 @@ define rlineinit ()
     on_lang = &toplinedr,
     on_lang_args = {" -- shell --"}
     });
- 
+
   iarg = length (rl.history);
 
   return rl;
