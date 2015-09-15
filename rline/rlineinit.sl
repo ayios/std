@@ -19,7 +19,7 @@ static define addlcmp (list, arg)
 static define addhistory (hist, argv, force)
 {
   argv = strjoin (argv, historyseparator);
- 
+
   if (2 > strlen (argv))
     if (NULL == force)
       return hist;
@@ -43,7 +43,7 @@ static define writehistory (hist, histfile)
   ifnot (access (histfile, F_OK))
     if (-1 == access (histfile, W_OK))
       return;
- 
+
   variable fp = fopen (histfile, "w");
   () = array_map (Integer_Type, &fprintf, fp, "%s\n", hist);
   () = fclose (fp);
@@ -63,7 +63,7 @@ static define readhistory (histfile)
 private define _execFunc_Type_ (func, argv)
 {
   variable list = {};
- 
+
   array_map (Void_Type, &list_append, list, argv[[1:]]);
 
   (@func) (__push_list (list);;struct {@__qualifiers (), argv0 = argv[0]});
@@ -92,9 +92,9 @@ private define _execline_ (s)
 
   if (NULL == s.argvlist[s.argv[0]].func)
     return;
- 
+
   variable origargv = @s.argv;
- 
+
   ifnot (NULL == s.argvlist[s.argv[0]].type)
     if (s.argvlist[s.argv[0]].type == "Proc_Type")
       (@exec->proctype) (s.argvlist[s.argv[0]].func, s.argv;;
@@ -113,7 +113,7 @@ private define _execline_ (s)
         struct {@__qualifiers (), rl = s});
     else
       _addhistory = 0;
- 
+
   if (_addhistory)
     {
     s.history = addhistory (s.history, origargv, s.historyaddforce);
@@ -127,7 +127,6 @@ static define set (s)
   s._row = s._prow;
   s._col = qualifier ("col", strlen (s._pchar));
   s.ptr = qualifier ("ptr", [s._prow, 1]);
-%  s.ptr = qualifier ("ptr", [s._prow, 1]);
   s._lin = s._pchar + qualifier ("line", "");
   s._ind = qualifier ("ind", 0);
   s._chr = 0;
@@ -194,19 +193,19 @@ static define prompt (s, line, col)
   _for i (0, state - 1)
     (ar[i], rows[i]) = substr (line, int (sum (strlen (ar))) + 1, s._columns),
       s._prow - (state - i - 1);
- 
+
   variable lcol;
- 
+
   (i, lcol) = find_col (col, s._columns);
 
   s._row = rows[i];;
- 
+
   if (state < s._state)
     restore (s.lnrs[[:state -1]], NULL, NULL, s._columns);
 
   s.lnrs = rows;
   s._state = state;
- 
+
   if (msgwritten)
     {
     smg->atrcaddnstr (" ", 0, MSGROW, 0, s._columns);
@@ -246,17 +245,16 @@ static define parse_args (s)
             }
 
   s.argv = s.argv[wherenot (_isnull (s.argv))];
- 
+
   _for i (0, length (s.argv) - 1)
     {
-    %s._lin = sprintf ("%s%s%s", s._lin, 1 < strlen (s._lin) ? " " : "", s.argv[i]);
     s._lin = sprintf ("%s%s%s", s._lin, i > 0 ? " " : "", s.argv[i]);
- 
+
     if (NULL == s._ind)
       if (s._col <= strlen (s._lin))
         s._ind = i - (s._col == strlen (s._lin) - strlen (s.argv[i]) - 1);
     }
- 
+
   ifnot (strlen (s._lin))
     (s.argv, s._ind) = [""], 0;
 
@@ -279,20 +277,20 @@ private define delete_at (s)
 
   ifnot (qualifier_exists ("is_delete"))
     s._col--;
- 
+
   _for i (0, s._ind)
     {
     arglen = strlen (s.argv[i]);
     len += arglen + strlen (s._pchar);
     }
- 
+
   len = s._col - (len - arglen);
 
   if (0 > len)
     {
     if (arglen)
       s.argv[i-1] += s.argv[i];
- 
+
     s.argv[i] = NULL;
     s.argv = s.argv[wherenot (_isnull (s.argv))];
     }
@@ -324,7 +322,7 @@ private define insert_at (s)
     }
 
   len = s._col - (len - arglen);
- 
+
   if (s._col == len)
     s.argv[i] += chr;
   else
@@ -346,7 +344,7 @@ private define routine (s)
       delete_at (s);
     return;
     }
- 
+
   if (any (keys->rmap.delete == s._chr))
     {
     if (s._col <= strlen (s._lin))
@@ -418,7 +416,7 @@ private define routine (s)
           }
         else
           return;
- 
+
       ifnot (length (s.argv) - 1)
         s.argv = [
           substr (s.argv[0], 1, s._col - 1),
@@ -470,7 +468,7 @@ private define write_completion_routine (s, ar)
 
   _for i (0, length (ar) - 1)
     s.cmp_lnrs[i] = len + i;
- 
+
   smg->aratrcaddnstr (ar, clrs, s.cmp_lnrs, cols, s._columns);
 }
 
@@ -529,6 +527,14 @@ private define append_dir_indicator (base, files)
   return ar;
 }
 
+private define _sort_by_mtime_ (dir, ar)
+{
+  return array_sort (array_map (ULong_Type, &get_struct_field,
+    array_map (Struct_Type, &stat_file,
+    array_map (String_Type, &path_concat, dir, ar)),
+    "st_mtime"); dir = -1);
+}
+
 private define listdirectory (retval, dir, pat, pos)
 {
   variable
@@ -555,7 +561,12 @@ private define listdirectory (retval, dir, pat, pos)
   ifnot (NULL == pat)
     ar = ar[wherenot (array_map (Char_Type, &strncmp, ar, pat, pos))];
 
-  return ar[array_sort (ar)];
+  variable sort = qualifier ("sort");
+
+  if (NULL != sort && sort == "mtime")
+    return ar[_sort_by_mtime_ (dir, ar)];
+  else
+    return ar[array_sort (ar)];
 }
 
 private define formar (items, fmt, ar, bar)
@@ -601,13 +612,13 @@ private define hlitem (s, ar, base, acol, item)
     max_len = max (strlen (ar)) + 2,
     fmt = sprintf ("%%-%ds", max_len),
     lines;
- 
+
   ifnot (qualifier_exists ("dont_format"))
     if (max_len < s._columns)
       items = s._columns / max_len;
     else
       items = 1;
- 
+
   ifnot (qualifier_exists ("dont_format"))
     if (max_len < s._columns)
       if ((items - 1) + (max_len * items) > s._columns)
@@ -626,27 +637,27 @@ private define hlitem (s, ar, base, acol, item)
   len = length (bar);
   @item = ar[index];
   lines = lrow - 2;
- 
+
   car = @bar;
 
   irow = lrow - (length (car) > lines ? lines : length (car));
- 
+
   frow = irow - 1;
 
   bar = printout (s, bar, bcol, &len;lines = lines,
     hl_region = [colr, irow, icol * max_len, 1, max_len], header = header);
- 
+
   ifnot (NULL == header)
     s.cmp_lnrs = [s.cmp_lnrs[0] - 1, s.cmp_lnrs];
 
   chr = getch (;disable_langchange);
- 
+
   ifnot (len || any (['\t', [keys->UP:keys->RIGHT], keys->PPAGE, keys->NPAGE] == chr))
     {
     restore (s.cmp_lnrs, [s._row, s._col], 1, s._columns);
     return chr;
     }
- 
+
   while ( any (['\t', [keys->UP:keys->RIGHT], keys->PPAGE, keys->NPAGE] == chr))
     {
     if ('\t' == chr)
@@ -676,27 +687,27 @@ private define hlitem (s, ar, base, acol, item)
       index = (page) * ((lines - 1) * items);
 
       @item = ar[index];
- 
+
       car = @bar;
 
       irow = lrow - (length (car) > lines ? lines : length (car));
       icol = 0;
- 
+
       if (length (bar) < lines)
         restore (s.cmp_lnrs, [s._row, s._col], 1, s._columns);
- 
+
       frow = irow - 1;
 
       bar = printout (s, bar, bcol, &len;lines = lines,
         hl_region = [colr, irow, icol * max_len, 1, max_len], header = header);
- 
+
       ifnot (NULL == header)
         s.cmp_lnrs = [s.cmp_lnrs[0] - 1, s.cmp_lnrs];
 
       chr = getch (;disable_langchange);
       continue;
       }
- 
+
     if (keys->UP == chr)
       if ((0 == index || index < items) && 1 < length (car))
         {
@@ -798,7 +809,7 @@ private define hlitem (s, ar, base, acol, item)
         index++;
         icol++;
         }
- 
+
     if (keys->PPAGE== chr)
       {
       restore (s.cmp_lnrs, [s._row, s._col], 1, s._columns);
@@ -856,14 +867,14 @@ private define hlitem (s, ar, base, acol, item)
     @item = ar[index];
 
     len = length (car);
- 
+
     restore (s.cmp_lnrs, [s._row, s._col], 1, s._columns);
 
     frow = irow - 1;
 
     () = printout (s, car, bcol, &len;lines = lines,
       hl_region = [colr, irow, icol * max_len, 1, max_len], header = header);
- 
+
     ifnot (NULL == header)
       s.cmp_lnrs = [s.cmp_lnrs[0] - 1, s.cmp_lnrs];
 
@@ -911,7 +922,7 @@ private define lcmpcompletion (s)
         s.argv[s._ind] = lcmp;
       else
         s.argv[s._ind] += lcmp;
- 
+
       parse_args (s);
 
       s._col += strlen (lcmp);
@@ -934,7 +945,7 @@ private define lcmpcompletion (s)
 
       return 0;
       }
- 
+
     if (any (keys->rmap.backspace == chr))
       {
       delete_at (s);
@@ -948,7 +959,7 @@ private define lcmpcompletion (s)
     parse_args (s);
 
     prompt (s, s._lin, s._col);
- 
+
     return 0;
     }
 }
@@ -964,6 +975,7 @@ private define fnamecmp (s, start)
     isdir,
     retval,
     chr = 0,
+    sort = "name",
     pat = "";
 
  if (' ' != start[0])
@@ -985,19 +997,19 @@ private define fnamecmp (s, start)
 
     file = ' ' == (s._lin)[-1] ? getcwd () :
       sprintf ("%s%s", evaldir (tmp;dont_change), appendslash (tmp));
- 
+
     if (2 < strlen (file))
       if ("./" == file[[0:1]] && 0 == strlen (s.argv[s._ind]))
         file = file[[2:]];
- 
+
     if (access (file, F_OK) || '/' != (s._lin)[-1])
       {
       pat = path_basename (file);
       file = path_dirname (file);
       }
- 
+
     retval = 0;
-    ar = listdirectory (&retval, file, pat, strlen (pat));
+    ar = listdirectory (&retval, file, pat, strlen (pat);sort = sort);
 
     if (-1 == retval || 0 == length (ar))
       {
@@ -1028,7 +1040,13 @@ private define fnamecmp (s, start)
 
     tmp = "";
     chr = hlitem (s, append_dir_indicator (file, ar), file, s._col, &tmp);
- 
+
+    if (keys->CTRL_n == chr)
+      {
+      sort = "mtime";
+      continue;
+      }
+
     if (033 == chr)
       {
       restore (s.cmp_lnrs, NULL, NULL, s._columns);
@@ -1041,7 +1059,7 @@ private define fnamecmp (s, start)
       {
       file = path_concat (file, tmp[-1] == '/' ? substr (tmp, 1, strlen (tmp) - 1) : tmp);
       st = stat_file (file);
- 
+
       ifnot (NULL == st)  % THIS SHOULD NOT FAIL
         {
         isdir = stat_is ("dir", st.st_mode);
@@ -1061,7 +1079,7 @@ private define fnamecmp (s, start)
           }
         }
       }
- 
+
     if (any (keys->rmap.backspace == chr) && strlen (s._lin))
       {
       delete_at (s);
@@ -1127,7 +1145,7 @@ static define commandcmp (s, commands)
     help,
     indices,
     orighelp = qualifier ("help");
- 
+
   commands = commands[array_sort (commands)];
 
   forever
@@ -1159,10 +1177,10 @@ static define commandcmp (s, commands)
 
     ifnot (NULL == orighelp)
       help = orighelp[[indices]];
- 
+
     str = "";
     firstindices (&str, ar, s.argv[0]);
- 
+
     if (strlen (str))
       {
       s.argv[0] = str;
@@ -1178,7 +1196,7 @@ static define commandcmp (s, commands)
       fmt = sprintf ("%%-%ds  %%s", max (strlen (bar)));
       bar = array_map (String_Type, &sprintf, fmt, bar, help);
       }
- 
+
     tmp = "";
     chr = hlitem (s, bar, s.argv[0], s._col, &tmp);
 
@@ -1201,7 +1219,7 @@ static define commandcmp (s, commands)
       restore (s.cmp_lnrs, [s._row, s._col], 1, s._columns);
       return 0;
       }
- 
+
     if (033 == chr && qualifier_exists ("return_on_esc"))
       return chr;
 
@@ -1241,23 +1259,23 @@ private define fnamecmpToprow (s, fname)
     tmp = strlen (@fname) ? @fname : "";
     file = ' ' == (@fname)[-1] ? getcwd () :
       sprintf ("%s%s", evaldir (tmp;dont_change), appendslash (tmp));
- 
+
     if (2 < strlen (file))
       if ("./" == file[[0:1]] && 0 == strlen (@fname))
         file = file[[2:]];
- 
+
     if (access (file, F_OK) || '/' != (@fname)[-1])
       {
       pat = path_basename (file);
       file = path_dirname (file);
       }
- 
+
     retval = 0;
     ar = listdirectory (&retval, file, pat, strlen (pat));
 
     if (-1 == retval || 0 == length (ar))
       return 0;
- 
+
     if (qualifier_exists ("only_dirs") && length (ar))
       ar = ar[where (array_map (Char_Type, &__isdirectory,
         array_map (String_Type, &path_concat, file, ar)))];
@@ -1302,7 +1320,7 @@ private define fnamecmpToprow (s, fname)
         @fname = sprintf ("%s%s", file, isdir ? "/" : "");
         if ("./" == (@fname)[[0:1]])
           @fname = substr (@fname, 3, -1);
- 
+
         if (isdir)
           {
           restore (s.cmp_lnrs, [s._row, s._col], 1, s._columns);
@@ -1310,7 +1328,7 @@ private define fnamecmpToprow (s, fname)
           }
         }
       }
- 
+
     if (any (keys->rmap.backspace == chr) && strlen (@fname))
       {
       @fname = substr (@fname, 1, strlen (@fname) - 1);
@@ -1334,7 +1352,7 @@ private define fnamecmpToprow (s, fname)
       restore (s.cmp_lnrs, [s._row, s._col], 1, s._columns);
       return '\r' == chr;
       }
- 
+
     @fname += char (chr);
     @fname += appendslash (@fname);
     }
@@ -1370,7 +1388,7 @@ static define __gettxt (str, row, col)
   rl._ind = 0;
   rl._lin = rl.argv[0];
   rl._pchar = "";
- 
+
  smg->atrcaddnstrdr (strlen (rl._lin) ? rl._lin : " ", rl._pclr, rl._prow,
    col, rl._prow, rl._col - 1, strlen (rl._lin) ? strlen (rl._lin) : 1);
 
@@ -1379,14 +1397,14 @@ static define __gettxt (str, row, col)
     rl._chr = getch ();
     if (033 == rl._chr)
       return rl;
- 
+
     routine (rl;insert_ws);
     rl._lin = rl.argv[0];
     smg->atrcaddnstrdr (rl._lin, rl._pclr, rl._prow, col, rl._prow,
      rl._col - 1, strlen (rl._lin));
     }
 }
- 
+
 private define getpattern (s, pat)
 {
   variable pcrepat;
@@ -1406,7 +1424,7 @@ private define getpattern (s, pat)
     len = length (ar),
     lines = s._lines - (strlen (s._lin) / s._columns) - 3,
     prow = s._prow - (strlen (s._lin) / s._columns) - (len > lines ? lines : len) - 1;
- 
+
   () = printout (rl, ar, strlen (rl.argv[0]), &len;lines = lines, _prow = s._prow,
      _lin = s._lin, header = strlen (@pat) ? @pat : " ", headerclr = 7);
 
@@ -1418,17 +1436,17 @@ private define getpattern (s, pat)
 
     if (1 == rl._col)
       smg->atrcaddnstr (" ", 0, MSGROW, 0, s._columns);
- 
+
     if (any (['\r', 033] == rl._chr))
       {
       @pat = '\r' == rl._chr ? rl.argv[0] : "";
       s.cmp_lnrs = rl.cmp_lnrs;
       return;
       }
- 
+
     rl._lin = rl.argv[0];
     routine (rl;insert_ws);
- 
+
     try (err)
       {
       pcrepat = pcre_compile (rl.argv[0], 0);
@@ -1448,7 +1466,7 @@ private define parse_argtype (s, arg, type, baselen)
     prompt (s, s._lin, s._col);
     return;
     }
- 
+
   variable col;
 
   if ("--pat=" == arg || "pattern" == type)
@@ -1465,7 +1483,7 @@ private define parse_argtype (s, arg, type, baselen)
 
   variable tmp;
   variable pat = qualifier ("pat", strchop (s.argv[s._ind], '=', 0));
- 
+
   if (Array_Type == typeof (pat))
     if (1 < length (pat))
       pat = pat[1];
@@ -1477,7 +1495,7 @@ private define parse_argtype (s, arg, type, baselen)
       smg->atrcaddnstr ("arg type should be " + type, 1, MSGROW, 0, s._columns);
 
       prompt (s, s._lin, s._col);
- 
+
       getpattern (s, &pat;;__qualifiers ());
 
       if (strlen (pat))
@@ -1486,7 +1504,7 @@ private define parse_argtype (s, arg, type, baselen)
         s._col = baselen + strlen (s.argv[s._ind]) + 1;
         parse_args (s);
         }
- 
+
       s.cmp_lnrs = [s.cmp_lnrs[0] - 1, s.cmp_lnrs];
       restore (s.cmp_lnrs, NULL, NULL, s._columns);
       prompt (s, s._lin, s._col);
@@ -1562,7 +1580,7 @@ private define argcompletion (s)
   variable len = length (ar);
   variable type = String_Type[len];
   variable desc = String_Type[len];
- 
+
   s._col = baselen + ("." != arg ? strlen (arg) : 0) + 1;
 
   args = String_Type[len];
@@ -1578,7 +1596,7 @@ private define argcompletion (s)
   args = args[bar];
   type = type[bar];
   desc = desc[bar];
- 
+
   len = length (args);
 
   if (1 == len)
@@ -1587,11 +1605,11 @@ private define argcompletion (s)
     s.argv[s._ind] = 1 < length (arg) ? arg[-1] : arg[0];
     s._col = baselen + strlen (s.argv[s._ind]) + 1;
     parse_args (s);
- 
+
     parse_argtype (s, arg[0], type[0], baselen;;__qualifiers ());
     return 0;
     }
- 
+
   forever
     {
     ifnot (strlen (arg))
@@ -1612,11 +1630,11 @@ private define argcompletion (s)
       s.argv[s._ind] = 1 < length (arg) ? arg[-1] : arg[0];
       s._col = baselen + strlen (s.argv[s._ind]) + 1;
       parse_args (s);
- 
+
       parse_argtype (s, arg[0], type[ar[0]], baselen;;__qualifiers ());
       return 0;
       }
- 
+
     ifnot (any (keys->rmap.backspace == chr))
       {
       variable b = "";
@@ -1634,7 +1652,7 @@ private define argcompletion (s)
 
     tmp = "";
     chr = hlitem (s, ar, arg, s._col, &tmp;dont_format);
- 
+
     if (033 == chr)
       {
       restore (s.cmp_lnrs, NULL, NULL, s._columns);
@@ -1651,9 +1669,9 @@ private define argcompletion (s)
       s._col = baselen + strlen (arg) + 1;
       restore (s.cmp_lnrs, NULL, NULL, s._columns);
       parse_args (s);
- 
+
       i = wherefirst (arg == args);
- 
+
       parse_argtype (s, arg, type[i], baselen;;__qualifiers ());
       return 0;
       }
@@ -1698,7 +1716,7 @@ private define argcompletion (s)
     s._col = baselen + strlen (s.argv[s._ind]) + 1;
 
     parse_args (s);
- 
+
     prompt (s, s._lin, s._col);
     }
 }
@@ -1709,7 +1727,7 @@ static define argroutine (s)
     return 0;
 
   variable arg = strchop (s.argv[s._ind], '=', 0);
- 
+
   if (1 < length (arg))
     return argcompletion (s;; struct {arg = arg[0], pat = strjoin (arg[[1:]]),
       @__qualifiers ()});
@@ -1765,7 +1783,7 @@ private define historycompletion (s)
 
     if (any (keys->rmap.histup == chr))
       continue;
- 
+
     if (any (keys->rmap.histdown == chr))
       {
       index -= 2;
@@ -1796,7 +1814,7 @@ private define historycompletion (s)
       s.argv = strtok (ar[index-1], historyseparator);
       return 1;
       }
- 
+
     if (033 == chr)
       {
       restore (s.cmp_lnrs, NULL, NULL, s._columns);
@@ -1809,7 +1827,7 @@ private define historycompletion (s)
       restore (s.cmp_lnrs, NULL, NULL, s._columns);
       return 0;
       }
- 
+
     insert_at (s;chr = chr);
     parse_args (s);
     prompt (s, s._lin, s._col);
@@ -1835,9 +1853,9 @@ static define getline ()
   s._lines = LINES;
   s._columns = COLUMNS;
   s._row = s._prow;
- 
+
   set (s;;__qualifiers ());
- 
+
   if (strlen (s._lin))
     prompt (s, s._lin, s._col);
   else
@@ -1846,7 +1864,7 @@ static define getline ()
   forever
     {
     s._chr = getch (;on_lang = s.on_lang, on_lang_args = s.on_lang_args);
- 
+
     if (033 == s._chr)
       {
       restore (s.cmp_lnrs, s.ptr, 1, s._columns);
@@ -1855,11 +1873,11 @@ static define getline ()
 
     if ('\r' == s._chr)
       return strjoin (s.argv);
- 
+
     routine (s;insert_ws);
 
     parse_args (s);
- 
+
     prompt (s, s._lin, s._col);
     }
 }
@@ -1868,7 +1886,7 @@ static define readline (s)
 {
   variable retval;
   variable initdone = 0;
- 
+
   ifnot (NULL == holdedcommand)
     {
     s = holdedcommand;
@@ -1880,13 +1898,13 @@ static define readline (s)
   forever
     {
     s._chr = getch (;on_lang = s.on_lang, on_lang_args = s.on_lang_args);
- 
+
     ifnot (initdone)
       {
       send_msg_dr (" ", 0, s._prow, s._col);
       initdone = 1;
       }
- 
+
     if (any (keys->rmap.osappnew == s._chr))
       ifnot (NULL == s.osappnew)
         {
@@ -1919,7 +1937,7 @@ static define readline (s)
       s.execline (;;__qualifiers ());
       return;
       }
- 
+
     if (any (keys->rmap.lastcur == s._chr))
       {
       _holdcommand_ (s);
@@ -1934,7 +1952,7 @@ static define readline (s)
         }
       else
         continue;
- 
+
     if (any (keys->rmap.lastcmp == s._chr))
       if (1 == lcmpcompletion (s))
         {
@@ -1943,13 +1961,13 @@ static define readline (s)
         }
       else
         continue;
- 
+
     ifnot (NULL == s.starthook)
       {
       retval = (@s.starthook) (s;;__qualifiers ());
       ifnot (retval)
         continue;
- 
+
       if (retval == 1)
         {
         s.execline (;;__qualifiers ());
@@ -1964,7 +1982,7 @@ static define readline (s)
         retval = (@s.tabhook) (s;;__qualifiers ());
         ifnot (retval)
           continue;
- 
+
         if (retval == 1)
           {
           s.execline (;;__qualifiers ());
@@ -2013,4 +2031,3 @@ static define readline (s)
     prompt (s, s._lin, s._col);
     }
 }
-

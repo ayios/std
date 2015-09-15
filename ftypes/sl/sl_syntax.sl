@@ -116,6 +116,7 @@ private variable regexps = [
 |(?<=&|\s|\[|\()(assoc_\w*_\w*[s,y](?=\s|,))\
 |(?<=&|\s|\[|\()(f(get|put)s[lines]*(?=\s|,))\
 |(?<=&|\s|\[|\()(__get_exception_info(?=\s|,|\.))\
+|(?<=&|\s|\[|\()(get_struct_field(_names)?(?=\s|,))\
 |(?<=&|\s|\[|\()(where(first|last|not)?(max|min)?(_[engl][qet])?(?=\s|,))\
 |(?<=&|\s|\[|\()(path_\w*(nam|(i.*t)|conca)[e|t](?=\s|,)))+"R, 0),
 %conditional
