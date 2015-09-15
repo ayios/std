@@ -2639,6 +2639,24 @@ private define search (s)
       (@typesearch) (s, pat);
       }
 
+    if (chr == keys->CTRL_p)
+      {
+      typesearch = type == "forward" ? &search_backward : &search_forward;
+      if (type == "backward")
+        if (s_lnr == s._len)
+          s_lnr = 0;
+        else
+          s_lnr++;
+      else
+        ifnot (s_lnr)
+          s_lnr = s._len;
+        else
+          s_lnr--;
+
+      (@typesearch) (s, pat);
+      typesearch = type == "forward" ? &search_forward : &search_backward;
+      }
+
     str = pchr + pat;
     __vwrite_prompt (str, s_col);
 

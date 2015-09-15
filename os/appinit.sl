@@ -174,7 +174,7 @@ static define apploop (s)
     }
 }
 
-static define addflags (p, s)
+private define _addflags_ (p, s)
 {
   p.stderr.file = TEMPDIR + "/" + string (PID) + "Srv" + s._appname + "err";
   p.stderr.wr_flags = ">|";
@@ -196,7 +196,7 @@ static define init_app (name, dir, argv)
   return s;
 }
 
-static define getargvenv (p, s, argv)
+private define _getargvenv_ (p, s, argv)
 {
   argv = [SLSH_BIN, p.loadproc, s._procfile, argv];
 
@@ -229,9 +229,9 @@ static define doproc (s, argv)
     return -1;
     }
 
-  addflags (p, s);
+  _addflags_ (p, s);
 
-  (argv, env) = getargvenv (p, s, argv);
+  (argv, env) = _getargvenv_ (p, s, argv);
 
   s.p_ = p;
 

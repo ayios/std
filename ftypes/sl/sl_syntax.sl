@@ -50,7 +50,6 @@ private variable regexps = [
 |(?<=&|\s|\[|\()(char(?=\s|,))\
 |(?<=&|\s|\[|\()(open(?=\s|,))\
 |(?<=&|\s|\[|\()(fopen(?=\s|,))\
-|(?<=&|\s|\[|\()(where(?=\s|,))\
 |(?<=&|\s|\[|\()(execv(?=\s|,))\
 |(?<=&|\s|\[|\()(chdir(?=\s|,))\
 |(?<=&|\s|\[|\()(mkdir(?=\s|,))\
@@ -92,14 +91,12 @@ private variable regexps = [
 |(?<=&|\s|\[|\(|:)(length(?=\s|,))\
 |(?<=&|\s|\[|\()(strn?cmp(?=\s|,))\
 |(?<=&|\s|\[|\()(f?printf(?=\s|,))\
-|(?<=&|\s|\[|\()(wherenot(?=\s|,))\
 |(?<=&|\s|\[|\()(realpath(?=\s|,))\
 |(?<=&|\s|\[|\()(array_map(?=\s|,))\
 |(?<=&|\s|\[|\()(qualifier(?=\s|,))\
 |(?<=&|\s|\[|\()([l|f]seek(?=\s|,))\
 |(?<=&|\s|\[|\()(_stkdepth(?=\s|,))\
 |(?<=&|\s|\[|\()(get[gpu]id(?=\s|,))\
-|(?<=&|\s|\[|\()(wherefirst(?=\s|,))\
 |(?<=&|\s|\[|\()(array_sort(?=\s|,))\
 |(?<=&|\s|\[|\()(strbytelen(?=\s|,))\
 |(?<=&|\s|\[|\()(__p\w*_list(?=\s|,))\
@@ -119,6 +116,7 @@ private variable regexps = [
 |(?<=&|\s|\[|\()(assoc_\w*_\w*[s,y](?=\s|,))\
 |(?<=&|\s|\[|\()(f(get|put)s[lines]*(?=\s|,))\
 |(?<=&|\s|\[|\()(__get_exception_info(?=\s|,|\.))\
+|(?<=&|\s|\[|\()(where(first|last|not)?(max|min)?(_[engl][qet])?(?=\s|,))\
 |(?<=&|\s|\[|\()(path_\w*(nam|(i.*t)|conca)[e|t](?=\s|,)))+"R, 0),
 %conditional
   pcre_compile ("\
