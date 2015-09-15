@@ -110,7 +110,7 @@ private variable regexps = [
 |(?<=&|\s|\[|\()(list_to_array(?=\s|,))\
 |(?<=&|\s|\[|\(|^)(__set_argc_argv(?=\s))\
 |(?<=&|\s|\[|\()(l?stat_\w*[e|s](?=\s|,))\
-|(?<=&|\s|\[|\(|;|@)(__qualifiers(?=\s|,))\
+|(?<=&|\s|\[|\(|;|@)(__qualifiers(?=\s|,|\)))\
 |(?<=&|\s|\[|\()(qualifier_exists(?=\s|,))\
 |(?<=&|\s|\[|\(|@)(__get_reference(?=\s|,))\
 |(?<=&|\s|\[|\()(assoc_\w*_\w*[s,y](?=\s|,))\

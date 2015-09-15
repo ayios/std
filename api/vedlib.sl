@@ -1269,6 +1269,7 @@ define __hl_groups (lines, vlines, colors, regexps)
     match,
     color,
     regexp,
+    iscomment = 0,
     context;
 
   _for i (0, length (lines) - 1)
@@ -1276,11 +1277,16 @@ define __hl_groups (lines, vlines, colors, regexps)
     if (0 == strlen (lines[i]) || "\000" == lines[i])
       continue;
 
+    iscomment = '%' == strtrim_beg (lines[i])[0];
+
     _for ii (0, length (regexps) - 1)
       {
       color = colors[ii];
       regexp = regexps[ii];
       col = 0;
+
+      if (ii && iscomment)
+        break;
 
       while (subs = pcre_exec (regexp, lines[i], col), subs > 1)
         {
@@ -4379,6 +4385,7 @@ define ctrl_completion_rout (s, line, type)
   variable
     ar,
     chr,
+    len,
     start,
     item,
     rows = Integer_Type[0],
@@ -4390,10 +4397,12 @@ define ctrl_completion_rout (s, line, type)
 
   if (any (["ins_linecompletion", "blockcompletion"] == type))
     {
-    item = @line;
+    if ("ins_linecompletion" == type)
+      item = strtrim_beg (substr (@line, 1, s._index));
+
     if ("blockcompletion" == type)
       {
-      item = strtrim_beg (item);
+      item = strtrim_beg (@line);
       variable block_ar = qualifier ("block_ar");
       if (NULL == block_ar || 0 == length (block_ar)
         || (strlen (item) && 0 == length (wherenot (strncmp (
@@ -4462,7 +4471,24 @@ define ctrl_completion_rout (s, line, type)
       smg->restore (rows, NULL, NULL);
 
       if ("ins_linecompletion" == type)
-        @line = ar[index - 1] + substr (@line, s._index + 1, -1);
+        {
+        item = ar[index - 1];
+        len = strlen (item);
+        if (len > col)
+          loop (col)
+            if (' ' == item[0])
+              item = substr (item, 2, -1);
+            else
+              break;
+        else if (len < col)
+          loop (col - 1)
+            ifnot (strlen (item) == col)
+              item = " " + item;
+            else
+              break;
+
+        @line = item + substr (@line, s._index + 1, -1);
+        }
       else if ("ins_wordcompletion" == type)
         @line = substr (@line, 1, start) + ar[index - 1] + substr (@line, s._index + 1, -1);
       else if ("blockcompletion" == type)
@@ -4473,7 +4499,7 @@ define ctrl_completion_rout (s, line, type)
 
       waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
 
-      variable len = strlen (@line);
+      len = strlen (@line);
 
       %bug here (if len > maxlen) (wrapped line)
       if (len < origlen)
@@ -4865,6 +4891,7 @@ private define ed_join_line (s)
 private define ed_del_line (s)
 {
   variable
+    reg = qualifier ("reg", "\""),
     i = __vlnr (s, '.'),
     line = __vline (s, '.');
 
@@ -4884,7 +4911,7 @@ private define ed_del_line (s)
       return 0;
       }
 
-  REG["\""] = s.lines[i] + "\n";
+  REG[reg] = s.lines[i] + "\n";
 
   s.lines[i] = NULL;
   s.lines = s.lines[wherenot (_isnull (s.lines))];
@@ -4912,6 +4939,7 @@ private define ed_del_line (s)
 private define ed_del_word (s, what)
 {
   variable
+    reg = qualifier ("reg", "\""),
     end,
     word,
     start,
@@ -4925,7 +4953,7 @@ private define ed_del_word (s, what)
 
   word = (@func) (s, line, col, &start, &end);
 
-  REG["\""] = word;
+  REG[reg] = word;
 
   line = sprintf ("%s%s", substr (line, 1, start), substr (line, end + 2, -1));
 
@@ -5002,17 +5030,19 @@ private define ed_del_trailws (s)
 private define ed_del_chr (s)
 {
   variable
+    reg = qualifier ("reg", "\""),
+    chr = qualifier ("chr", s._chr),
     col = s._index,
     i = __vlnr (s, '.'),
     line = __vline (s, '.'),
     len = strlen (line);
 
-  if ((0 == s.ptr[1] - s._indent && 'X' == s._chr) || 0 > len - s._indent)
+  if ((0 == s.ptr[1] - s._indent && 'X' == chr) || 0 > len - s._indent)
     return;
 
-  if (any (['x', keys->rmap.delete] == s._chr))
+  if (any (['x', keys->rmap.delete] == chr))
     {
-    REG["\""] = substr (line, col + 1, 1);
+    REG[reg] = substr (line, col + 1, 1);
     line = substr (line, 1, col) + substr (line, col + 2, - 1);
     if (s._index == strlen (line))
       {
@@ -5023,7 +5053,7 @@ private define ed_del_chr (s)
   else
     if (0 < s.ptr[1] - s._indent)
       {
-      REG["\""] = substr (line, col, 1);
+      REG[reg] = substr (line, col, 1);
       line = substr (line, 1, col - 1) + substr (line, col + 1, - 1);
       s.ptr[1]--;
       s._index--;
@@ -5053,6 +5083,7 @@ private define ed_del_chr (s)
 private define ed_change_word (s, what)
 {
   variable
+    reg = qualifier ("reg", "\""),
     end,
     word,
     start,
@@ -5069,7 +5100,7 @@ private define ed_change_word (s, what)
 
   word = (@func) (s, line, col, &start, &end);
 
-  REG["\""] = word;
+  REG[reg] = word;
 
   line = sprintf ("%s%s", substr (line, 1, start), substr (line, end + 2, -1));
 
@@ -5108,13 +5139,13 @@ private define ed_change (s)
     {
     if ('w' == chr)
       {
-      ed_change_word (s, 'w');
+      ed_change_word (s, 'w';;__qualifiers ());
       return;
       }
 
     if ('W' == chr)
       {
-      ed_change_word (s, 'W');
+      ed_change_word (s, 'W';;__qualifiers ());
       return;
       }
     }
@@ -5128,7 +5159,7 @@ private define ed_del (s)
     {
     if ('d' == chr)
       {
-      if (1 == ed_del_line (s))
+      if (1 == ed_del_line (s;;__qualifiers ()))
         return;
 
       s.draw ();
@@ -5137,13 +5168,13 @@ private define ed_del (s)
 
     if ('w' == chr)
       {
-      ed_del_word (s, 'w');
+      ed_del_word (s, 'w';;__qualifiers ());
       return;
       }
 
     if ('W' == chr)
       {
-      ed_del_word (s, 'W');
+      ed_del_word (s, 'W';;__qualifiers ());
       return;
       }
 
@@ -5153,6 +5184,7 @@ private define ed_del (s)
 private define ed_del_to_end (s)
 {
   variable
+    reg = qualifier ("reg", "\""),
     col = s._index,
     i = __vlnr (s, '.'),
     line = __vline (s, '.'),
@@ -5164,7 +5196,7 @@ private define ed_del_to_end (s)
   ifnot (s.ptr[1] - s._indent)
     {
     if (strlen (line))
-      REG["\""] = line;
+      REG[reg] = line;
 
     line = __get_null_str (s._indent);
 
@@ -5185,9 +5217,8 @@ private define ed_del_to_end (s)
     return;
     }
 
-  variable reg = substr (line, col, -1);
   if (strlen (line))
-    REG["\""] = reg;
+    REG[reg] = substr (line, col, -1);
 
   line = substr (line, 1, col);
 
@@ -5315,14 +5346,16 @@ private define ed_newline (s)
 
 private define ed_Put (s)
 {
-  ifnot (assoc_key_exists (REG, "\""))
+  variable reg = qualifier ("reg", "\"");
+
+  ifnot (assoc_key_exists (REG, reg))
     return;
 
   variable
-    lines = strchop (REG["\""], '\n', 0),
+    lines = strchop (REG[reg], '\n', 0),
     lnr = __vlnr (s, '.');
 
-  if ('\n' == REG["\""][-1])
+  if ('\n' == REG[reg][-1])
     {
     lines = lines[[:-2]];
     ifnot (lnr)
@@ -5347,14 +5380,16 @@ private define ed_Put (s)
 
 private define ed_put (s)
 {
-  ifnot (assoc_key_exists (REG, "\""))
+  variable reg = qualifier ("reg", "\"");
+
+  ifnot (assoc_key_exists (REG, reg))
     return;
 
   variable
-    lines = strchop (REG["\""], '\n', 0),
+    lines = strchop (REG[reg], '\n', 0),
     lnr = __vlnr (s, '.');
 
-  if ('\n' == REG["\""][-1])
+  if ('\n' == REG[reg][-1])
     {
     lines = lines[[:-2]];
     s.lines = [s.lines[[:lnr]], lines, s.lines[[lnr + 1:]]];
@@ -5530,6 +5565,36 @@ define __substitute ()
     }
 }
 
+private define _register_ (s)
+{
+  variable reg = getch ();
+  ifnot (any (['a':'z'] == reg))
+    return;
+
+  reg = char (reg);
+
+  variable chr = getch ();
+  ifnot (any (['D', 'c', 'd', 'Y', 'p', 'P', 'x', 'X', keys->rmap.delete]
+    == chr))
+    return;
+
+  if ('Y' == chr)
+    pg_Yank (s;reg = reg);
+  else if (any (['x', 'X', keys->rmap.delete] == chr))
+    ed_del_chr (s;reg = reg, chr = chr);
+  else if ('d' == chr)
+    ed_del (s;reg = reg);
+  else if ('c' == chr)
+    ed_change (s;reg = reg);
+  else if ('D' == chr)
+    ed_del_to_end (s;reg = reg);
+  else if ('P' == chr)
+    ed_Put (s;reg = reg);
+  else
+    ed_put (s;reg = reg);
+}
+
+VED_PAGER[string ('"')] = &_register_;
 VED_PAGER[string (keys->CTRL_a)]  = &_incr_nr_;
 VED_PAGER[string (keys->CTRL_x)]  = &_decr_nr_;
 VED_PAGER[string (keys->CTRL_l)]  = &pg_reread;

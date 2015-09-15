@@ -1,9 +1,9 @@
 define find_unique_lines_in_lines (ar, str, end)
 {
   variable i;
-  variable pat = sprintf ("^%s%s", qualifier_exists ("ign_lead_ws") ? "\\s*" : "", str);
   variable lines = Assoc_Type[Null_Type];
-
+  variable pat = sprintf ("^%s%s", qualifier_exists ("ign_lead_ws")
+                 ? "\\s*" : "", str);
   try
     {
     pat = pcre_compile (pat, PCRE_UTF8);
@@ -16,8 +16,7 @@ define find_unique_lines_in_lines (ar, str, end)
   _for i (0, end)
     if (pcre_exec (pat, ar[i]))
       lines[ar[i]] = NULL;
- 
+
   lines = assoc_get_keys (lines);
   return lines[array_sort (lines)];
 }
-
