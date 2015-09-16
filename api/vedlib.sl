@@ -4398,7 +4398,11 @@ define ctrl_completion_rout (s, line, type)
   if (any (["ins_linecompletion", "blockcompletion"] == type))
     {
     if ("ins_linecompletion" == type)
-      item = strtrim_beg (substr (@line, 1, s._index));
+      {
+      item = substr (@line, 1, s._index);
+      variable ldws = strlen (item) - strlen (strtrim_beg (item));
+      item = strtrim_beg (item);
+      }
 
     if ("blockcompletion" == type)
       {
@@ -4472,20 +4476,16 @@ define ctrl_completion_rout (s, line, type)
 
       if ("ins_linecompletion" == type)
         {
-        item = ar[index - 1];
         len = strlen (item);
-        if (len > col)
-          loop (col)
-            if (' ' == item[0])
-              item = substr (item, 2, -1);
-            else
-              break;
-        else if (len < col)
-          loop (col - 1)
-            ifnot (strlen (item) == col)
-              item = " " + item;
-            else
-              break;
+        item = ar[index - 1];
+        variable llen = strlen (item);
+        variable lldws = llen - strlen (strtrim_beg (item));
+
+        if (llen - len < col)
+          item = substr (item, col - len + 1, -1);
+
+        if (llen - len > col)
+          item = repeat (" ", ldws) + substr (item, lldws + 1, -1);
 
         @line = item + substr (@line, s._index + 1, -1);
         }
@@ -5281,7 +5281,7 @@ private define ed_editline (s)
     smg->refresh ();
     }
 
-  if ('C' == s._chr)
+  if ('C' == s._chr) % add to register? not really usefull
     insert (s, &line, lnr, prev_l, next_l;modified);
   else
     insert (s, &line, lnr, prev_l, next_l);
@@ -5578,10 +5578,10 @@ private define _register_ (s)
     == chr))
     return;
 
-  if ('Y' == chr)
-    pg_Yank (s;reg = reg);
-  else if (any (['x', 'X', keys->rmap.delete] == chr))
+  if (any (['x', 'X', keys->rmap.delete] == chr))
     ed_del_chr (s;reg = reg, chr = chr);
+  else if ('Y' == chr)
+    pg_Yank (s;reg = reg);
   else if ('d' == chr)
     ed_del (s;reg = reg);
   else if ('c' == chr)
