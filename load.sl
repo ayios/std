@@ -301,7 +301,7 @@ private define _execfrom_ (ns, lib, func, errfunc)
   return getreffrom (ns, lib, "main", errfunc;fun = func, force);
 }
 
-public define exec (ns, lib, func, errfunc, args)
+public define execfrom (ns, lib, func, errfunc, args)
 {
   func = _execfrom_ (ns, lib, func, errfunc);
   % but what to do, if func is NULL?

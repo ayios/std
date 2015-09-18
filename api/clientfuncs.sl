@@ -1,6 +1,6 @@
 define draw (s)
 {
-  variable st = NULL == s._fd ? lstat_file (s._absfname) : fstat (s._fd);
+  variable st = NULL == s._fd ? lstat_file (s._abspath) : fstat (s._fd);
 
   if (NULL == st)
     {
@@ -19,7 +19,7 @@ define draw (s)
 
   s.st_ = st;
 
-  s.lines = __vgetlines (s._absfname, s._indent, st);
+  s.lines = __vgetlines (s._abspath, s._indent, st);
 
   s._len = length (s.lines) - 1;
 
@@ -43,7 +43,7 @@ define draw (s)
 define viewfile (s, type, pos, _i)
 {
   variable ismsg = 0;
-  __vsetbuf (s._absfname);
+  __vsetbuf (s._abspath);
 
   topline (" -- pager -- (" + type + " BUF) --";row =  s.ptr[0], col = s.ptr[1]);
 

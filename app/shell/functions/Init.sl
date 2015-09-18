@@ -59,7 +59,7 @@ define _new_frame_ (s)
     string (_time)[[5:]] + "_stdout.shell");
  
   variable b = get_cur_buf ();
-  b._fd = initstream (b._absfname;err_func = &__on_err);
+  b._fd = initstream (b._abspath;err_func = &__on_err);
 
   STDOUTFD = b._fd;
 }

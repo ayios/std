@@ -2,7 +2,7 @@ define sl_ved (s, fname)
 {
   sl_settype (s, fname, VED_ROWS, NULL);
 
-  __vsetbuf (s._absfname);
+  __vsetbuf (s._abspath);
  
   __vwrite_prompt (" ", 0);
 

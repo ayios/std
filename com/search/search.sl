@@ -42,21 +42,21 @@ private define grepit (lline, file)
 private define exec (file)
 {
   INDEX = 1;
- 
+
   variable
     str,
     i = 0,
     ar = readfile (file);
- 
+
   while (i < length (ar))
     {
     if (i + NEWLINES > length (ar) - 1)
       break;
 
     str = strjoin (ar[[i:i+NEWLINES]], NEWLINES ? "\n" : "");
- 
+
     i++;
- 
+
     try
       grepit (str, file);
     catch AnyError:
@@ -90,10 +90,10 @@ private define file_callback (file, st)
 {
   ifnot (stat_is ("reg", st.st_mode))
     return 1;
- 
+
   if (access (file, R_OK))
     return 1;
- 
+
   ifnot (HIDDENFILES)
     if ('.' == path_basename (file)[0])
       return 1;
@@ -107,11 +107,11 @@ private define recursivefunc (dir, depth)
 {
   variable
     fs = fswalk_new (&dir_callback_a, &file_callback);
- 
+
   MAXDEPTH = length (strtok (dir, "/")) + depth;
- 
+
   fs.walk (dir);
- 
+
   return 0;
 }
 
@@ -177,10 +177,10 @@ private define findfilesfunc (dir, depth)
   variable
     filelist = {},
     fs = fswalk_new (&dir_callback, &file_callback_b; fargs = {filelist});
- 
+
   MAXDEPTH = length (strtok (dir, "/")) + depth;
   fs.walk (dir);
- 
+
   ifnot (length (filelist))
     return String_Type[0];
 
@@ -192,10 +192,10 @@ private define danglinglinksfunc (dir, depth)
   variable
     filelist = {},
     fs = fswalk_new (&dir_callback, &file_callback_c; fargs = {filelist});
- 
+
   MAXDEPTH = length (strtok (dir, "/")) + depth;
   fs.walk (dir);
- 
+
   ifnot (length (filelist))
     return String_Type[0];
 
@@ -245,7 +245,7 @@ define main ()
   else
     if (NULL == maxdepth)
       maxdepth = 1000;
- 
+
   ifnot (NULL == PAT)
     {
     ifnot (strlen (PAT))
@@ -254,7 +254,7 @@ define main ()
     _for ia (1, strlen (PAT) - 1)
       if ('n' == PAT[ia] && '\\' == PAT[ia - 1])
         NEWLINES++;
- 
+
     try (err)
       {
       PAT = pcre_compile (PAT, 0);
@@ -274,7 +274,7 @@ define main ()
     files = files[where (strncmp (files, "--", 2))];
 
     array_map (Void_Type, &grep, files, maxdepth);
- 
+
     ifnot (length (LINENRS))
       {
       tostdout ("Nothing found");
@@ -286,14 +286,14 @@ define main ()
 
     exit_me (0);
     }
- 
+
   if (i == __argc)
     files = [getcwd ()];
   else
     files = __argv[[i:]];
- 
+
   files = files[where (strncmp (files, "--", 2))];
- 
+
   variable ar;
 
   ifnot (NULL == findfiles)

@@ -5,7 +5,7 @@ define _scratch_ (ved)
     return;
 
   viewfile (SCRATCH_VED, "SCRATCH", [1, 0], 0);
-  __vsetbuf (ved._absfname);
+  __vsetbuf (ved._abspath);
   ved.draw ();
 
   NEEDSWINDDRAW = 1;

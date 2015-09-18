@@ -8,7 +8,7 @@ typedef struct
   _chr,
   _type,
   _fname,
-  _absfname,
+  _abspath,
   _fd,
   _flags,
   _maxlen,
@@ -18,6 +18,7 @@ typedef struct
   _findex,
   _index,
   _shiftwidth,
+  _expandtab,
   _undolevel,
   _autoindent,
   _dir,
@@ -522,7 +523,7 @@ define __vwritefile (s, overwrite, ptr, argv)
     if (s._flags & VED_RDONLY)
       return;
 
-    file = s._absfname;
+    file = s._abspath;
     }
   else
     {
@@ -551,9 +552,9 @@ define __vwritefile (s, overwrite, ptr, argv)
     return;
     }
 
-  tostderr (s._absfname + ": " + string (bts) + " bytes written\n");
+  tostderr (s._abspath + ": " + string (bts) + " bytes written\n");
 
-  if (file == s._absfname)
+  if (file == s._abspath)
     s._flags &= ~VED_MODIFIED;
 }
 
@@ -639,18 +640,18 @@ define __vsetbuf (key)
 private define _addbuf_ (s)
 {
   ifnot (path_is_absolute (s._fname))
-    s._absfname = getcwd () + s._fname;
+    s._abspath = getcwd () + s._fname;
   else
-    s._absfname = s._fname;
+    s._abspath = s._fname;
 
   variable w = get_cur_wind ();
 
-  if (any (s._absfname == w.bufnames))
+  if (any (s._abspath == w.bufnames))
     return;
 
-  w.buffers[s._absfname] = s;
-  w.bufnames = [w.bufnames,  s._absfname];
-  w.buffers[s._absfname]._dir = realpath (path_dirname (s._absfname));
+  w.buffers[s._abspath] = s;
+  w.bufnames = [w.bufnames,  s._abspath];
+  w.buffers[s._abspath]._dir = realpath (path_dirname (s._abspath));
 }
 
 define __vinitbuf (s, fname, rows, lines, t)
@@ -658,6 +659,7 @@ define __vinitbuf (s, fname, rows, lines, t)
   s._maxlen = t._maxlen;
   s._indent = t._indent;
   s._shiftwidth = t._shiftwidth;
+  s._expandtab = t._expandtab;
   s._autoindent = t._autoindent;
   s._autochdir = qualifier ("_autochdir", t._autochdir);
 
@@ -760,7 +762,7 @@ define get_cur_buf ()
 
 define get_cur_bufname ()
 {
-  return get_cur_buf ()._absfname;
+  return get_cur_buf ()._abspath;
 }
 
 define get_frame_buf (frame)
@@ -789,7 +791,7 @@ define change_frame ()
 
   __vset_clr_fg (s, 1);
 
-  __vsetbuf (s._absfname);
+  __vsetbuf (s._abspath);
 
   smg->setrcdr (s.ptr[0], s.ptr[1]);
 }
@@ -892,7 +894,7 @@ define new_frame (fn)
 
   w.frame_names = [w.frame_names, fn];
 
-  __vsetbuf (s._absfname);
+  __vsetbuf (s._abspath);
 
   % fine tuning maybe is needed
   _for i (0, w.cur_frame - 1)
@@ -1082,7 +1084,7 @@ define bufdelete (s, bufname, force)
       VED_CUR_WIND = winds[0];
       w = get_cur_wind ();
       s = get_cur_buf ();
-      __vsetbuf (s._absfname);
+      __vsetbuf (s._abspath);
       __vdraw_wind ();
       return;
       }
@@ -1225,10 +1227,10 @@ private define _loop_ (s)
       rl = get_cur_rline ();
       rline->set (rl);
       rline->readline (rl;
-        ved = s, draw = (@__get_reference ("SCRATCH")) == s._absfname ? 0 : 1);
+        ved = s, draw = (@__get_reference ("SCRATCH")) == s._abspath ? 0 : 1);
 
       if ('!' == get_cur_rline ().argv[0][0] &&
-         (@__get_reference ("SCRATCH")) == s._absfname)
+         (@__get_reference ("SCRATCH")) == s._abspath)
         {
         (@__get_reference ("draw")) (s);
         continue;
@@ -1269,15 +1271,17 @@ define __hl_groups (lines, vlines, colors, regexps)
     match,
     color,
     regexp,
+    line,
     iscomment = 0,
     context;
 
   _for i (0, length (lines) - 1)
     {
-    if (0 == strlen (lines[i]) || "\000" == lines[i])
+    line = lines[i];
+    if (0 == strlen (line) || "\000" == line)
       continue;
 
-    iscomment = '%' == strtrim_beg (lines[i])[0];
+    iscomment = '%' == strtrim_beg (line)[0];
 
     _for ii (0, length (regexps) - 1)
       {
@@ -1288,7 +1292,7 @@ define __hl_groups (lines, vlines, colors, regexps)
       if (ii && iscomment)
         break;
 
-      while (subs = pcre_exec (regexp, lines[i], col), subs > 1)
+      while (subs = pcre_exec (regexp, line, col), subs > 1)
         {
         match = pcre_nth_match (regexp, 1);
         col = match[0];
@@ -1296,6 +1300,11 @@ define __hl_groups (lines, vlines, colors, regexps)
         smg->hlregion (color, vlines[i], col, 1, context);
         col += context;
         }
+
+      ifnot (ii)
+        if (col)
+          line = substr (line, 1, match[0] + 1); % + 1 is to avoid the error pattern
+                                                 % to match it as eol
       }
     }
 }
@@ -1326,6 +1335,7 @@ define deftype ()
     {
     _indent = 0,
     _shiftwidth = 4,
+    _expandtab = NULL,
     _maxlen = COLUMNS,
     _autochdir = 1,
     _autoindent = 0,
@@ -2036,6 +2046,19 @@ define pg_gotomark (s)
   s.ptr = m.ptr;
 
   s.draw ();
+
+  variable len = __vlinlen (s, '.');
+  if (s.ptr[1] > len)
+    { % do: catch the if _is_wrapped_line condition
+    if (len > s._maxlen)
+      s.ptr[1] = s._maxlen; % probably wrong (unless _index changes too
+    else
+      s.ptr[1] = s._indent + len;
+
+    s._index = s.ptr[1];
+    s._findex = s._indent;
+    smg->setrcdr (s.ptr[0], s.ptr[1]);
+    }
 }
 
 private define _set_nr_ (s, incrordecr)
@@ -2199,7 +2222,7 @@ define set_modified (s)
 
   variable
     retval,
-    d = diff (strjoin (s.lines, "\n") + "\n", s._absfname, &retval);
+    d = diff (strjoin (s.lines, "\n") + "\n", s._abspath, &retval);
 
   if (NULL == retval)
     {
@@ -2236,7 +2259,7 @@ private define undo (s)
 
   if (0 == s._undolevel)
     {
-    s.lines = __vgetlines (s._absfname, s._indent, s.st_);
+    s.lines = __vgetlines (s._abspath, s._indent, s.st_);
     s._len = length (s.lines) - 1;
     s._i = s._ii;
     s.draw ();
@@ -3770,16 +3793,22 @@ define insert ();
 
 private define ins_tab (is, s, line)
 {
-  @line = substr (@line, 1, s._index) + repeat (" ", s._shiftwidth) +
-    substr (@line, s._index + 1, - 1);
+  % not sure what to do in feature, but as a fair compromise
+  % and for now SLsmg_Tab_Width is set to 1 and nothing breaks
+  % if _expandtab is set, then _shiftwidth (spaces) are inserted,
+  % 
+  variable tab = NULL == s._expandtab ? "\t" : repeat (" ", s._shiftwidth);
+  variable len = strlen (tab);
 
-  s._index += s._shiftwidth;
+  @line = substr (@line, 1, s._index) + tab + substr (@line, s._index + 1, - 1);
+
+  s._index += len;
 
   is.modified = 1;
 
-  if (strlen (@line) < s._maxlen && s.ptr[1] + s._shiftwidth < s._maxlen)
+  if (strlen (@line) < s._maxlen && s.ptr[1] + len  < s._maxlen)
     {
-    s.ptr[1] += s._shiftwidth;
+    s.ptr[1] += len;
     waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
     __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
     return;
@@ -3789,11 +3818,11 @@ private define ins_tab (is, s, line)
 
   variable i = 0;
   if (s.ptr[1] < s._maxlen)
-    while (s.ptr[1]++, i++, (s.ptr[1] < s._maxlen && i < s._shiftwidth));
+    while (s.ptr[1]++, i++, (s.ptr[1] < s._maxlen && i < len));
   else
     i = 0;
 
-  s._findex += (s._shiftwidth - i);
+  s._findex += (len - i);
 
   variable
     lline = __vgetlinestr (s, @line, s._findex + 1 - s._indent);
@@ -4669,7 +4698,7 @@ private define ins_getline (is, s, line)
       s.st_.st_size = getsizear (s.lines);
       __vwritefile (s, NULL, s.ptr, NULL);
       s._flags &= ~VED_MODIFIED;
-      send_msg_dr (s._absfname + " written", 0, s.ptr[0], s.ptr[1]);
+      send_msg_dr (s._abspath + " written", 0, s.ptr[0], s.ptr[1]);
       sleep (0.02);
       send_msg_dr ("", 0, s.ptr[0], s.ptr[1]);
       continue;
@@ -5520,7 +5549,7 @@ define __substitute ()
     return;
     }
 
-  s.fname = path_basename (buf._absfname);
+  s.fname = path_basename (buf._abspath);
   s.ask = &_askonsubst_;
 
   variable lnrs = [0:buf._len];

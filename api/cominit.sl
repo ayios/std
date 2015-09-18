@@ -329,7 +329,7 @@ define parse_redir (lastarg, file, flags)
 define parse_argv (argv, isbg)
 {
   variable flags = ">>|";
-  variable file = isbg ? STDOUTBG : APP.realshell ? get_cur_buf()._absfname : SCRATCH;
+  variable file = isbg ? STDOUTBG : APP.realshell ? get_cur_buf()._abspath : SCRATCH;
   variable retval = parse_redir (argv[-1], &file, &flags);
 
   return file, flags, retval;

@@ -10,7 +10,7 @@ private define mainloop ()
 
 define shell ()
 {
-  __vsetbuf (OUT_VED._absfname);
+  __vsetbuf (OUT_VED._abspath);
  
   ifnot (fileexists (TEMPDIR + "/" + strftime ("%m_%d-intro")))
     {

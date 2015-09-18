@@ -25,7 +25,7 @@ private define add (self, s, rows)
     c.ptr[0] = 1;
     c.ptr[1] = s.col - 1 + c._indent;
     c._index = c.ptr[1];
-    __vsetbuf (c._absfname);
+    __vsetbuf (c._abspath);
     return 0;
     }
 
@@ -46,7 +46,7 @@ private define add (self, s, rows)
   c.ptr[1] = qualifier ("col", s.col - 1);
   c._index = c.ptr[1];
  
-  __vsetbuf (c._absfname);
+  __vsetbuf (c._abspath);
 
   return 0;
 }
@@ -95,7 +95,7 @@ public define __pg_on_carriage_return (s)
     {
     w.cur_frame = 0;
     s = get_buf (l.fname);
-    __vsetbuf (s._absfname);
+    __vsetbuf (s._abspath);
     s._i = s._len >= l.lnr - 1 ? l.lnr - 1 : 0;
     s.ptr[0] = 1;
     s.ptr[1] = l.col - 1 + s._indent;

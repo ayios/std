@@ -141,6 +141,7 @@ private variable regexps = [
 |((?<=\w|\])--(?=;|\)|,))\
 |((?<=\w|\])\+\+(?=;|\)|,))\
 |((?<=\s)[\&\|]+=? ~?)\
+|((?<=\s|R|O|H|T|Y|C|D|U|G|P|\])\|(?=\s|O|S))\
 |((?<=\s)\?(?=\s))\
 |((?<=\s):(?=\s))\
 |((?<=\s)\+(?=\s))\
@@ -167,20 +168,20 @@ private variable regexps = [
 |(^\{$)\
 |(^\}$)\
 |((?<!\w)variable(?=[\s]*))\
-|((?<!\w)private(?=\s))\
-|((?<!\w)public(?=\s))\
-|((?<!\w)static(?=\s))\
-|((?<!\w)typedef struct$)\
+|(^private(?=\s))\
+|(^public(?=\s))\
+|(^static(?=\s))\
+|(^typedef struct$)\
 |((?<!\w)struct(?=[\s]*))\
-|((?<!\w)try(?=[\s]*))\
-|((?<!\w)catch(?=\s))\
-|((?<!\w)throw(?=\s))\
-|((?<!\w)finally(?=\s|$))\
-|((?<!\w)return(?=[\s;]))\
-|((?<!\w)break(?=;))\
-|((?<!\w)exit(?=\s))\
-|((?<!\w)import(?=\s))\
-|((?<!\w)continue(?=;))\
+|^\s*(try(?=[\s]*))\
+|^\s*(catch(?=\s))\
+|^\s*(throw(?=\s))\
+|^\s*(finally(?=\s|$))\
+|^\s*(return(?=[\s;]))\
+|^\s*(break(?=;))\
+|^\s*(exit(?=\s))\
+|^\s*(import(?=\s))\
+|^\s*(continue(?=;))\
 |((?<=[\(|\s])errno(?=[;|\)]))\
 |(__arg[vc])\
 |(SEEK_...)\
@@ -227,9 +228,6 @@ private variable regexps = [
 |(^\s+$))+"R, 0),
 ];
 
-%  pcre_compile ("\
-%(((?<=\S)\s+$)\
-%|(^\s+$))+"R, 0),
 define sl_lexicalhl (s, lines, vlines)
 {
   __hl_groups (lines, vlines, colors, regexps);

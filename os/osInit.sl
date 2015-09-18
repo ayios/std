@@ -347,14 +347,34 @@ define initrline ()
   return rl;
 }
 
+private define  _loop_ ()
+{
+  variable status = 0;
+  try
+  forever
+    {
+    rline->set (RLINE);
+    rline->readline (RLINE);
+    topline (" -- OS CONSOLE --" + " (depth " + string (_stkdepth ()) + ")");
+    }
+  catch AnyError:
+    status = 1;
+
+  if (status)
+    throw RunTimeError, " ", __get_exception_info ();
+}
+
 define osloop ()
 {
-    forever
-      {
-      rline->set (RLINE);
-      rline->readline (RLINE);
-      topline (" -- OS CONSOLE --" + " (depth " + string (_stkdepth ()) + ")");
-      }
+  try
+    _loop_ ();
+  catch RunTimeError:
+    {
+    array_map (&tostderr, exception_to_array (__get_exception_info.object));
+    smg->init ();
+    draw (ERR); % new func: draw_and_take_some_action
+    _loop_ ();
+    }
 }
 
 private define _apptable_ ()
@@ -401,7 +421,7 @@ private define _apptable_ ()
 (VED_RLINE, VED_MAXFRAMES, VED_ISONLYPAGER) = 0, 1, 1;
 ERR = init_ftype ("txt");
 txt_settype (ERR, STDERR, VED_ROWS, NULL);
-__vsetbuf (ERR._absfname);
+__vsetbuf (ERR._abspath);
 ERR._fd = STDERRFD;
 
 _apptable_ ();

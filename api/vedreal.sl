@@ -28,7 +28,7 @@ define addfname (fname)
     s._i = s._ii;
     }
 
-  __vsetbuf (s._absfname);
+  __vsetbuf (s._abspath);
   __vwrite_prompt (" ", 0);
   s.draw (;dont_draw);
 }
@@ -81,7 +81,7 @@ private define _buffer_other_ ()
   b = w.buffers[b];
   b._i = b._ii;
 
-  __vsetbuf (b._absfname);
+  __vsetbuf (b._abspath);
   __vwrite_prompt (" ", 0);
   b.draw (;dont_draw);
 }
@@ -107,7 +107,7 @@ private define _bdelete ()
   if (force && s._flags & VED_MODIFIED)
     {
     send_msg_dr (sprintf ("%s is modified: save changes? y[es]/n[o]",
-      s._absfname), 0, NULL, NULL);
+      s._abspath), 0, NULL, NULL);
     variable chr;
     while (chr = getch (), 0 == any (chr == ['y', 'n']));
 
@@ -117,7 +117,7 @@ private define _bdelete ()
     send_msg_dr (" ", 0, NULL, NULL);
     }
 
-  bufdelete (s, s._absfname, force);
+  bufdelete (s, s._abspath, force);
 }
 
 VED_CLINE["e"] = &_edit_other;
@@ -161,7 +161,7 @@ private define _filter_bufs_ (v)
   _for i (0, length (w.bufnames) - 1)
     {
     b = w.bufnames[i];
-    ifnot (any (b == [v._absfname, SPECIAL]))
+    ifnot (any (b == [v._abspath, SPECIAL]))
       ar = [ar, b];
     }
 
@@ -228,7 +228,7 @@ define __write_buffers ()
       continue;
 
     if (0 == qualifier_exists ("force") ||
-      (qualifier_exists ("force") && s._absfname != get_cur_bufname ()))
+      (qualifier_exists ("force") && s._abspath != get_cur_bufname ()))
       {
       send_msg_dr (sprintf ("%s: save changes? y[es]/n[o]/c[cansel]", fn), 0, NULL, NULL);
 
@@ -247,7 +247,7 @@ define __write_buffers ()
       }
 
     bts = 0;
-    variable retval = __vwritetofile (s._absfname, s.lines, s._indent, &bts);
+    variable retval = __vwritetofile (s._abspath, s.lines, s._indent, &bts);
 
     ifnot (0 == retval)
       {
@@ -258,13 +258,13 @@ define __write_buffers ()
         continue;
       else
         {
-        tostderr (sprintf ("%s: %s", s._absfname, errno_string (retval)));
+        tostderr (sprintf ("%s: %s", s._abspath, errno_string (retval)));
         hasnewmsg = 1;
         abort = -1;
         }
       }
     else
-      tostderr (s._absfname + ": " + string (bts) + " bytes written");
+      tostderr (s._abspath + ": " + string (bts) + " bytes written");
     }
 
   if (hasnewmsg)
@@ -355,7 +355,7 @@ define __vmessages ()
   variable keep = get_cur_buf ();
   variable s = (@__get_reference ("ERR_VED"));
   VED_ISONLYPAGER = 1;
-  __vsetbuf (s._absfname);
+  __vsetbuf (s._abspath);
 
   topline (" -- pager -- ( MESSAGES BUF) --";row = s.ptr[0], col = s.ptr[1]);
 
@@ -371,7 +371,7 @@ define __vmessages ()
 
   s.st_ = st;
 
-  s.lines = __vgetlines (s._absfname, s._indent, st);
+  s.lines = __vgetlines (s._abspath, s._indent, st);
 
   s._len = length (s.lines) - 1;
 
@@ -387,7 +387,7 @@ define __vmessages ()
 
   VED_ISONLYPAGER = 0;
 
-  __vsetbuf (keep._absfname);
+  __vsetbuf (keep._abspath);
 
   __vdraw_wind ();
 }

@@ -11,6 +11,7 @@ loadfrom ("colors", "colorsInit", NULL, &on_eval_err);
 loadfrom ("smg",  "smginit", 1, &on_eval_err);
 loadfrom ("smg",  "getscreensize", NULL, &on_eval_err);
 
+smg->SLsmg_Tab_Width = 1;
 (LINES, COLUMNS) = getscreensize ();
 PROMPTROW = LINES - 2;
 MSGROW = LINES - 1;
