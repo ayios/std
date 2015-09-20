@@ -56,6 +56,8 @@ typedef struct
 typedef struct
   {
   _i,
+  _index,
+  _findex,
   ptr
   } Pos_Type;
 
@@ -1104,13 +1106,65 @@ define bufdelete (s, bufname, force)
     }
 }
 
-define preloop (s)
+%%% MARK FUNCTIONS
+
+private define mark_init (m)
 {
-  MARKS[string ('`')].ptr = s.ptr;
-  MARKS[string ('`')]._i = s._ii;
+  ifnot (assoc_key_exists (MARKS, m))
+    MARKS[m] = @Pos_Type;
+}
+
+array_map (&mark_init, array_map (String_Type, &string, ['`', '<', '>']));
+
+private define mark_set (m, s)
+{
+  MARKS[m]._i = s._ii;
+  MARKS[m].ptr = @s.ptr;
+  MARKS[m]._index = s._index;
+  MARKS[m]._findex = s._findex;
+}
+
+define markbacktick (s)
+{
+  mark_set (string ('`'), s);
+}
+
+private define mark (s)
+{
+  variable m = getch (;disable_langchange);
+
+  if ('a' <= m <= 'z')
+    {
+    m = string (m);
+    mark_init (m);
+    mark_set (m, s);
+    }
+}
+
+private define mark_get ()
+{
+  variable marks = assoc_get_keys (MARKS);
+  variable mark = getch (;disable_langchange);
+
+  mark = string (mark);
+
+  ifnot (any (mark == marks))
+    return NULL;
+
+  variable m = @MARKS[mark];
+
+  if (NULL == m._i)
+    return NULL;
+
+  return m;
 }
 
 %%% VED OBJECT FUNCTIONS
+
+define preloop (s)
+{
+  markbacktick (s);
+}
 
 private define _draw_ (s)
 {
@@ -1347,52 +1401,6 @@ define deftype ()
     };
 
   return type;
-}
-
-%%% MARK FUNCTIONS
-
-private define mark_init (m)
-{
-  ifnot (assoc_key_exists (MARKS, m))
-    MARKS[m] = @Pos_Type;
-}
-
-array_map (&mark_init, array_map (String_Type, &string, ['`', '<', '>']));
-
-private define mark_set (m, s)
-{
-  MARKS[m]._i = s._ii;
-  MARKS[m].ptr = @s.ptr;
-}
-
-define markbacktick (s)
-{
-  mark_set (string ('`'), s);
-}
-
-private define mark (s)
-{
-  variable mark = getch (;disable_langchange);
-
-  if ('a' <= mark <= 'z')
-    {
-    mark = string (mark);
-    mark_init (mark);
-    mark_set (mark, s);
-    }
-}
-
-private define mark_get ()
-{
-  variable marks = assoc_get_keys (MARKS);
-  variable mark = getch (;disable_langchange);
-
-  mark = string (mark);
-
-  if (any (mark == marks))
-    return @MARKS[mark];
-
-  return NULL;
 }
 
 % PAGER
@@ -2034,6 +2042,7 @@ private define pg_write_on_esc (s)
 define pg_gotomark (s)
 {
   variable m = mark_get ();
+
   if (NULL == m)
     return;
 
@@ -2044,6 +2053,8 @@ define pg_gotomark (s)
 
   s._i = m._i;
   s.ptr = m.ptr;
+  s._index = m._index;
+  s._findex = m._findex;
 
   s.draw ();
 

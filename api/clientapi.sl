@@ -72,7 +72,7 @@ loadfrom ("app/" + APP.appname + "/functions", "Init", NULL, &on_eval_err);
 define __initrline ()
 {
   variable w;
- 
+
   if (_NARGS)
     {
     w = ();
