@@ -3796,7 +3796,7 @@ private define ins_tab (is, s, line)
   % not sure what to do in feature, but as a fair compromise
   % and for now SLsmg_Tab_Width is set to 1 and nothing breaks
   % if _expandtab is set, then _shiftwidth (spaces) are inserted,
-  % 
+
   variable tab = NULL == s._expandtab ? "\t" : repeat (" ", s._shiftwidth);
   variable len = strlen (tab);
 
@@ -3832,6 +3832,28 @@ private define ins_tab (is, s, line)
 }
 
 insfuncs.ins_tab = &ins_tab;
+
+private define ed_put ();
+define _eval_ ();
+
+private define ins_reg (s, line)
+{
+  variable reg = getch ();
+
+  ifnot (any (['=', '/', '"', ['a':'z'], ['A':'Z']] == reg))
+    return;
+
+  if ('=' == reg)
+    {
+    variable res = _eval_ (NULL;rl=get_cur_rline (), return_str);
+    ifnot (NULL == res)
+      REG["="] = res;
+    else
+      return;
+    }
+
+  @line = ed_put (s;reg = char (reg), return_line);
+}
 
 private define ins_char (is, s, line)
 {
@@ -4776,6 +4798,12 @@ private define ins_getline (is, s, line)
       continue;
       }
 
+    if (keys->CTRL_r == is.chr)
+      {
+      ins_reg (s, line);
+      continue;
+      }
+
     if (any (keys->rmap.home == is.chr))
       {
       is.bol (s, line);
@@ -5410,13 +5438,14 @@ private define ed_Put (s)
 private define ed_put (s)
 {
   variable reg = qualifier ("reg", "\"");
+  variable lines = strchop (REG[reg], '\n', 0);
+  variable lnr = __vlnr (s, '.');
 
   ifnot (assoc_key_exists (REG, reg))
-    return;
-
-  variable
-    lines = strchop (REG[reg], '\n', 0),
-    lnr = __vlnr (s, '.');
+    if (qualifier_exists ("return_line"))
+      return s.lines[lnr];
+    else
+      return;
 
   if ('\n' == REG[reg][-1])
     {
@@ -5435,6 +5464,9 @@ private define ed_put (s)
   set_modified (s);
 
   s.draw ();
+
+  if (qualifier_exists ("return_line"))
+    return s.lines[lnr];
 }
 
 private define ed_toggle_case (s)

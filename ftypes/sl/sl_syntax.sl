@@ -57,6 +57,7 @@ private variable regexps = [
 |(?<=&|\s|\[|\()(__tmp(?=\s|,))\
 |(?<=&|\s|\[|\()(uname(?=\s|,))\
 |([s|g]et_\w*_\w*_path(?=\s|,))\
+|(?<=&|\s|\[|\()(fflush(?=\s|,))\
 |(?<=&|\s|\[|\()(sscanf(?=\s|,))\
 |(?<=&|\s|\[|\()(string(?=\s|,))\
 |(?<=&|\s|\[|\()(substr(?=\s|,))\
@@ -110,13 +111,14 @@ private variable regexps = [
 |(?<=&|\s|\[|\()(list_to_array(?=\s|,))\
 |(?<=&|\s|\[|\(|^)(__set_argc_argv(?=\s))\
 |(?<=&|\s|\[|\()(l?stat_\w*[e|s](?=\s|,))\
-|(?<=&|\s|\[|\(|;|@)(__qualifiers(?=\s|,|\)))\
 |(?<=&|\s|\[|\()(qualifier_exists(?=\s|,))\
 |(?<=&|\s|\[|\(|@)(__get_reference(?=\s|,))\
 |(?<=&|\s|\[|\()(assoc_\w*_\w*[s,y](?=\s|,))\
+|(?<=&|\s|\[|\(|;|@)(__qualifiers(?=\s|,|\)))\
 |(?<=&|\s|\[|\()(f(get|put)s[lines]*(?=\s|,))\
 |(?<=&|\s|\[|\()(__get_exception_info(?=\s|,|\.))\
 |(?<=&|\s|\[|\()(get_struct_field(_names)?(?=\s|,))\
+|(?<=^|&|\s|\[|\()((use|current)+_namespace(?=\s|,|\.))\
 |(?<=&|\s|\[|\()(where(first|last|not)?(max|min)?(_[engl][qet])?(?=\s|,))\
 |(?<=&|\s|\[|\()(path_\w*(nam|(i.*t)|conca)[e|t](?=\s|,)))+"R, 0),
 %conditional
