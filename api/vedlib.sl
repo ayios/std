@@ -3856,7 +3856,7 @@ private define ins_reg (s, line)
 
   if ('=' == reg)
     {
-    variable res = _eval_ (NULL;rl=get_cur_rline (), return_str);
+    variable res = _eval_ (NULL;return_str);
     ifnot (NULL == res)
       REG["="] = res;
     else

@@ -41,8 +41,9 @@ private define _evalstr_ (line)
 
 define _eval_ (argv)
 {
-  variable rl = qualifier ("rl");
-  variable line = "";
+  variable rl = rline->init (NULL;pchar = ">");
+  rline->set (rl);
+
   variable histfile = sprintf ("%s/%devalhistory", HISTDIR, getuid ());
   variable history = String_Type[0];
 
@@ -51,17 +52,19 @@ define _eval_ (argv)
 
   send_msg ("Type an expression" , 0);
 
+  rl.argv = [""];
+
   variable
     res = NULL,
-    index = -1,
-    chr;
+    index = -1;
 
   forever
     {
-    rline->prompt (rl, ">" + line, strlen (line) + 1);
-    chr = getch ();
+    rl._lin = ">" + rl.argv[0];
+    rline->prompt (rl, rl._lin, rl._col);
+    rl._chr = getch ();
 
-    if (any (keys->rmap.histup == chr))
+    if (any (keys->rmap.histup == rl._chr))
       {
       ifnot (length (history))
         continue;
@@ -70,12 +73,12 @@ define _eval_ (argv)
       if (index >= length (history))
         index = 0;
 
-      line = history[index];
-      () = _evalstr_ (line;send_msg);
+      rl.argv[0] = history[index];
+      () = _evalstr_ (rl.argv[0];send_msg);
       continue;
       }
 
-    if (any (keys->rmap.histdown == chr))
+    if (any (keys->rmap.histdown == rl._chr))
       {
       ifnot (length (history))
         continue;
@@ -83,52 +86,37 @@ define _eval_ (argv)
       index--;
       if (index < 0)
         index = length (history) - 1;
-
-      line = history[index];
-      () = _evalstr_ (line;send_msg);
+      rl.argv[0] = history[index];
+      () = _evalstr_ (rl.argv[0];send_msg);
       continue;
       }
 
-    if (chr == 033)
+    if (rl._chr == 033)
       break;
 
-    if (any (keys->rmap.backspace == chr))
+    if ('\r' == rl._chr)
       {
-      ifnot (strlen (line))
-        continue;
-
-      line = substr (line, 1, strlen (line) - 1);
-      if (strlen (line))
-        () = _evalstr_ (line;send_msg);
+      if ('=' == rl.argv[0][0])
+        res = _assign_ (substr (rl.argv[0], 2, -1));
       else
-        send_msg (" ", 0);
-
-      continue;
-      }
-
-    if ('\r' == chr)
-      {
-      if ('=' == line[0])
-        res = _assign_ (substr (line, 2, -1));
-      else
-        res = _evalstr_ (line;send_msg);
+        res = _evalstr_ (rl.argv[0];send_msg);
 
       ifnot (NULL == res)
-        history = [line, history];
+        history = [rl.argv[0], history];
 
       if (qualifier_exists ("return_str"))
         break;
 
-      line = "";
+      rl.argv[0] = "";
       continue;
       }
 
-    line+= char (chr);
+    rline->routine (rl;insert_ws);
 
-    ifnot (strlen (line))
+    ifnot (strlen (rl.argv[0]))
       continue;
 
-    _evalstr_ (line;send_msg);
+    _evalstr_ (rl.argv[0];send_msg);
     }
 
   if (length (history))

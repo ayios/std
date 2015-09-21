@@ -166,7 +166,9 @@ static define init (getcommands)
   if (0 == length (rl.history) && NULL != rl.histfile)
     rl.history = readhistory (rl.histfile);
 
-  rl.argvlist = (@getcommands);
+  ifnot (NULL == getcommands)
+    rl.argvlist = (@getcommands);
+
   rl._row = rl._prow;
 
   return rl;
@@ -336,7 +338,7 @@ private define insert_at (s)
         substr (s.argv[i], len, -1));
 }
 
-private define routine (s)
+static define routine (s)
 {
   if (any ([keys->rmap.backspace] == s._chr))
     {
