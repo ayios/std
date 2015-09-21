@@ -124,25 +124,6 @@ private variable vis = struct
   at_exit,
   };
 
-private variable insfuncs = struct
-  {
-  cr,
-  esc,
-  bol,
-  eol,
-  up,
-  left,
-  down,
-  pag_down,
-  pag_up,
-  right,
-  del_prev,
-  del_next,
-  ins_char,
-  ins_tab,
-  completeline,
-  };
-
 public variable
   POS = Pos_Type[10],
   FTYPES = Assoc_Type[Integer_Type],
@@ -236,6 +217,8 @@ define set_modified ();
 define seltoX (sel){}
 define topline ();
 define toplinedr ();
+define _eval_ ();
+define insert ();
 
 define get_ftype (fn)
 {
@@ -1106,6 +1089,22 @@ define bufdelete (s, bufname, force)
     }
 }
 
+private define _store_pos_ (pos, s)
+{
+  pos._i = qualifier ("_i", s._ii);
+  pos.ptr = @s.ptr;
+  pos._index = s._index;
+  pos._findex = s._findex;
+}
+
+private define _restore_pos_ (pos, s)
+{
+  s._i = pos._i;
+  s.ptr = pos.ptr;
+  s._index = pos._index;
+  s._findex = pos._findex;
+}
+
 %%% MARK FUNCTIONS
 
 private define mark_init (m)
@@ -1118,10 +1117,7 @@ array_map (&mark_init, array_map (String_Type, &string, ['`', '<', '>']));
 
 private define mark_set (m, s)
 {
-  MARKS[m]._i = s._ii;
-  MARKS[m].ptr = @s.ptr;
-  MARKS[m]._index = s._index;
-  MARKS[m]._findex = s._findex;
+  _store_pos_ (MARKS[m], s);
 }
 
 define markbacktick (s)
@@ -2252,7 +2248,11 @@ define set_modified (s)
     return;
 
   s.undo = [s.undo, d];
-  list_append (s.undoset, [qualifier ("_i", s._ii), s.ptr[0], s.ptr[1]]);
+
+  variable pos = @Pos_Type;
+  _store_pos_ (pos, s;;__qualifiers ());
+
+  list_append (s.undoset, pos);
 
   s._undolevel++;
 }
@@ -2297,9 +2297,7 @@ private define undo (s)
   s.lines = strchop (d, '\n', 0);
   s._len = length (s.lines) - 1;
 
-  s._i = s.undoset[s._undolevel - 1][0];
-  s.ptr[0] = s.undoset[s._undolevel - 1][1];
-  s.ptr[1] = s.undoset[s._undolevel - 1][2];
+  _restore_pos_ (s.undoset[s._undolevel - 1], s);
 
   s._undolevel--;
 
@@ -2337,9 +2335,7 @@ private define redo (s)
   s.lines = strchop (d, '\n', 0);
   s._len = length (s.lines) - 1;
 
-  s._i = s.undoset[s._undolevel][0];
-  s.ptr[0] = s.undoset[s._undolevel][1];
-  s.ptr[1] = s.undoset[s._undolevel][2];
+  _restore_pos_ (s.undoset[s._undolevel], s);
 
   s._undolevel++;
 
@@ -3790,1093 +3786,13 @@ private define vis_mode (s)
   vs.at_exit (s, vs.needsdraw);
 }
 
-%%% INSERT MODE
+% ED MODE
 
 private define newline_str (s, indent, line)
 {
   s.autoindent (indent, line);
   return repeat (" ", @indent);
 }
-
-private variable lang = input->getlang ();
-
-define insert ();
-
-private define ins_tab (is, s, line)
-{
-  % not sure what to do in feature, but as a fair compromise
-  % and for now SLsmg_Tab_Width is set to 1 and nothing breaks
-  % if _expandtab is set, then _shiftwidth (spaces) are inserted,
-
-  variable tab = NULL == s._expandtab ? "\t" : repeat (" ", s._shiftwidth);
-  variable len = strlen (tab);
-
-  @line = substr (@line, 1, s._index) + tab + substr (@line, s._index + 1, - 1);
-
-  s._index += len;
-
-  is.modified = 1;
-
-  if (strlen (@line) < s._maxlen && s.ptr[1] + len  < s._maxlen)
-    {
-    s.ptr[1] += len;
-    waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
-    __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
-    return;
-    }
-
-  s._is_wrapped_line = 1;
-
-  variable i = 0;
-  if (s.ptr[1] < s._maxlen)
-    while (s.ptr[1]++, i++, (s.ptr[1] < s._maxlen && i < len));
-  else
-    i = 0;
-
-  s._findex += (len - i);
-
-  variable
-    lline = __vgetlinestr (s, @line, s._findex + 1 - s._indent);
-
-  waddline (s, lline, 0, s.ptr[0]);
-  __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
-}
-
-insfuncs.ins_tab = &ins_tab;
-
-private define ed_put ();
-define _eval_ ();
-
-private define ins_reg (s, line)
-{
-  variable reg = getch ();
-
-  ifnot (any (['=', '/', '"', ['a':'z'], ['A':'Z']] == reg))
-    return;
-
-  if ('=' == reg)
-    {
-    variable res = _eval_ (NULL;return_str);
-    ifnot (NULL == res)
-      REG["="] = res;
-    else
-      return;
-    }
-
-  @line = ed_put (s;reg = char (reg), return_line);
-}
-
-private define ins_char (is, s, line)
-{
-  @line = substr (@line, 1, s._index) + char (is.chr) + substr (@line, s._index + 1, - 1);
-
-  s._index++;
-
-  is.modified = 1;
-
-  if (strlen (@line) < s._maxlen && s.ptr[1] < s._maxlen)
-    {
-    s.ptr[1]++;
-    waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
-    __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
-    return;
-    }
-
-  s._is_wrapped_line = 1;
-
-  if (s.ptr[1] == s._maxlen)
-    s._findex++;
-
-  variable
-    lline = __vgetlinestr (s, @line, s._findex + 1 - s._indent);
-
-  if (s.ptr[1] < s._maxlen)
-    s.ptr[1]++;
-
-  waddline (s, lline, 0, s.ptr[0]);
-  __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
-}
-
-insfuncs.ins_char = &ins_char;
-
-private define ins_del_prev (is, s, line)
-{
-  variable
-    lline,
-    len;
-
-  ifnot (s._index - s._indent)
-    {
-    ifnot (is.lnr)
-      return;
-
-   if (s.ptr[0] != s.rows[0])
-     s.ptr[0]--;
-   else
-     s._ii--;
-
-    is.lnr--;
-
-    s._index = strlen (s.lines[is.lnr]);
-    s.ptr[1] = s._index > s._maxlen ? s._maxlen : s._index;
-
-    if (is.lnr == s._len)
-      @line = s.lines[is.lnr];
-    else
-      @line = s.lines[is.lnr] + @line;
-
-    s.lines[is.lnr] = @line;
-    s.lines[is.lnr + 1] = NULL;
-    s.lines = s.lines[wherenot (_isnull (s.lines))];
-    s._len--;
-
-    s._i = s._ii;
-
-    s.draw (;dont_draw);
-
-    len = strlen (@line);
-    if (len > s._maxlen)
-      {
-      s._findex = len - s._maxlen;
-      s.ptr[1] = s._maxlen - (len - s._index);
-      s._is_wrapped_line = 1;
-      }
-    else
-      s._findex = s._indent;
-
-    lline = __vgetlinestr (s, @line, s._findex + 1 - s._indent);
-
-    waddline (s, lline, 0, s.ptr[0]);
-    __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
-    is.modified = 1;
-    return;
-    }
-
-  @line = substr (@line, 1, s._index - 1) + substr (@line, s._index + 1, - 1);
-
-  len = strlen (@line);
-
-  s._index--;
-
-  ifnot (s.ptr[1])
-    {
-    if (s._index > s._maxlen)
-      {
-      s.ptr[1] = s._maxlen;
-      s._findex = len - s._linlen;
-      lline = substr (@line, s._findex + 1, -1);
-      waddline (s, lline, 0, s.ptr[0]);
-      __vdraw_tail (s;chr = decode (substr (@line, s._index, 1))[0]);
-      return;
-      }
-
-    s._findex = s._indent;
-    s.ptr[1] = len;
-    waddline (s, @line, 0, s.ptr[0]);
-    __vdraw_tail (s;chr = decode (substr (@line, s._index, 1))[0]);
-    s._is_wrapped_line = 0;
-    return;
-    }
-
-  s.ptr[1]--;
-
-  if (s._index == len)
-    waddlineat (s, " ", 0, s.ptr[0], s.ptr[1], s._maxlen);
-  else
-    {
-    lline = substr (@line, s._index + 1, -1);
-    waddlineat (s, lline, 0, s.ptr[0], s.ptr[1], s._maxlen);
-    }
-
-  __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
-
-  is.modified = 1;
-}
-
-insfuncs.del_prev = &ins_del_prev;
-
-private define ins_del_next (is, s, line)
-{
-  ifnot (s._index - s._indent)
-    if (1 == strlen (@line))
-      if (" " == @line)
-        {
-        if (is.lnr < s._len)
-          {
-          @line += s.lines[is.lnr + 1];
-          s.lines[is.lnr + 1 ] = NULL;
-          s.lines = s.lines[wherenot (_isnull (s.lines))];
-          s._len--;
-          s._i = s._ii;
-          s.draw (;dont_draw);
-          is.modified = 1;
-          waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
-          __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
-          }
-
-        return;
-        }
-      else
-        {
-        @line = " ";
-        waddline (s, @line, 0, s.ptr[0]);
-        __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
-        is.modified = 1;
-        return;
-        }
-
-  if (s._index == strlen (@line))
-    {
-    if (is.lnr < s._len)
-      {
-      @line += __vgetlinestr (s, s.lines[is.lnr + 1], 1);
-      s.lines[is.lnr + 1 ] = NULL;
-      s.lines = s.lines[wherenot (_isnull (s.lines))];
-      s._len--;
-      s._i = s._ii;
-      s.draw (;dont_draw);
-      is.modified = 1;
-      if (s._is_wrapped_line)
-        waddline (s, __vgetlinestr (s, @line, s._findex + 1 - s._indent), 0, s.ptr[0]);
-      else
-        waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
-
-      __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
-      }
-
-    return;
-    }
-
-  @line = substr (@line, 1, s._index) + substr (@line, s._index + 2, - 1);
-
-  if (s._is_wrapped_line)
-    waddline (s, __vgetlinestr (s, @line, s._findex + 1 - s._indent), 0, s.ptr[0]);
-  else
-    waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
-
-  __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
-  is.modified = 1;
-}
-
-insfuncs.del_next = &ins_del_next;
-
-private define ins_eol (is, s, line)
-{
-  variable
-    lline,
-    len = strlen (@line);
-
-  s._index = len;
-
-  if (len > s._linlen)
-    {
-    s._findex = len - s._linlen;
-    lline = __vgetlinestr (s, @line, s._findex + 1 - s._indent);
-
-    waddline (s, lline, 0, s.ptr[0]);
-
-    s.ptr[1] = s._maxlen;
-    s._is_wrapped_line = 1;
-    }
-  else
-    s.ptr[1] = len;
-
-  __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
-}
-
-insfuncs.eol = &ins_eol;
-
-private define ins_bol (is, s, line)
-{
-  s._findex = s._indent;
-  s._index = s._indent;
-  s.ptr[1] = s._indent;
-  waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
-  __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
-  s._is_wrapped_line = 0;
-}
-
-insfuncs.bol = &ins_bol;
-
-private define ins_completeline (is, s, line, comp_line)
-{
-  if (s._is_wrapped_line)
-    return;
-
-  if (s._index < strlen (comp_line) - s._indent)
-    {
-    @line = substr (@line, 1, s._index + s._indent) +
-      substr (comp_line, s._index + 1 + s._indent, 1) +
-      substr (@line, s._index + 1 + s._indent, -1);
-
-    s._index++;
-
-    if (s.ptr[1] + 1 < s._maxlen)
-      s.ptr[1]++;
-
-    waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
-    __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
-    is.modified = 1;
-    }
-}
-
-insfuncs.completeline = &ins_completeline;
-
-private define ins_right (is, s, line)
-{
-  variable len = strlen (@line);
-
-  if (s._index + 1 > len || 0 == len)
-    return;
-
-  s._index++;
-
-  ifnot (s.ptr[1] == s._maxlen)
-    s.ptr[1]++;
-
-  if (s._index + 1 > s._maxlen)
-    {
-    s._findex++;
-    s._is_wrapped_line = 1;
-    }
-
-  variable lline;
-
-  if (s.ptr[1] + 1 > s._maxlen)
-    {
-    lline = __vgetlinestr (s, @line, s._findex - s._indent);
-    waddline (s, lline, 0, s.ptr[0]);
-    }
-
-  __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
-}
-
-insfuncs.right = &ins_right;
-
-private define ins_left (is, s, line)
-{
-  if (0 < s.ptr[1] - s._indent)
-    {
-    s._index--;
-    s.ptr[1]--;
-    __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
-    }
-  else
-    if (s._is_wrapped_line)
-      {
-      s._index--;
-      variable lline;
-      lline = __vgetlinestr (s, @line, s._index - s._indent);
-
-      waddline (s, lline, 0, s.ptr[0]);
-
-      __vdraw_tail (s;chr = decode (substr (@line, s._index, 1))[0]);
-
-      if (s._index - 1 == s._indent)
-        s._is_wrapped_line = 0;
-      }
-}
-
-insfuncs.left = &ins_left;
-
-private define ins_page_up (is, s, line)
-{
-  s.lins[s.ptr[0] - s.rows[0]] = @line;
-  s.lines[is.lnr] = @line;
-  s._findex = s._indent;
-
-  (@VED_PAGER[string (keys->PPAGE)]) (s;modified);
-  is.lnr = __vlnr (s, '.');
-  @line = __vline (s, '.');
-
-  ifnot (is.lnr)
-    is.prev_l = "";
-  else
-    is.prev_l = s.lines[is.lnr - 1];
-
-  is.next_l = s.lines[is.lnr + 1];
-}
-
-insfuncs.pag_up = &ins_page_up;
-
-private define ins_page_down (is, s, line)
-{
-  s.lins[s.ptr[0] - s.rows[0]] = @line;
-  s.lines[is.lnr] = @line;
-  s._findex = s._indent;
-
-  (@VED_PAGER[string (keys->NPAGE)]) (s;modified);
-  is.lnr = __vlnr (s, '.');
-  @line = __vline (s, '.');
-
-  if (is.lnr == s._len)
-    is.next_l = "";
-  else
-    is.next_l = s.lines[is.lnr + 1];
-
-  is.prev_l = s.lines[is.lnr - 1];
-}
-
-insfuncs.pag_down = &ins_page_down;
-
-private define ins_down (is, s, line)
-{
-  if (is.lnr == s._len)
-    return;
-
-  s.lins[s.ptr[0] - s.rows[0]] = @line;
-  s.lines[is.lnr] = @line;
-
-  s._findex = s._indent;
-
-  is.lnr++;
-
-  is.prev_l = @line;
-  if (is.lnr + 1 > s._len)
-    is.next_l = "";
-  else
-    is.next_l = s.lines[is.lnr + 1];
-
-  if (s._is_wrapped_line)
-    {
-    waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
-    s._is_wrapped_line = 0;
-    s.ptr[1] = s._maxlen;
-    }
-
-  s._index = s.ptr[1];
-
-  @line = s.lines[is.lnr];
-
-  variable len = strlen (@line);
-
-  if (s._index > len)
-    {
-    s.ptr[1] = len ? len : s._indent;
-    s._index = len ? len : s._indent;
-    }
-
-  if (s.ptr[0] < s.vlins[-1])
-    {
-    s.ptr[0]++;
-    __vdraw_tail (s;chr = strlen (@line)
-      ? s._index > s._indent
-        ? decode (substr (@line, s._index + 1, 1))[0]
-        : decode (substr (@line, s._indent + 1, 1))[0]
-      : ' ');
-
-    return;
-    }
-
-  if (s.lnrs[-1] == s._len)
-    return;
-
-  ifnot (s.ptr[0] == s.vlins[-1])
-    s.ptr[0]++;
-
-  s._i++;
-
-  variable chr = strlen (@line)
-    ? s._index > s._indent
-      ? decode (substr (@line, s._index + 1, 1))[0]
-      : decode (substr (@line, s._indent + 1, 1))[0]
-    : ' ';
-
-  s.draw (;chr = chr);
-}
-
-insfuncs.down = &ins_down;
-
-private define ins_up (is, s, line)
-{
-  variable i = __vlnr (s, '.');
-
-  ifnot (is.lnr)
-    return;
-
-  s.lins[s.ptr[0] - s.rows[0]] = @line;
-  s.lines[is.lnr] = @line;
-
-  is.lnr--;
-
-  is.next_l = @line;
-
-  if (-1 == is.lnr - 1)
-    is.prev_l = "";
-  else
-    is.prev_l = s.lines[is.lnr - 1];
-
-  s._findex = s._indent;
-
-  if (s._is_wrapped_line)
-    {
-    waddline (s, __vgetlinestr (s, @line, s._indent + 1 - s._indent), 0, s.ptr[0]);
-    s._is_wrapped_line = 0;
-    s.ptr[1] = s._maxlen;
-    }
-
-  s._index = s.ptr[1];
-
-  @line = s.lines[is.lnr];
-
-  variable len = strlen (@line);
-
-  if (s._index > len)
-    {
-    s.ptr[1] = len ? len : s._indent;
-    s._index = len ? len : s._indent;
-    }
-
-  if (s.ptr[0] > s.vlins[0])
-    {
-    s.ptr[0]--;
-    __vdraw_tail (s;chr = strlen (@line)
-      ? s._index > s._indent
-        ? decode (substr (@line, s._index + 1, 1))[0]
-        : decode (substr (@line, s._indent + 1, 1))[0]
-      : ' ');
-    return;
-    }
-
-  s._i = s._ii - 1;
-
-  variable chr = strlen (@line)
-    ? s._index > s._indent
-      ? decode (substr (@line, s._index + 1, 1))[0]
-      : decode (substr (@line, s._indent + 1, 1))[0]
-    : ' ';
-
-  s.draw (;chr = chr);
-}
-
-insfuncs.up = &ins_up;
-
-private define ins_cr (is, s, line)
-{
-  variable
-    prev_l,
-    next_l,
-    lline;
-
-  if (strlen (@line) == s._index)
-    {
-    s.lines[is.lnr] = @line;
-    s.lins[s.ptr[0] - s.rows[0]] = @line;
-
-    lang = input->getlang ();
-
-    s._chr = 'o';
-
-    (@VED_PAGER[string ('o')]) (s;modified);
-
-    return;
-    }
-  else
-    {
-    lline = 0 == s._index - s._indent ? " " : substr (@line, 1, s._index);
-    variable indent = 0;
-    @line =  newline_str (s, &indent, @line) + substr (@line, s._index + 1, -1);
-
-    prev_l = lline;
-
-    if (is.lnr + 1 >= s._len)
-      next_l = "";
-    else
-      if (s.ptr[0] == s.rows[-2])
-        next_l = s.lines[is.lnr + 1];
-      else
-        next_l = __vline (s, s.ptr[0] + 1);
-
-    s.ptr[1] = indent;
-    s._i = s._ii;
-
-    if (s.ptr[0] == s.rows[-2] && s.ptr[0] + 1 > s._avlins)
-      s._i++;
-    else
-      s.ptr[0]++;
-
-    ifnot (is.lnr)
-      s.lines = [lline, @line, s.lines[[is.lnr + 1:]]];
-    else
-      s.lines = [s.lines[[:is.lnr - 1]], lline, @line, s.lines[[is.lnr + 1:]]];
-
-    s._len++;
-
-    s.draw (;dont_draw);
-
-    waddline (s, @line, 0, s.ptr[0]);
-    __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
-
-    s._index = indent;
-    s._findex = s._indent;
-
-    lang = input->getlang ();
-
-    insert (s, line, is.lnr + 1, prev_l, next_l;modified, dont_draw_tail);
-    }
-}
-
-insfuncs.cr = &ins_cr;
-
-private define ins_esc (is, s, line)
-{
-  if (0 < s.ptr[1] - s._indent)
-    s.ptr[1]--;
-
-  if (0 < s._index - s._indent)
-    s._index--;
-
-  if (is.modified)
-    {
-    s.lins[s.ptr[0] - s.rows[0]] = @line;
-    s.lines[is.lnr] = @line;
-
-    set_modified (s);
-
-    s.st_.st_size = getsizear (s.lines);
-    }
-
-  topline (" -- pager --");
-  __vdraw_tail (s);
-}
-
-insfuncs.esc = &ins_esc;
-
-define ctrl_completion_rout (s, line, type)
-{
-  variable
-    ar,
-    chr,
-    len,
-    start,
-    item,
-    rows = Integer_Type[0],
-    indexchanged = 0,
-    index = 1,
-    origlen = strlen (@line),
-    col = s._index - 1,
-    iwchars = [MAPS, ['0':'9'], '_'];
-
-  if (any (["ins_linecompletion", "blockcompletion"] == type))
-    {
-    if ("ins_linecompletion" == type)
-      {
-      item = substr (@line, 1, s._index);
-      variable ldws = strlen (item) - strlen (strtrim_beg (item));
-      item = strtrim_beg (item);
-      }
-
-    if ("blockcompletion" == type)
-      {
-      item = strtrim_beg (@line);
-      variable block_ar = qualifier ("block_ar");
-      if (NULL == block_ar || 0 == length (block_ar)
-        || (strlen (item) && 0 == length (wherenot (strncmp (
-            block_ar, item, strlen (item))))))
-        return;
-      }
-    }
-  else if ("ins_wordcompletion" == type)
-    {
-    item = __vfpart_of_word (s, @line, col, &start);
-
-    ifnot (strlen (item))
-      return;
-    }
-
-  forever
-    {
-    ifnot (indexchanged)
-      if ("ins_linecompletion" == type)
-        ar = pcre->find_unique_lines_in_lines (s.lines, item, NULL;ign_lead_ws);
-      else if ("ins_wordcompletion" == type)
-        ar = pcre->find_unique_words_in_lines (s.lines, item, NULL);
-      else if ("blockcompletion" == type)
-        ifnot (strlen (item))
-          ar = block_ar;
-        else
-          ar = block_ar[wherenot (strncmp (block_ar, item, strlen (item)))];
-
-    ifnot (length (ar))
-      {
-      if (length (rows))
-        smg->restore (rows, s.ptr, 1);
-
-      waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
-      smg->setrcdr (s.ptr[0], s.ptr[1]);
-      return;
-      }
-
-    indexchanged = 0;
-
-    if (index > length (ar))
-      index = length (ar);
-
-    rows = widg->pop_up (ar, s.ptr[0], s.ptr[1] + 1, index);
-
-    smg->setrcdr (s.ptr[0], s.ptr[1]);
-
-    chr = getch ();
-
-    if (any (keys->rmap.backspace == chr))
-      {
-      if (1 == strlen (item))
-        {
-        smg->restore (rows, s.ptr, 1);
-        return;
-        }
-      else
-        item = substr (item, 1, strlen (item) - 1);
-
-      smg->restore (rows, NULL, NULL);
-      continue;
-      }
-
-    if (any ([' ', '\r'] == chr))
-      {
-      smg->restore (rows, NULL, NULL);
-
-      if ("ins_linecompletion" == type)
-        {
-        len = strlen (item);
-        item = ar[index - 1];
-        variable llen = strlen (item);
-        variable lldws = llen - strlen (strtrim_beg (item));
-
-        if (llen - len < col)
-          item = substr (item, col - len + 1, -1);
-
-        if (llen - len > col)
-          item = repeat (" ", ldws) + substr (item, lldws + 1, -1);
-
-        @line = item + substr (@line, s._index + 1, -1);
-        }
-      else if ("ins_wordcompletion" == type)
-        @line = substr (@line, 1, start) + ar[index - 1] + substr (@line, s._index + 1, -1);
-      else if ("blockcompletion" == type)
-        {
-        @line = ar[index - 1];
-        return;
-        }
-
-      waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
-
-      len = strlen (@line);
-
-      %bug here (if len > maxlen) (wrapped line)
-      if (len < origlen)
-        s._index -= (origlen - len);
-      else if (len > origlen)
-        s._index += len - origlen;
-
-      s.ptr[1] = s._index;
-
-      __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
-
-      return;
-      }
-
-    if (any ([keys->CTRL_n, keys->DOWN] == chr))
-      {
-      index++;
-      if (index > length (ar))
-        index = 1;
-
-      indexchanged = 1;
-      }
-
-    if (any ([keys->CTRL_p, keys->UP] == chr))
-      {
-      index--;
-      ifnot (index)
-        index = length (ar);
-
-      indexchanged = 1;
-      }
-
-    ifnot (any ([iwchars, keys->CTRL_n, keys->DOWN, keys->CTRL_p, keys->UP] == chr))
-      {
-      smg->restore (rows, s.ptr, 1);
-      smg->refresh ();
-      return;
-      }
-    else if (any ([iwchars] == chr))
-      item += char (chr);
-
-    ifnot (indexchanged)
-      smg->restore (rows, NULL, NULL);
-
-    % BUG HERE
-    if (indexchanged)
-      if (index > 1)
-        if (index > LINES - 4)
-          ar = ar[[1:]];
-    % when ar has been changed and index = 1
-    }
-}
-
-define ins_linecompletion (s, line)
-{
-  ifnot (strlen (@line))
-    return;
-
-  ctrl_completion_rout (s, line, _function_name ());
-}
-
-define blockcompletion (lnr, s, line)
-{
- variable f = __get_reference (s._type + "_blocks");
-
-  if (NULL == f)
-    return;
-
-  variable assoc = (@f) (s._shiftwidth, s.ptr[1]);
-  variable keys = assoc_get_keys (assoc);
-  variable item = @line;
-
-  ctrl_completion_rout (s, line, _function_name ();block_ar = keys);
-
-  variable i = wherefirst (@line == keys);
-  if (NULL == i)
-    waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
-  else
-    {
-    variable ar = strchop (assoc[@line], '\n', 0);
-    % broken _for loop code,
-    % trying to calc the indent
-    % when there is an initial string to narrow the results, might need
-    % a different approach
-    %_for i (0, length (ar) - 1)
-    %  (ar[i], ) = strreplace (ar[i], " ", "", strlen (item) - 1);
-
-    @line = ar[0];
-    if (1 == length (ar))
-      waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
-
-    s.lines[lnr] = @line;
-    s.lines = [s.lines[[:lnr]], 1 == length (ar) ? String_Type[0] : ar[[1:]],
-      lnr == s._len ? String_Type[0] :  s.lines[[lnr+1:]]];
-    s._len = length (s.lines) - 1;
-    s.st_.st_size = getsizear (s.lines);
-
-    set_modified (s);
-
-    s._i = s._ii;
-    s.draw ();
-    }
-}
-
-define pag_completion (s)
-{
-  variable chr = getch ();
-  variable line;
-
-  switch (chr)
-
-    {
-    case 'b':
-      line = __vline (s, '.');
-      blockcompletion (__vlnr (s, '.'), s, &line);
-    }
-
-    {
-    return;
-    }
-}
-
-define ins_ctrl_x_completion (is, s, line)
-{
-  variable chr = getch ();
-
-  switch (chr)
-
-    {
-    case keys->CTRL_l:
-      ins_linecompletion (s, line);
-    }
-
-    {
-    case 'b':
-      blockcompletion (is.lnr, s, line);
-    }
-
-    {
-    return;
-    }
-}
-
-define ins_wordcompletion (s, line)
-{
-  ctrl_completion_rout (s, line, _function_name ());
-}
-
-private define ins_getline (is, s, line)
-{
-  is = struct {@insfuncs, @is};
-
-  forever
-    {
-    is.chr = getch (;on_lang = &_on_lang_change_, on_lang_args = {"insert", s.ptr});
-
-    if (033 == is.chr)
-      {
-      is.esc (s, line);
-      return;
-      }
-
-    if (keys->ESC_esc == is.chr)
-      {
-      s.lins[s.ptr[0] - s.rows[0]] = @line;
-      s.lines[is.lnr] = @line;
-      s.st_.st_size = getsizear (s.lines);
-      __vwritefile (s, NULL, s.ptr, NULL);
-      s._flags &= ~VED_MODIFIED;
-      send_msg_dr (s._abspath + " written", 0, s.ptr[0], s.ptr[1]);
-      sleep (0.02);
-      send_msg_dr ("", 0, s.ptr[0], s.ptr[1]);
-      continue;
-      }
-
-    if ('\r' == is.chr)
-      {
-      is.cr (s, line);
-      return;
-      }
-
-    if (keys->CTRL_n == is.chr)
-      {
-      ins_wordcompletion (s, line);
-      continue;
-      }
-
-    if (keys->CTRL_x == is.chr)
-      {
-      ins_ctrl_x_completion (is, s, line);
-      continue;
-      }
-
-    if (keys->UP == is.chr)
-      {
-      is.up (s, line);
-      continue;
-      }
-
-    if (keys->DOWN == is.chr)
-      {
-      is.down (s, line);
-      continue;
-      }
-
-    if (keys->NPAGE == is.chr)
-      {
-      is.pag_down (s, line);
-      continue;
-      }
-
-    if (keys->PPAGE == is.chr)
-      {
-      is.pag_up (s, line);
-      continue;
-      }
-
-    if (any (keys->rmap.left == is.chr))
-      {
-      is.left (s, line);
-      continue;
-      }
-
-    if (any (keys->rmap.right == is.chr))
-      {
-      is.right (s, line);
-      continue;
-      }
-
-    if (any (keys->CTRL_y == is.chr))
-      {
-      ifnot (strlen (is.prev_l))
-        continue;
-
-      is.completeline (s, line, is.prev_l);
-      continue;
-      }
-
-    if (any (keys->CTRL_e == is.chr))
-      {
-      ifnot (strlen (is.next_l))
-        continue;
-
-      is.completeline (s, line, is.next_l);
-      continue;
-      }
-
-    if (keys->CTRL_r == is.chr)
-      {
-      ins_reg (s, line);
-      continue;
-      }
-
-    if (any (keys->rmap.home == is.chr))
-      {
-      is.bol (s, line);
-      continue;
-      }
-
-    if (any (keys->rmap.end == is.chr))
-      {
-      is.eol (s, line);
-      continue;
-      }
-
-    if (any (keys->rmap.backspace == is.chr))
-      {
-      is.del_prev (s, line);
-      continue;
-      }
-
-    if (any (keys->rmap.delete == is.chr))
-      {
-      is.del_next (s, line);
-      continue;
-      }
-
-    if ('\t' == is.chr)
-      {
-      is.ins_tab (s, line);
-      continue;
-      }
-
-    if (' ' <= is.chr <= 126 || 902 <= is.chr <= 974)
-      {
-      is.ins_char (s, line);
-      continue;
-      }
-    }
-}
-
-define insert (s, line, lnr, prev_l, next_l)
-{
-  input->setlang (lang);
-
-  topline (" -- insert --");
-
-  variable self = @Insert_Type;
-
-  self.lnr = lnr;
-  self.modified = qualifier_exists ("modified");
-  self.prev_l = prev_l;
-  self.next_l = next_l;
-
-  ifnot (qualifier_exists ("dont_draw_tail"))
-    __vdraw_tail (s);
-
-  ins_getline (self, s, line);
-
-  lang = input->getlang ();
-
-  input->setlang (input->get_en_lang ());
-}
-
-%%%% ED MODE
 
 private define ed_indent_in (s)
 {
@@ -5508,6 +4424,1051 @@ private define ed_toggle_case (s)
     __vdraw_tail (s);
   else
     (@VED_PAGER[string ('l')]) (s);
+}
+
+%%% INSERT MODE
+
+private variable lang = input->getlang ();
+
+private define ins_tab (is, s, line)
+{
+  % not sure what to do in feature, but as a fair compromise
+  % and for now SLsmg_Tab_Width is set to 1 and nothing breaks
+  % if _expandtab is set, then _shiftwidth (spaces) are inserted,
+
+  variable tab = NULL == s._expandtab ? "\t" : repeat (" ", s._shiftwidth);
+  variable len = strlen (tab);
+
+  @line = substr (@line, 1, s._index) + tab + substr (@line, s._index + 1, - 1);
+
+  s._index += len;
+
+  is.modified = 1;
+
+  if (strlen (@line) < s._maxlen && s.ptr[1] + len  < s._maxlen)
+    {
+    s.ptr[1] += len;
+    waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
+    __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+    return;
+    }
+
+  s._is_wrapped_line = 1;
+
+  variable i = 0;
+  if (s.ptr[1] < s._maxlen)
+    while (s.ptr[1]++, i++, (s.ptr[1] < s._maxlen && i < len));
+  else
+    i = 0;
+
+  s._findex += (len - i);
+
+  variable
+    lline = __vgetlinestr (s, @line, s._findex + 1 - s._indent);
+
+  waddline (s, lline, 0, s.ptr[0]);
+  __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+}
+
+private define ins_reg (s, line)
+{
+  variable reg = getch ();
+
+  ifnot (any (['=', '/', '"', ['a':'z'], ['A':'Z']] == reg))
+    return;
+
+  if ('=' == reg)
+    {
+    variable res = _eval_ (NULL;return_str);
+    ifnot (NULL == res)
+      REG["="] = res;
+    else
+      return;
+    }
+
+  @line = ed_put (s;reg = char (reg), return_line);
+}
+
+private define ins_char (is, s, line)
+{
+  @line = substr (@line, 1, s._index) + char (is.chr) + substr (@line, s._index + 1, - 1);
+
+  s._index++;
+
+  is.modified = 1;
+
+  if (strlen (@line) < s._maxlen && s.ptr[1] < s._maxlen)
+    {
+    s.ptr[1]++;
+    waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
+    __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+    return;
+    }
+
+  s._is_wrapped_line = 1;
+
+  if (s.ptr[1] == s._maxlen)
+    s._findex++;
+
+  variable
+    lline = __vgetlinestr (s, @line, s._findex + 1 - s._indent);
+
+  if (s.ptr[1] < s._maxlen)
+    s.ptr[1]++;
+
+  waddline (s, lline, 0, s.ptr[0]);
+  __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+}
+
+private define ins_del_prev (is, s, line)
+{
+  variable
+    lline,
+    len;
+
+  ifnot (s._index - s._indent)
+    {
+    ifnot (is.lnr)
+      return;
+
+   if (s.ptr[0] != s.rows[0])
+     s.ptr[0]--;
+   else
+     s._ii--;
+
+    is.lnr--;
+
+    s._index = strlen (s.lines[is.lnr]);
+    s.ptr[1] = s._index > s._maxlen ? s._maxlen : s._index;
+
+    if (is.lnr == s._len)
+      @line = s.lines[is.lnr];
+    else
+      @line = s.lines[is.lnr] + @line;
+
+    s.lines[is.lnr] = @line;
+    s.lines[is.lnr + 1] = NULL;
+    s.lines = s.lines[wherenot (_isnull (s.lines))];
+    s._len--;
+
+    s._i = s._ii;
+
+    s.draw (;dont_draw);
+
+    len = strlen (@line);
+    if (len > s._maxlen)
+      {
+      s._findex = len - s._maxlen;
+      s.ptr[1] = s._maxlen - (len - s._index);
+      s._is_wrapped_line = 1;
+      }
+    else
+      s._findex = s._indent;
+
+    lline = __vgetlinestr (s, @line, s._findex + 1 - s._indent);
+
+    waddline (s, lline, 0, s.ptr[0]);
+    __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+    is.modified = 1;
+    return;
+    }
+
+  @line = substr (@line, 1, s._index - 1) + substr (@line, s._index + 1, - 1);
+
+  len = strlen (@line);
+
+  s._index--;
+
+  ifnot (s.ptr[1])
+    {
+    if (s._index > s._maxlen)
+      {
+      s.ptr[1] = s._maxlen;
+      s._findex = len - s._linlen;
+      lline = substr (@line, s._findex + 1, -1);
+      waddline (s, lline, 0, s.ptr[0]);
+      __vdraw_tail (s;chr = decode (substr (@line, s._index, 1))[0]);
+      return;
+      }
+
+    s._findex = s._indent;
+    s.ptr[1] = len;
+    waddline (s, @line, 0, s.ptr[0]);
+    __vdraw_tail (s;chr = decode (substr (@line, s._index, 1))[0]);
+    s._is_wrapped_line = 0;
+    return;
+    }
+
+  s.ptr[1]--;
+
+  if (s._index == len)
+    waddlineat (s, " ", 0, s.ptr[0], s.ptr[1], s._maxlen);
+  else
+    {
+    lline = substr (@line, s._index + 1, -1);
+    waddlineat (s, lline, 0, s.ptr[0], s.ptr[1], s._maxlen);
+    }
+
+  __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+
+  is.modified = 1;
+}
+
+private define ins_del_next (is, s, line)
+{
+  ifnot (s._index - s._indent)
+    if (1 == strlen (@line))
+      if (" " == @line)
+        {
+        if (is.lnr < s._len)
+          {
+          @line += s.lines[is.lnr + 1];
+          s.lines[is.lnr + 1 ] = NULL;
+          s.lines = s.lines[wherenot (_isnull (s.lines))];
+          s._len--;
+          s._i = s._ii;
+          s.draw (;dont_draw);
+          is.modified = 1;
+          waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
+          __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+          }
+
+        return;
+        }
+      else
+        {
+        @line = " ";
+        waddline (s, @line, 0, s.ptr[0]);
+        __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+        is.modified = 1;
+        return;
+        }
+
+  if (s._index == strlen (@line))
+    {
+    if (is.lnr < s._len)
+      {
+      @line += __vgetlinestr (s, s.lines[is.lnr + 1], 1);
+      s.lines[is.lnr + 1 ] = NULL;
+      s.lines = s.lines[wherenot (_isnull (s.lines))];
+      s._len--;
+      s._i = s._ii;
+      s.draw (;dont_draw);
+      is.modified = 1;
+      if (s._is_wrapped_line)
+        waddline (s, __vgetlinestr (s, @line, s._findex + 1 - s._indent), 0, s.ptr[0]);
+      else
+        waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
+
+      __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+      }
+
+    return;
+    }
+
+  @line = substr (@line, 1, s._index) + substr (@line, s._index + 2, - 1);
+
+  if (s._is_wrapped_line)
+    waddline (s, __vgetlinestr (s, @line, s._findex + 1 - s._indent), 0, s.ptr[0]);
+  else
+    waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
+
+  __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+  is.modified = 1;
+}
+
+private define ins_eol (is, s, line)
+{
+  variable
+    lline,
+    len = strlen (@line);
+
+  s._index = len;
+
+  if (len > s._linlen)
+    {
+    s._findex = len - s._linlen;
+    lline = __vgetlinestr (s, @line, s._findex + 1 - s._indent);
+
+    waddline (s, lline, 0, s.ptr[0]);
+
+    s.ptr[1] = s._maxlen;
+    s._is_wrapped_line = 1;
+    }
+  else
+    s.ptr[1] = len;
+
+  __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+}
+
+private define ins_bol (is, s, line)
+{
+  s._findex = s._indent;
+  s._index = s._indent;
+  s.ptr[1] = s._indent;
+  waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
+  __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+  s._is_wrapped_line = 0;
+}
+
+private define ins_completeline (is, s, line, comp_line)
+{
+  if (s._is_wrapped_line)
+    return;
+
+  if (s._index < strlen (comp_line) - s._indent)
+    {
+    @line = substr (@line, 1, s._index + s._indent) +
+      substr (comp_line, s._index + 1 + s._indent, 1) +
+      substr (@line, s._index + 1 + s._indent, -1);
+
+    s._index++;
+
+    if (s.ptr[1] + 1 < s._maxlen)
+      s.ptr[1]++;
+
+    waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
+    __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+    is.modified = 1;
+    }
+}
+
+private define ins_right (is, s, line)
+{
+  variable len = strlen (@line);
+
+  if (s._index + 1 > len || 0 == len)
+    return;
+
+  s._index++;
+
+  ifnot (s.ptr[1] == s._maxlen)
+    s.ptr[1]++;
+
+  if (s._index + 1 > s._maxlen)
+    {
+    s._findex++;
+    s._is_wrapped_line = 1;
+    }
+
+  variable lline;
+
+  if (s.ptr[1] + 1 > s._maxlen)
+    {
+    lline = __vgetlinestr (s, @line, s._findex - s._indent);
+    waddline (s, lline, 0, s.ptr[0]);
+    }
+
+  __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+}
+
+private define ins_left (is, s, line)
+{
+  if (0 < s.ptr[1] - s._indent)
+    {
+    s._index--;
+    s.ptr[1]--;
+    __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+    }
+  else
+    if (s._is_wrapped_line)
+      {
+      s._index--;
+      variable lline;
+      lline = __vgetlinestr (s, @line, s._index - s._indent);
+
+      waddline (s, lline, 0, s.ptr[0]);
+
+      __vdraw_tail (s;chr = decode (substr (@line, s._index, 1))[0]);
+
+      if (s._index - 1 == s._indent)
+        s._is_wrapped_line = 0;
+      }
+}
+
+private define ins_page_up (is, s, line)
+{
+  s.lins[s.ptr[0] - s.rows[0]] = @line;
+  s.lines[is.lnr] = @line;
+  s._findex = s._indent;
+
+  (@VED_PAGER[string (keys->PPAGE)]) (s;modified);
+  is.lnr = __vlnr (s, '.');
+  @line = __vline (s, '.');
+
+  ifnot (is.lnr)
+    is.prev_l = "";
+  else
+    is.prev_l = s.lines[is.lnr - 1];
+
+  is.next_l = s.lines[is.lnr + 1];
+}
+
+private define ins_page_down (is, s, line)
+{
+  s.lins[s.ptr[0] - s.rows[0]] = @line;
+  s.lines[is.lnr] = @line;
+  s._findex = s._indent;
+
+  (@VED_PAGER[string (keys->NPAGE)]) (s;modified);
+  is.lnr = __vlnr (s, '.');
+  @line = __vline (s, '.');
+
+  if (is.lnr == s._len)
+    is.next_l = "";
+  else
+    is.next_l = s.lines[is.lnr + 1];
+
+  is.prev_l = s.lines[is.lnr - 1];
+}
+
+private define ins_down (is, s, line)
+{
+  if (is.lnr == s._len)
+    return;
+
+  s.lins[s.ptr[0] - s.rows[0]] = @line;
+  s.lines[is.lnr] = @line;
+
+  s._findex = s._indent;
+
+  is.lnr++;
+
+  is.prev_l = @line;
+  if (is.lnr + 1 > s._len)
+    is.next_l = "";
+  else
+    is.next_l = s.lines[is.lnr + 1];
+
+  if (s._is_wrapped_line)
+    {
+    waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
+    s._is_wrapped_line = 0;
+    s.ptr[1] = s._maxlen;
+    }
+
+  s._index = s.ptr[1];
+
+  @line = s.lines[is.lnr];
+
+  variable len = strlen (@line);
+
+  if (s._index > len)
+    {
+    s.ptr[1] = len ? len : s._indent;
+    s._index = len ? len : s._indent;
+    }
+
+  if (s.ptr[0] < s.vlins[-1])
+    {
+    s.ptr[0]++;
+    __vdraw_tail (s;chr = strlen (@line)
+      ? s._index > s._indent
+        ? decode (substr (@line, s._index + 1, 1))[0]
+        : decode (substr (@line, s._indent + 1, 1))[0]
+      : ' ');
+
+    return;
+    }
+
+  if (s.lnrs[-1] == s._len)
+    return;
+
+  ifnot (s.ptr[0] == s.vlins[-1])
+    s.ptr[0]++;
+
+  s._i++;
+
+  variable chr = strlen (@line)
+    ? s._index > s._indent
+      ? decode (substr (@line, s._index + 1, 1))[0]
+      : decode (substr (@line, s._indent + 1, 1))[0]
+    : ' ';
+
+  s.draw (;chr = chr);
+}
+
+private define ins_up (is, s, line)
+{
+  variable i = __vlnr (s, '.');
+
+  ifnot (is.lnr)
+    return;
+
+  s.lins[s.ptr[0] - s.rows[0]] = @line;
+  s.lines[is.lnr] = @line;
+
+  is.lnr--;
+
+  is.next_l = @line;
+
+  if (-1 == is.lnr - 1)
+    is.prev_l = "";
+  else
+    is.prev_l = s.lines[is.lnr - 1];
+
+  s._findex = s._indent;
+
+  if (s._is_wrapped_line)
+    {
+    waddline (s, __vgetlinestr (s, @line, s._indent + 1 - s._indent), 0, s.ptr[0]);
+    s._is_wrapped_line = 0;
+    s.ptr[1] = s._maxlen;
+    }
+
+  s._index = s.ptr[1];
+
+  @line = s.lines[is.lnr];
+
+  variable len = strlen (@line);
+
+  if (s._index > len)
+    {
+    s.ptr[1] = len ? len : s._indent;
+    s._index = len ? len : s._indent;
+    }
+
+  if (s.ptr[0] > s.vlins[0])
+    {
+    s.ptr[0]--;
+    __vdraw_tail (s;chr = strlen (@line)
+      ? s._index > s._indent
+        ? decode (substr (@line, s._index + 1, 1))[0]
+        : decode (substr (@line, s._indent + 1, 1))[0]
+      : ' ');
+    return;
+    }
+
+  s._i = s._ii - 1;
+
+  variable chr = strlen (@line)
+    ? s._index > s._indent
+      ? decode (substr (@line, s._index + 1, 1))[0]
+      : decode (substr (@line, s._indent + 1, 1))[0]
+    : ' ';
+
+  s.draw (;chr = chr);
+}
+
+private define ins_cr (is, s, line)
+{
+  variable
+    prev_l,
+    next_l,
+    lline;
+
+  if (strlen (@line) == s._index)
+    {
+    s.lines[is.lnr] = @line;
+    s.lins[s.ptr[0] - s.rows[0]] = @line;
+
+    lang = input->getlang ();
+
+    s._chr = 'o';
+
+    (@VED_PAGER[string ('o')]) (s;modified);
+
+    return;
+    }
+  else
+    {
+    lline = 0 == s._index - s._indent ? " " : substr (@line, 1, s._index);
+    variable indent = 0;
+    @line =  newline_str (s, &indent, @line) + substr (@line, s._index + 1, -1);
+
+    prev_l = lline;
+
+    if (is.lnr + 1 >= s._len)
+      next_l = "";
+    else
+      if (s.ptr[0] == s.rows[-2])
+        next_l = s.lines[is.lnr + 1];
+      else
+        next_l = __vline (s, s.ptr[0] + 1);
+
+    s.ptr[1] = indent;
+    s._i = s._ii;
+
+    if (s.ptr[0] == s.rows[-2] && s.ptr[0] + 1 > s._avlins)
+      s._i++;
+    else
+      s.ptr[0]++;
+
+    ifnot (is.lnr)
+      s.lines = [lline, @line, s.lines[[is.lnr + 1:]]];
+    else
+      s.lines = [s.lines[[:is.lnr - 1]], lline, @line, s.lines[[is.lnr + 1:]]];
+
+    s._len++;
+
+    s.draw (;dont_draw);
+
+    waddline (s, @line, 0, s.ptr[0]);
+    __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+
+    s._index = indent;
+    s._findex = s._indent;
+
+    lang = input->getlang ();
+
+    insert (s, line, is.lnr + 1, prev_l, next_l;modified, dont_draw_tail);
+    }
+}
+
+private define ins_esc (is, s, line)
+{
+  if (0 < s.ptr[1] - s._indent)
+    s.ptr[1]--;
+
+  if (0 < s._index - s._indent)
+    s._index--;
+
+  if (is.modified)
+    {
+    s.lins[s.ptr[0] - s.rows[0]] = @line;
+    s.lines[is.lnr] = @line;
+
+    set_modified (s);
+
+    s.st_.st_size = getsizear (s.lines);
+    }
+
+  topline (" -- pager --");
+  __vdraw_tail (s);
+}
+
+define ctrl_completion_rout (s, line, type)
+{
+  variable
+    ar,
+    chr,
+    len,
+    start,
+    item,
+    rows = Integer_Type[0],
+    indexchanged = 0,
+    index = 1,
+    origlen = strlen (@line),
+    col = s._index - 1,
+    iwchars = [MAPS, ['0':'9'], '_'];
+
+  if (any (["ins_linecompletion", "blockcompletion"] == type))
+    {
+    if ("ins_linecompletion" == type)
+      {
+      item = substr (@line, 1, s._index);
+      variable ldws = strlen (item) - strlen (strtrim_beg (item));
+      item = strtrim_beg (item);
+      }
+
+    if ("blockcompletion" == type)
+      {
+      item = strtrim_beg (@line);
+      variable block_ar = qualifier ("block_ar");
+      if (NULL == block_ar || 0 == length (block_ar)
+        || (strlen (item) && 0 == length (wherenot (strncmp (
+            block_ar, item, strlen (item))))))
+        return;
+      }
+    }
+  else if ("ins_wordcompletion" == type)
+    {
+    item = __vfpart_of_word (s, @line, col, &start);
+
+    ifnot (strlen (item))
+      return;
+    }
+
+  forever
+    {
+    ifnot (indexchanged)
+      if ("ins_linecompletion" == type)
+        ar = pcre->find_unique_lines_in_lines (s.lines, item, NULL;ign_lead_ws);
+      else if ("ins_wordcompletion" == type)
+        ar = pcre->find_unique_words_in_lines (s.lines, item, NULL);
+      else if ("blockcompletion" == type)
+        ifnot (strlen (item))
+          ar = block_ar;
+        else
+          ar = block_ar[wherenot (strncmp (block_ar, item, strlen (item)))];
+
+    ifnot (length (ar))
+      {
+      if (length (rows))
+        smg->restore (rows, s.ptr, 1);
+
+      waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
+      smg->setrcdr (s.ptr[0], s.ptr[1]);
+      return;
+      }
+
+    indexchanged = 0;
+
+    if (index > length (ar))
+      index = length (ar);
+
+    rows = widg->pop_up (ar, s.ptr[0], s.ptr[1] + 1, index);
+
+    smg->setrcdr (s.ptr[0], s.ptr[1]);
+
+    chr = getch ();
+
+    if (any (keys->rmap.backspace == chr))
+      {
+      if (1 == strlen (item))
+        {
+        smg->restore (rows, s.ptr, 1);
+        return;
+        }
+      else
+        item = substr (item, 1, strlen (item) - 1);
+
+      smg->restore (rows, NULL, NULL);
+      continue;
+      }
+
+    if (any ([' ', '\r'] == chr))
+      {
+      smg->restore (rows, NULL, NULL);
+
+      if ("ins_linecompletion" == type)
+        {
+        len = strlen (item);
+        item = ar[index - 1];
+        variable llen = strlen (item);
+        variable lldws = llen - strlen (strtrim_beg (item));
+
+        if (llen - len < col)
+          item = substr (item, col - len + 1, -1);
+
+        if (llen - len > col)
+          item = repeat (" ", ldws) + substr (item, lldws + 1, -1);
+
+        @line = item + substr (@line, s._index + 1, -1);
+        }
+      else if ("ins_wordcompletion" == type)
+        @line = substr (@line, 1, start) + ar[index - 1] + substr (@line, s._index + 1, -1);
+      else if ("blockcompletion" == type)
+        {
+        @line = ar[index - 1];
+        return;
+        }
+
+      waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
+
+      len = strlen (@line);
+
+      %bug here (if len > maxlen) (wrapped line)
+      if (len < origlen)
+        s._index -= (origlen - len);
+      else if (len > origlen)
+        s._index += len - origlen;
+
+      s.ptr[1] = s._index;
+
+      __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+
+      return;
+      }
+
+    if (any ([keys->CTRL_n, keys->DOWN] == chr))
+      {
+      index++;
+      if (index > length (ar))
+        index = 1;
+
+      indexchanged = 1;
+      }
+
+    if (any ([keys->CTRL_p, keys->UP] == chr))
+      {
+      index--;
+      ifnot (index)
+        index = length (ar);
+
+      indexchanged = 1;
+      }
+
+    ifnot (any ([iwchars, keys->CTRL_n, keys->DOWN, keys->CTRL_p, keys->UP] == chr))
+      {
+      smg->restore (rows, s.ptr, 1);
+      smg->refresh ();
+      return;
+      }
+    else if (any ([iwchars] == chr))
+      item += char (chr);
+
+    ifnot (indexchanged)
+      smg->restore (rows, NULL, NULL);
+
+    % BUG HERE
+    if (indexchanged)
+      if (index > 1)
+        if (index > LINES - 4)
+          ar = ar[[1:]];
+    % when ar has been changed and index = 1
+    }
+}
+
+define ins_linecompletion (s, line)
+{
+  ifnot (strlen (@line))
+    return;
+
+  ctrl_completion_rout (s, line, _function_name ());
+}
+
+define blockcompletion (lnr, s, line)
+{
+ variable f = __get_reference (s._type + "_blocks");
+
+  if (NULL == f)
+    return;
+
+  variable assoc = (@f) (s._shiftwidth, s.ptr[1]);
+  variable keys = assoc_get_keys (assoc);
+  variable item = @line;
+
+  ctrl_completion_rout (s, line, _function_name ();block_ar = keys);
+
+  variable i = wherefirst (@line == keys);
+  if (NULL == i)
+    waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
+  else
+    {
+    variable ar = strchop (assoc[@line], '\n', 0);
+    % broken _for loop code,
+    % trying to calc the indent
+    % when there is an initial string to narrow the results, might need
+    % a different approach
+    %_for i (0, length (ar) - 1)
+    %  (ar[i], ) = strreplace (ar[i], " ", "", strlen (item) - 1);
+
+    @line = ar[0];
+    if (1 == length (ar))
+      waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
+
+    s.lines[lnr] = @line;
+    s.lines = [s.lines[[:lnr]], 1 == length (ar) ? String_Type[0] : ar[[1:]],
+      lnr == s._len ? String_Type[0] :  s.lines[[lnr+1:]]];
+    s._len = length (s.lines) - 1;
+    s.st_.st_size = getsizear (s.lines);
+
+    set_modified (s);
+
+    s._i = s._ii;
+    s.draw ();
+    }
+}
+
+define pag_completion (s)
+{
+  variable chr = getch ();
+  variable line;
+
+  switch (chr)
+
+    {
+    case 'b':
+      line = __vline (s, '.');
+      blockcompletion (__vlnr (s, '.'), s, &line);
+    }
+
+    {
+    return;
+    }
+}
+
+define ins_ctrl_x_completion (is, s, line)
+{
+  variable chr = getch ();
+
+  switch (chr)
+
+    {
+    case keys->CTRL_l:
+      ins_linecompletion (s, line);
+    }
+
+    {
+    case 'b':
+      blockcompletion (is.lnr, s, line);
+    }
+
+    {
+    return;
+    }
+}
+
+define ins_wordcompletion (s, line)
+{
+  ctrl_completion_rout (s, line, _function_name ());
+}
+
+private define ins_getline (is, s, line)
+{
+ % is = struct {@insfuncs, @is};
+
+  forever
+    {
+    is.chr = getch (;on_lang = &_on_lang_change_, on_lang_args = {"insert", s.ptr});
+
+    if (033 == is.chr)
+      {
+      ins_esc (is, s, line);
+      return;
+      }
+
+    if (keys->ESC_esc == is.chr)
+      {
+      s.lins[s.ptr[0] - s.rows[0]] = @line;
+      s.lines[is.lnr] = @line;
+      s.st_.st_size = getsizear (s.lines);
+      __vwritefile (s, NULL, s.ptr, NULL);
+      s._flags &= ~VED_MODIFIED;
+      send_msg_dr (s._abspath + " written", 0, s.ptr[0], s.ptr[1]);
+      sleep (0.02);
+      send_msg_dr ("", 0, s.ptr[0], s.ptr[1]);
+      continue;
+      }
+
+    if ('\r' == is.chr)
+      {
+      ins_cr (is, s, line);
+      return;
+      }
+
+    if (keys->CTRL_n == is.chr)
+      {
+      ins_wordcompletion (s, line);
+      continue;
+      }
+
+    if (keys->CTRL_x == is.chr)
+      {
+      ins_ctrl_x_completion (is, s, line);
+      continue;
+      }
+
+    if (keys->UP == is.chr)
+      {
+      ins_up (is, s, line);
+      continue;
+      }
+
+    if (keys->DOWN == is.chr)
+      {
+      ins_down (is, s, line);
+      continue;
+      }
+
+    if (keys->NPAGE == is.chr)
+      {
+      ins_page_down (is, s, line);
+      continue;
+      }
+
+    if (keys->PPAGE == is.chr)
+      {
+      ins_page_up (is, s, line);
+      continue;
+      }
+
+    if (any (keys->rmap.left == is.chr))
+      {
+      ins_left (is, s, line);
+      continue;
+      }
+
+    if (any (keys->rmap.right == is.chr))
+      {
+      ins_right (is, s, line);
+      continue;
+      }
+
+    if (any (keys->CTRL_y == is.chr))
+      {
+      ifnot (strlen (is.prev_l))
+        continue;
+
+      ins_completeline (is, s, line, is.prev_l);
+      continue;
+      }
+
+    if (any (keys->CTRL_e == is.chr))
+      {
+      ifnot (strlen (is.next_l))
+        continue;
+
+      ins_completeline (is, s, line, is.next_l);
+      continue;
+      }
+
+    if (keys->CTRL_r == is.chr)
+      {
+      ins_reg (s, line);
+      continue;
+      }
+
+    if (any (keys->rmap.home == is.chr))
+      {
+      ins_bol (is, s, line);
+      continue;
+      }
+
+    if (any (keys->rmap.end == is.chr))
+      {
+      ins_eol (is, s, line);
+      continue;
+      }
+
+    if (any (keys->rmap.backspace == is.chr))
+      {
+      ins_del_prev (is, s, line);
+      continue;
+      }
+
+    if (any (keys->rmap.delete == is.chr))
+      {
+      ins_del_next (is, s, line);
+      continue;
+      }
+
+    if ('\t' == is.chr)
+      {
+      ins_tab (is, s, line);
+      continue;
+      }
+
+    if (' ' <= is.chr <= 126 || 902 <= is.chr <= 974)
+      {
+      ins_char (is, s, line);
+      continue;
+      }
+    }
+}
+
+define insert (s, line, lnr, prev_l, next_l)
+{
+  input->setlang (lang);
+
+  topline (" -- insert --");
+
+  variable self = @Insert_Type;
+
+  self.lnr = lnr;
+  self.modified = qualifier_exists ("modified");
+  self.prev_l = prev_l;
+  self.next_l = next_l;
+
+  ifnot (qualifier_exists ("dont_draw_tail"))
+    __vdraw_tail (s);
+
+  ins_getline (self, s, line);
+
+  lang = input->getlang ();
+
+  input->setlang (input->get_en_lang ());
 }
 
 private define _askonsubst_ (s, fn, lnr, fpart, context, lpart, replace)
