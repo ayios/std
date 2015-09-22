@@ -213,8 +213,9 @@ loadfrom ("array", "getsize", NULL, &on_eval_err);
 loadfrom ("pcre", "find_unique_words_in_lines", 1, &on_eval_err);
 loadfrom ("pcre", "find_unique_lines_in_lines", 1, &on_eval_err);
 
-define set_modified ();
+define getXsel (){return "";}
 define seltoX (sel){}
+define set_modified ();
 define topline ();
 define toplinedr ();
 define _eval_ ();
@@ -5601,8 +5602,11 @@ define __substitute ()
 private define _register_ (s)
 {
   variable reg = getch ();
-  ifnot (any (['a':'z'] == reg))
+  ifnot (any ([['a':'z'], ['A':'Z'], '"', '*'] == reg))
     return;
+
+  if (reg == '*')
+    REG["*"] = getXsel ();
 
   reg = char (reg);
 
