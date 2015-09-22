@@ -1106,6 +1106,16 @@ private define _restore_pos_ (pos, s)
   s._findex = pos._findex;
 }
 
+private define _set_reg_ (reg, sel)
+{
+  variable k = assoc_get_keys (REG);
+
+  if (any ([['a':'z'], '*', '"', '/'] == reg[0]) || 0 == any (k == reg))
+    REG[reg] = sel;
+  else
+    REG[reg] = REG[reg] + sel;
+}
+
 %%% MARK FUNCTIONS
 
 private define mark_init (m)
@@ -1884,7 +1894,7 @@ private define pg_Yank (s)
     reg = qualifier ("reg", "\""),
     line = __vline (s, '.');
 
-  REG[reg] = line + "\n";
+  _set_reg_ (reg, line + "\n");
   seltoX (line + "\n");
 }
 
@@ -3099,7 +3109,7 @@ private define v_l_loop (vs, s)
 
     if ('y' == chr)
       {
-      REG["\""] = strjoin (vs.lines, "\n") + "\n";
+      _set_reg_ ("\"", strjoin (vs.lines, "\n") + "\n");
       seltoX (strjoin (vs.lines, "\n") + "\n");
       break;
       }
@@ -3143,7 +3153,7 @@ private define v_l_loop (vs, s)
 
     if ('d' == chr)
       {
-      REG["\""] = strjoin (vs.lines, "\n") + "\n";
+      _set_reg_ ("\"", strjoin (vs.lines, "\n") + "\n");
       seltoX (strjoin (vs.lines, "\n") + "\n");
       s.lines[vs.lnrs] = NULL;
       s.lines = s.lines[wherenot (_isnull (s.lines))];
@@ -3343,7 +3353,7 @@ private define v_char_mode (vs, s)
     if ('y' == chr)
       {
       sel = strjoin (vs.sel, "\n");
-      REG["\""] = sel;
+      _set_reg_ ("\"", sel);
       seltoX (sel);
       break;
       }
@@ -3355,7 +3365,7 @@ private define v_char_mode (vs, s)
         return;
 
       sel = strjoin (vs.sel, "\n");
-      REG["\""] = sel;
+      _set_reg_ ("\"", sel);
       seltoX (sel);
 
       variable line = s.lines[vs.startlnr];
@@ -3599,7 +3609,7 @@ private define v_bw_mode (vs, s)
     if ('d' == chr)
       {
       sel = strjoin (vs.sel, "\n");
-      REG["\""] = sel;
+      _set_reg_ ("\"", sel);
       seltoX (sel);
       _for i (0, length (vs.lnrs) - 1)
         {
@@ -3626,7 +3636,7 @@ private define v_bw_mode (vs, s)
     if ('y' == chr)
       {
       sel = strjoin (vs.sel, "\n");
-      REG["\""] = sel;
+      _set_reg_ ("\"", sel);
       seltoX (sel);
       break;
       }
@@ -3896,7 +3906,7 @@ private define ed_del_line (s)
       return 0;
       }
 
-  REG[reg] = s.lines[i] + "\n";
+  _set_reg_ (reg, s.lines[i] + "\n");
 
   s.lines[i] = NULL;
   s.lines = s.lines[wherenot (_isnull (s.lines))];
@@ -3938,7 +3948,7 @@ private define ed_del_word (s, what)
 
   word = (@func) (s, line, col, &start, &end);
 
-  REG[reg] = word;
+  _set_reg_ (reg, word);
 
   line = sprintf ("%s%s", substr (line, 1, start), substr (line, end + 2, -1));
 
@@ -4027,7 +4037,7 @@ private define ed_del_chr (s)
 
   if (any (['x', keys->rmap.delete] == chr))
     {
-    REG[reg] = substr (line, col + 1, 1);
+    _set_reg_ (reg, substr (line, col + 1, 1));
     line = substr (line, 1, col) + substr (line, col + 2, - 1);
     if (s._index == strlen (line))
       {
@@ -4038,7 +4048,7 @@ private define ed_del_chr (s)
   else
     if (0 < s.ptr[1] - s._indent)
       {
-      REG[reg] = substr (line, col, 1);
+      _set_reg_ (reg, substr (line, col, 1));
       line = substr (line, 1, col - 1) + substr (line, col + 1, - 1);
       s.ptr[1]--;
       s._index--;
@@ -4085,7 +4095,7 @@ private define ed_change_word (s, what)
 
   word = (@func) (s, line, col, &start, &end);
 
-  REG[reg] = word;
+  _set_reg_ (reg, word);
 
   line = sprintf ("%s%s", substr (line, 1, start), substr (line, end + 2, -1));
 
@@ -4181,7 +4191,7 @@ private define ed_del_to_end (s)
   ifnot (s.ptr[1] - s._indent)
     {
     if (strlen (line))
-      REG[reg] = line;
+     _set_reg_ (reg, line);
 
     line = __get_null_str (s._indent);
 
@@ -4203,7 +4213,7 @@ private define ed_del_to_end (s)
     }
 
   if (strlen (line))
-    REG[reg] = substr (line, col, -1);
+    _set_reg_ (reg, substr (line, col, -1));
 
   line = substr (line, 1, col);
 
@@ -4475,7 +4485,7 @@ private define ins_reg (s, line)
 {
   variable reg = getch ();
 
-  ifnot (any (['=', '/', '"', ['a':'z'], ['A':'Z']] == reg))
+  ifnot (any (['=', '/', '"', '*', ['a':'z'], ['A':'Z']] == reg))
     return;
 
   if ('=' == reg)
@@ -4486,6 +4496,9 @@ private define ins_reg (s, line)
     else
       return;
     }
+
+ if ('*' == reg)
+   REG["*"] = getXsel ();
 
   @line = ed_put (s;reg = char (reg), return_line);
 }
