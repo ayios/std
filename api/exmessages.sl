@@ -1,4 +1,4 @@
-define _messages_ (argv)
+define __messages (argv)
 {
   variable ved = @get_cur_buf ();
 

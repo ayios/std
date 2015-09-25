@@ -22,7 +22,7 @@ if (-1 == mkfifo (RDFIFO, 0644))
 if (-1 == mkfifo (WRFIFO, 0644))
   on_eval_err ([WRFIFO + ": cannot create, " + errno_string (errno)], 1);
 
-define _precom_ ()
+define precom ()
 {
   icom++;
   ERR_VED.st_.st_size = fstat (STDERRFD).st_size;
@@ -45,10 +45,10 @@ ifnot (NULL == APP.excom)
   {
   if (APP.excom.scratch)
     loadfrom ("api", "exscratch", NULL, &on_eval_err);
- 
+
   if (APP.excom.edit)
     loadfrom ("api", "exedit", NULL, &on_eval_err);
- 
+
   if (APP.excom.messages)
     loadfrom ("api", "exmessages", NULL, &on_eval_err);
 
@@ -59,7 +59,7 @@ ifnot (NULL == APP.excom)
     loadfrom ("api", "eval", NULL, &on_eval_err);
   }
 
-define _write_ (argv)
+private define _write_ (argv)
 {
   if (any (["w", "w!", "W"]  == argv[0]))
     {
@@ -68,7 +68,7 @@ define _write_ (argv)
     }
 }
 
-define _postexec_ (header)
+private define _postexec_ (header)
 {
   if (qualifier_exists ("draw") && qualifier ("draw") == 0)
     return;
@@ -130,7 +130,7 @@ private define _restorestate_ (cmp_lnrs, wrfd)
   sock->send_bit (wrfd, 1);
 }
 
-define waitfunc (wrfd, rdfd)
+private define _waitfunc_ (wrfd, rdfd)
 {
   variable buf;
   variable cmp_lnrs = Integer_Type[0];
@@ -151,7 +151,7 @@ define waitfunc (wrfd, rdfd)
       cmp_lnrs = Integer_Type[0];
       continue;
       }
- 
+
     if ("send_msg_dr" == buf)
       {
       _sendmsgdr_ (wrfd, rdfd);
@@ -195,7 +195,7 @@ private define _waitpid_ (p)
   variable wrfd = open (WRFIFO, O_WRONLY);
   variable rdfd = open (RDFIFO, O_RDONLY);
 
-  waitfunc (wrfd, rdfd);
+  _waitfunc_ (wrfd, rdfd);
 
   sock->send_bit (wrfd, 1);
 
@@ -206,9 +206,9 @@ private define _waitpid_ (p)
   SHELLLASTEXITSTATUS = status.exit_status;
 }
 
-define _preexec_ (argv, header, issudo, env)
+private define _preexec_ (argv, header, issudo, env)
 {
-  _precom_ ();
+  precom ();
 
   @header = strlen (argv[0]) > 1 && 0 == qualifier_exists ("no_header");
   @issudo = qualifier ("issudo");
@@ -245,7 +245,7 @@ define _preexec_ (argv, header, issudo, env)
   return argv, p;
 }
 
-define parse_redir (lastarg, file, flags)
+private define _parse_redir_ (lastarg, file, flags)
 {
   variable index = 0;
   variable chr = lastarg[index];
@@ -326,16 +326,16 @@ define parse_redir (lastarg, file, flags)
   return 1;
 }
 
-define parse_argv (argv, isbg)
+private define _parse_argv_ (argv, isbg)
 {
   variable flags = ">>|";
   variable file = isbg ? STDOUTBG : APP.realshell ? get_cur_buf()._abspath : SCRATCH;
-  variable retval = parse_redir (argv[-1], &file, &flags);
+  variable retval = _parse_redir_ (argv[-1], &file, &flags);
 
   return file, flags, retval;
 }
 
-define _getpasswd_ ()
+private define _getpasswd_ ()
 {
   variable passwd, retval;
 
@@ -377,7 +377,7 @@ private define _sendsig_ (sig, pid, passwd)
     STDDIR + "/proc/sendsignalassu.sl", sig, pid], NULL);
 }
 
-define _getbgstatus_ (pid)
+private define _getbgstatus_ (pid)
 {
   variable pidfile = BGDIR + "/" + pid + ".WAIT";
   variable force = qualifier_exists ("force");
@@ -440,7 +440,7 @@ define _getbgstatus_ (pid)
   () = remove (pidfile);
 }
 
-define _getbgjobs_ ()
+private define _getbgjobs_ ()
 {
   variable pids = assoc_get_keys (BGPIDS);
 
@@ -453,7 +453,7 @@ define _getbgjobs_ ()
     _getbgstatus_ (pids[i]);
 }
 
-define _forkbg_ (p, argv, env)
+private define _forkbg_ (p, argv, env)
 {
   env = [env, "BG=" + BGDIR];
 
@@ -474,7 +474,7 @@ define _forkbg_ (p, argv, env)
     send_msg_dr ("forked " + string (pid) + " &", 0, PROMPTROW, 1);
 }
 
-define _fork_ (p, argv, env)
+private define _fork_ (p, argv, env)
 {
   variable errfd = @FD_Type (_fileno (STDERRFD));
 
@@ -491,7 +491,7 @@ define _fork_ (p, argv, env)
       toscratch (err);
 }
 
-define execute (argv)
+private define _execute_ (argv)
 {
   variable isbg = 0;
   if (argv[-1] == "&")
@@ -528,7 +528,7 @@ define execute (argv)
   else
     {
     variable file, flags, retval;
-    (file, flags, retval) = parse_argv (argv, isbg);
+    (file, flags, retval) = _parse_argv_ (argv, isbg);
 
     if (-1 == retval)
       {
@@ -591,7 +591,7 @@ define execute (argv)
   _postexec_ (header;;__qualifiers ());
 }
 
-define _builtinpost_ ()
+private define _builtinpost_ ()
 {
   variable err = read_fd (STDERRFD;pos = ERR_VED.st_.st_size);
 
@@ -599,20 +599,20 @@ define _builtinpost_ ()
     if (APP.realshell)
       tostdout (err + "\n");
     else
-      tostdout (err + "\n");
+      toscratch (err + "\n");
 
   shell_post_header ();
 
   draw (get_cur_buf ());
 }
 
-define _builtinpre_ (argv)
+private define _builtinpre_ (argv)
 {
-  _precom_ ();
+  precom ();
   shell_pre_header (argv);
 }
 
-define _kill_bg_job (argv)
+private define _kill_bg_job (argv)
 {
   shell_pre_header (argv);
 
@@ -643,7 +643,7 @@ define _kill_bg_job (argv)
   draw (get_cur_buf ());
 }
 
-define _list_bg_jobs_ (argv)
+private define _list_bg_jobs_ (argv)
 {
   shell_pre_header (argv);
 
@@ -668,7 +668,88 @@ define _list_bg_jobs_ (argv)
   draw (get_cur_buf ());
 }
 
-define _cd_ (argv)
+private define _echo_ (argv)
+{
+  _builtinpre_ (argv);
+
+  argv = argv[[1:]];
+
+  variable hasnewline = wherefirst ("-n" == argv);
+
+  ifnot (NULL == hasnewline)
+    {
+    argv[hasnewline] = NULL;
+    argv = argv[wherenot (_isnull (argv))];
+    hasnewline = "";
+    }
+  else
+    hasnewline = "\n";
+
+  variable len = length (argv);
+
+  ifnot (len)
+    return;
+
+  variable tostd = APP.realshell ? &tostdout : &toscratch;
+
+  if (1 == len)
+    {
+    if ('>' == argv[0][0])
+      return;
+
+    if ('$' == argv[0][0])
+      if ('?' == argv[0][1])
+        (@tostd) (string (SHELLLASTEXITSTATUS) + hasnewline);
+      else
+        (@tostd) (_$ (argv[0]) + hasnewline);
+    else
+      (@tostd) (argv[0] + hasnewline);
+    }
+  else
+    {
+    variable file, flags, retval;
+    (file, flags, retval) = _parse_argv_ (argv, 0);
+
+    if (-1 == retval)
+      {
+      _builtinpost_ ();
+      SHELLLASTEXITSTATUS = 1;
+      return;
+      }
+
+    ifnot (retval)
+      {
+      (@tostd) (strjoin (argv, " ") + hasnewline);
+      _builtinpost_ ();
+      return;
+      }
+
+    argv[-1] = NULL;
+    argv = argv[wherenot (_isnull (argv))];
+
+    if (">>" == flags || 0 == access (file, F_OK))
+      {
+      if (-1 == appendstr (file, strjoin (argv, " ") + hasnewline))
+       return;
+      }
+    else
+      {
+      variable fd = open (file, O_CREAT|O_WRONLY, PERM["__PUBLIC"]);
+      if (NULL == fd)
+        tostderr (file + ":" + errno_string (errno));
+      else
+        if (-1 == write (fd, strjoin (argv, " ") + hasnewline))
+          tostderr (file + ":" + errno_string (errno));
+        else
+          if (-1 == close (fd))
+            tostderr (file + ":" + errno_string (errno));
+      }
+    }
+
+  _builtinpost_ ();
+}
+
+private define _cd_ (argv)
 {
   _builtinpre_ (argv);
 
@@ -691,9 +772,9 @@ define _cd_ (argv)
   _builtinpost_ ();
 }
 
-define _search_ (argv)
+private define _search_ (argv)
 {
-  _precom_ ();
+  precom ();
 
   variable header, issudo, env, stdoutfile, stdoutflags;
 
@@ -720,7 +801,7 @@ define _search_ (argv)
   draw (get_cur_buf ());
 }
 
-define _which_ (argv)
+private define _which_ (argv)
 {
   _builtinpre_ (argv);
 
@@ -735,10 +816,12 @@ define _which_ (argv)
 
   variable path = which (com);
 
-  ifnot (NULL == path)
-    tostdout (path + "\n");
+  variable msg = NULL == path ? path + "\n" : com + " hasn't been found in PATH\n";
+
+  if (APP.realshell)
+    tostdout (msg);
   else
-    tostdout (com + " hasn't been found in PATH\n");
+    toscratch (msg);
 
   SHELLLASTEXITSTATUS = NULL == path;
 
@@ -770,7 +853,7 @@ define runapp (argv, env)
   smg->resume ();
 }
 
-private define _build_comlist (a)
+private define _build_comlist_ (a)
 {
   variable
     i,
@@ -788,7 +871,7 @@ private define _build_comlist (a)
         {
         a[(ex ? "!" : "") + c[ii]] = @Argvlist_Type;
         a[(ex ? "!" : "") + c[ii]].dir = d[i] + "/com/" + c[ii];
-        a[(ex ? "!" : "") + c[ii]].func = &execute;
+        a[(ex ? "!" : "") + c[ii]].func = &_execute_;
         }
     }
 }
@@ -803,45 +886,69 @@ private define _lock_ (argv)
   __vdraw_wind ();
 }
 
+define runcom (argv, issudo)
+{
+  variable rl = get_cur_rline ();
+
+  ifnot (any (assoc_get_keys (rl.argvlist) == argv[0]))
+    {
+    tostderr (argv[0] + ": no such command");
+    return;
+    }
+
+  rl.argv = argv;
+  (@rl.argvlist[argv[0]].func) (rl.argv;;struct {issudo = issudo, @__qualifiers ()});
+}
+
+define __rehash ();
+
 define init_commands ()
 {
   variable
     a = Assoc_Type[Argvlist_Type, @Argvlist_Type];
 
-  _build_comlist (a;;__qualifiers ());
+  _build_comlist_ (a;;__qualifiers ());
 
   ifnot (NULL == APP.excom)
     {
     if (APP.excom.scratch)
       {
       a["@"] = @Argvlist_Type;
-      a["@"].func = __get_reference ("scratch");
+      a["@"].func = __get_reference ("__scratch");
       }
 
     if (APP.excom.edit)
       {
       a["edit"] = @Argvlist_Type;
-      a["edit"].func = __get_reference ("_edit_");
+      a["edit"].func = __get_reference ("__edit");
       }
 
     if (APP.excom.messages)
       {
       a["messages"] = @Argvlist_Type;
-      a["messages"].func = __get_reference ("_messages_");
+      a["messages"].func = __get_reference ("__messages");
       }
 
     if (APP.excom.ved)
       {
       a["ved"] = @Argvlist_Type;
-      a["ved"].func = __get_reference ("_ved_");
+      a["ved"].func = __get_reference ("__ved");
       }
 
     if (APP.excom.eval)
       {
       a["eval"] = @Argvlist_Type;
-      a["eval"].func = __get_reference ("_eval_");
+      a["eval"].func = __get_reference ("my_eval");
+      a["eval"].type = "Func_Type";
       }
     }
+
+  a["rehash"] = @Argvlist_Type;
+  a["rehash"].func = &__rehash;
+  a["rehash"].type = "Func_Type";
+
+  a["echo"] = @Argvlist_Type;
+  a["echo"].func = &_echo_;
 
   a["lock"] = @Argvlist_Type;
   a["lock"].func = &_lock_;
@@ -876,3 +983,5 @@ define init_commands ()
 
   return a;
 }
+
+

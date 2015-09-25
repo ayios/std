@@ -1,25 +1,31 @@
+private define _tabcallback (rl)
+{
+}
+
 private define _assign_ (line)
 {
-  variable _v_ = strchop (line, '=', 0);
+  variable retval = NULL, _v_ = strchop (line, '=', 0);
+
   if (1 == length (_v_))
-    return 0;
+    return retval;
 
   _v_ = _v_[0];
 
   try
     {
     eval (line);
-    send_msg (string (eval (string (_v_))), 0);
+    send_msg (string (eval (string (_v_))), 0); % split and return the var?
+    retval = 1;
     }
   catch AnyError:
     send_msg (__get_exception_info.message, 0);
 
-  return 1;
+  return retval;
 }
 
 private define _evalstr_ (line)
 {
-  variable res, retval = NULL;;
+  variable res, retval = NULL;
 
   try
     {
@@ -39,13 +45,14 @@ private define _evalstr_ (line)
   return retval;
 }
 
-define _eval_ (argv)
+define __eval ()
 {
   variable rl = rline->init (NULL;pchar = ">");
   rline->set (rl);
 
   variable histfile = sprintf ("%s/%devalhistory", HISTDIR, getuid ());
   variable history = String_Type[0];
+  variable tabcb = qualifier ("tabhook", &_tabcallback);
 
   ifnot (access (histfile, F_OK|R_OK))
     history = readfile (histfile);
@@ -64,6 +71,45 @@ define _eval_ (argv)
     rline->prompt (rl, rl._lin, rl._col);
     rl._chr = getch ();
 
+    if ('\t' == rl._chr)
+      {
+      (@tabcb) (rl);
+      continue;
+      }
+
+    if (keys->CTRL_r == rl._chr)
+      {
+      variable chr = getch ();
+
+      if ('%' == chr)
+        {
+        variable absfn = get_cur_buf ()._abspath;
+        rl.argv[0] = substr (rl.argv[0], 1, rl._col - 1) + absfn +
+                     substr (rl.argv[0], rl._col, -1);
+        }
+
+      if (keys->CTRL_w == chr)
+        {
+        variable buf = get_cur_buf ();
+        variable line = __vline (buf, '.');
+        variable col = buf._index;
+        variable start, end;
+        variable word = __vfind_word (buf, line, col, &start, &end);
+        rl.argv[0] = substr (rl.argv[0], 1, rl._col - 1) + word +
+                     substr (rl.argv[0], rl._col, -1);
+        }
+
+      if ('/' == chr)
+        {
+        if (assoc_key_exists (REG, "/"))
+          if (1 == length (strtok (REG["/"])))
+            rl.argv[0] = substr (rl.argv[0], 1, rl._col - 1) + REG["/"] +
+                         substr (rl.argv[0], rl._col, -1);
+        }
+
+      continue;
+      }
+
     if (any (keys->rmap.histup == rl._chr))
       {
       ifnot (length (history))
@@ -74,6 +120,7 @@ define _eval_ (argv)
         index = 0;
 
       rl.argv[0] = history[index];
+      rl._col = strlen (rl.argv[0]) + 1;
       () = _evalstr_ (rl.argv[0];send_msg);
       continue;
       }
@@ -87,6 +134,7 @@ define _eval_ (argv)
       if (index < 0)
         index = length (history) - 1;
       rl.argv[0] = history[index];
+      rl._col = strlen (rl.argv[0]) + 1;
       () = _evalstr_ (rl.argv[0];send_msg);
       continue;
       }
@@ -108,6 +156,7 @@ define _eval_ (argv)
         break;
 
       rl.argv[0] = "";
+      rl._col = 1;
       continue;
       }
 
@@ -116,7 +165,7 @@ define _eval_ (argv)
     ifnot (strlen (rl.argv[0]))
       continue;
 
-    _evalstr_ (rl.argv[0];send_msg);
+    () = _evalstr_ (rl.argv[0];send_msg);
     }
 
   if (length (history))
@@ -127,3 +176,9 @@ define _eval_ (argv)
   if (qualifier_exists ("return_str"))
     return res;
 }
+
+define my_eval ()
+{
+  __eval (;;__qualifiers ());
+}
+

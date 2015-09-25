@@ -1,4 +1,5 @@
 public variable NEEDSWINDDRAW = 0;
+
 define _scratch_ (ved)
 {
   if (qualifier_exists ("draw") && qualifier ("draw") == 0)
@@ -11,7 +12,7 @@ define _scratch_ (ved)
   NEEDSWINDDRAW = 1;
 }
 
-define scratch (argv)
+define __scratch (argv)
 {
   variable ved = @get_cur_buf ();
 

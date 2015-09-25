@@ -58,7 +58,7 @@ define _log_ (str, logtype)
     tostderr (str);
 }
 
-define _messages_ (argv)
+define __messages (argv)
 {
   viewfile (ERR, "OS", NULL, NULL);
 }
@@ -301,10 +301,11 @@ private define init_commands ()
   a["reconnect"].func = &reconnect_toapp;
 
   a["eval"] = @Argvlist_Type;
-  a["eval"].func = &_eval_;
+  a["eval"].func = &__eval;
+  a["eval"].type = "Func_Type";
 
   a["messages"] = @Argvlist_Type;
-  a["messages"].func = &_messages_;
+  a["messages"].func = &__messages;
 
   return a;
 }

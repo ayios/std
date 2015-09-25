@@ -131,7 +131,7 @@ public variable
   REG = Assoc_Type[String_Type];
 
 public variable
-  EL_MAP = [[913:929:1], [931:937:1], [945:969:1]],
+  EL_MAP = [902, [904:906], 908, [910:929], [931:937], [945:974]],
   EN_MAP = [['a':'z'], ['A':'Z']],
   MAPS = [EL_MAP, EN_MAP],
   WCHARS = array_map (String_Type, &char, [['0':'9'], EN_MAP, EL_MAP, '_']);
@@ -218,7 +218,7 @@ define seltoX (sel){}
 define set_modified ();
 define topline ();
 define toplinedr ();
-define _eval_ ();
+define __eval ();
 define insert ();
 
 define get_ftype (fn)
@@ -340,6 +340,9 @@ define __vfpart_of_word (s, line, col, start)
 
 define __vfind_word (s, line, col, start, end)
 {
+  if (' ' == line[col])
+    return "";
+
   ifnot (col - s._indent)
     @start = s._indent;
   else
@@ -1512,6 +1515,8 @@ private define _word_change_case_ (s, what)
   word = __vfind_word (s, line, col, &start, &end);
 
   variable ar = decode (word);
+  word = "";
+
   _for ii (0, length (ar) - 1)
     if ((@func_cond) (ar[ii]))
       word += char ((@func) (ar[ii]));
@@ -2382,6 +2387,8 @@ private define s_exit_rout (s, pat, draw)
     list_insert (s_history, pat);
     if (NULL == s_histindex)
       s_histindex = 0;
+
+    REG["/"] = pat;
     }
 
   if (draw)
@@ -4485,20 +4492,23 @@ private define ins_reg (s, line)
 {
   variable reg = getch ();
 
-  ifnot (any (['=', '/', '"', '*', ['a':'z'], ['A':'Z']] == reg))
+  ifnot (any (['=', '/', '%', '"', '*', ['a':'z'], ['A':'Z']] == reg))
     return;
 
   if ('=' == reg)
     {
-    variable res = _eval_ (NULL;return_str);
+    variable res = __eval (NULL;return_str);
     ifnot (NULL == res)
       REG["="] = res;
     else
       return;
     }
 
- if ('*' == reg)
-   REG["*"] = getXsel ();
+  if ('*' == reg)
+    REG["*"] = getXsel ();
+
+  if ('%' == reg)
+    REG["%"] = s._abspath;
 
   @line = ed_put (s;reg = char (reg), return_line);
 }
@@ -5822,4 +5832,5 @@ new_wind ();
 % its machine, or have bindings) that is for today; PCRE)
 
 %%% DO
-% backspace on pager, deletes ws in front of cursor
+% backspace on pager, deletes ws in front of cursor [DONE]
+% real time code evaluation

@@ -1,8 +1,8 @@
-define _edit_ (argv)
+define __edit (argv)
 {
-  _precom_ ();
+  precom ();
 
   variable b = get_cur_buf ();
- 
+
   viewfile (b, b._fname, b.ptr, b._ii);
 }

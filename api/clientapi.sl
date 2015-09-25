@@ -96,6 +96,11 @@ define __initrline ()
       );
 }
 
+define __rehash ()
+{
+  __initrline ();
+}
+
 __initrline ();
 
 UNDELETABLE = [UNDELETABLE, SPECIAL];

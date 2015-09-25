@@ -180,16 +180,13 @@ private define tabhook (s)
 
 define rlineinit ()
 {
-  variable rl;
-
-   rl = rline->init (&my_commands;;struct {
-      histfile = HISTDIR + "/" + string (getuid ()) + "vedhistory",
-      historyaddforce = 1,
-      tabhook = &tabhook,
-      %totype = "Func_Type",
-      @__qualifiers
-      }
-      );
+  variable rl = rline->init (&my_commands;;struct {
+    histfile = HISTDIR + "/" + string (getuid ()) + "vedhistory",
+    historyaddforce = 1,
+    tabhook = &tabhook,
+    %totype = "Func_Type",
+    @__qualifiers
+    });
 
   (@__get_reference ("iarg")) = length (rl.history);
 
@@ -309,9 +306,10 @@ private define write_file ()
   __vwritefile (s, overwrite, ptr, args);
 }
 
-private define _read ()
+private define _read_ ()
 {
   variable s = qualifier ("ved");
+
   ifnot (_NARGS)
     return;
 
@@ -399,24 +397,18 @@ define _exit_ ()
 
 VED_CLINE["bp"] =       &_buffer_other_;
 VED_CLINE["bn"] =       &_buffer_other_;
+VED_CLINE["w!"] =       &write_file;
 VED_CLINE["w"]  =       &write_file;
 VED_CLINE["W"]  =       &write_file;
-VED_CLINE["w!"] =       &write_file;
+VED_CLINE["r"]  =       &_read_;
 VED_CLINE["q"]  =       &cl_quit;
 VED_CLINE["Q"]  =       &cl_quit;
 VED_CLINE["q!"] =       &cl_quit;
 VED_CLINE["wq"] =       &write_quit;
 VED_CLINE["Wq"] =       &write_quit;
-VED_CLINE["r"]  =       &_read;
 VED_CLINE["messages"] = &__vmessages;
 
-private define doquit ()
-{
-  send_msg (" ", 0);
-  exit_me (0);
-}
-
-private define _ved (t)
+private define _ved_ (t)
 {
   return getreffrom ("ftypes/" + t, "ved", NULL, &on_eval_err;fun = t + "_ved");
 }
@@ -431,7 +423,7 @@ define init_ftype (ftype)
   loadfrom ("ftypes/" + ftype, ftype + "_functions", NULL, &on_eval_err);
 
   type._type = ftype;
-  type.ved = _ved (ftype);
+  type.ved = _ved_ (ftype);
 
   return type;
 }
