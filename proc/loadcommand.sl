@@ -84,7 +84,7 @@ define tostderr (str)
 define tostdout ()
 {
   pop ();
-};
+}
 
 define on_eval_err (ar, err)
 {

@@ -45,7 +45,7 @@ private define parse_flags (fd)
       fd.wr_flags = FILE_FLAGS[">"];
     else
       fd.wr_flags = FILE_FLAGS[">|"];
- 
+
   ifnot (NULL == fd.append_flags)
     fd.wr_flags |= fd.append_flags;
 
@@ -57,9 +57,9 @@ private define parse_flags (fd)
 private define open_file (fd, fp)
 {
   fd.keep = dup_fd (fileno (fp));
- 
+
   parse_flags (fd);
- 
+
   ifnot (NULL == fd.mode)
     fd.write = open (fd.file, fd.wr_flags, fd.mode);
   else
@@ -79,14 +79,14 @@ private define open_fd (fd, fp)
   fd.keep = dup_fd (fileno (fp));
 
   (fd.read, fd.write) = pipe ();
-
-  () = dup2_fd (fd.write, _fileno (fp));
+  variable retval = dup2_fd (fd.write, _fileno (fp));
+  % do something
 }
 
 private define _openforread (fd, fp)
 {
   fd.keep = dup_fd (fileno (fp));
- 
+
   ifnot (NULL == fd.file)
     {
     fd.read = open (fd.file, O_RDONLY);
@@ -99,7 +99,7 @@ private define _openforread (fd, fp)
   () = write (fd.write, fd.in);
 
   () = close (fd.write);
- 
+
   () = dup2_fd (fd.read, _fileno (fp));
 }
 
@@ -128,7 +128,7 @@ private define atexit (s)
     if (NULL == s.stderr.file)
       s.stderr.out = read_fd (s.stderr.read);
     }
- 
+
   ifnot (NULL == s.stdin)
     if (NULL == s.stdin.file)
       close_fd (s.stdin, stdin);
@@ -141,7 +141,7 @@ private define connect_to_socket (s, sockaddr)
   variable
     i = -1,
     sock = socket (PF_UNIX, SOCK_STREAM, 0);
- 
+
   forever
     {
     i++;
@@ -155,7 +155,7 @@ private define connect_to_socket (s, sockaddr)
 
     break;
     }
- 
+
   return sock;
 }
 
@@ -179,7 +179,7 @@ private define _execv (s, argv, bg)
 
   s.pid = dopid (s);
 
-  ifnot (s.pid)
+  ifnot (s.pid) % allow for a function callback, call a default else
     {
     if (NULL != s.setid)
       if (NULL != s.uid && NULL != s.gid && NULL != s.user)
@@ -202,11 +202,11 @@ private define _execv (s, argv, bg)
           return NULL;
           }
         }
- 
+
     if (-1 == execv (argv[0], argv))
       return NULL;
     }
- 
+
   if (NULL == bg)
     {
     status = waitpid (s.pid, 0);

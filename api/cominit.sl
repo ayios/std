@@ -33,12 +33,16 @@ define shell_pre_header (argv)
   iarg++;
   if (APP.realshell)
     tostdout (strjoin (argv, " ") + "\n");
+  else
+    toscratch (strjoin (argv, " ") + "\n");
 }
 
 define shell_post_header ()
 {
   if (APP.realshell)
     tostdout ("[" + string (iarg) + "](" + getcwd + ")[" + string (SHELLLASTEXITSTATUS) + "]$ ");
+  else
+    toscratch ("[" + string (iarg) + "](" + getcwd + ")[" + string (SHELLLASTEXITSTATUS) + "]$ ");
 }
 
 ifnot (NULL == APP.excom)

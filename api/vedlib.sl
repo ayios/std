@@ -457,7 +457,7 @@ define __vfind_nr (indent, line, col, start, end, ishex, isoct, isbin)
   col = 0;
 
   ifnot (len mod 4)
-    while (col++, col < len && (@isbin = any (['0','1'] == nr[col]), @isbin)); 
+    while (col++, col < len && (@isbin = any (['0','1'] == nr[col]), @isbin));
 
   col = 0;
 
@@ -1109,11 +1109,49 @@ private define _restore_pos_ (pos, s)
   s._findex = pos._findex;
 }
 
+private define _rdregs_ ()
+{
+  return ['*',  '/', '%', '='];
+}
+
+private define _regs_ ()
+{
+  return [['A':'Z'], ['a':'z'], '*', '"', '/', '%'];
+}
+
+private define _get_reg_ (reg)
+{
+  ifnot (any ([_regs_, '='] == reg[0]))
+    return NULL;
+
+  if ("*" == reg)
+    return getXsel ();
+
+  if ("%" == reg)
+    return get_cur_buf ()._abspath;
+
+  if ("=" == reg)
+    {
+    variable res = __eval (NULL;return_str);
+    ifnot (NULL == res)
+      return res;
+    else
+      return NULL;
+    }
+
+  variable k = assoc_get_keys (REG);
+
+  ifnot (any (k == reg))
+    return NULL;
+
+  return REG[reg];
+}
+
 private define _set_reg_ (reg, sel)
 {
   variable k = assoc_get_keys (REG);
 
-  if (any ([['a':'z'], '*', '"', '/'] == reg[0]) || 0 == any (k == reg))
+  if (any (_regs_ () == reg[0]) || 0 == any (k == reg))
     REG[reg] = sel;
   else
     REG[reg] = REG[reg] + sel;
@@ -2266,6 +2304,7 @@ define set_modified (s)
   s.undo = [s.undo, d];
 
   variable pos = @Pos_Type;
+
   _store_pos_ (pos, s;;__qualifiers ());
 
   list_append (s.undoset, pos);
@@ -2366,7 +2405,8 @@ private variable
   s_col,
   s_fcol,
   s_lnr,
-  s_found;
+  s_found,
+  s_ltype;
 
 private define _init_search_hist_ ()
 {
@@ -2380,15 +2420,19 @@ private define _init_search_hist_ ()
 
 _init_search_hist_ ();
 
-private define s_exit_rout (s, pat, draw)
+private define s_exit_rout (s, pat, draw, cur_lang)
 {
+  ifnot (NULL == cur_lang)
+    ifnot (input->getlang () == cur_lang)
+      input->setlang (cur_lang);
+
   if (s_found && pat != NULL)
     {
     list_insert (s_history, pat);
     if (NULL == s_histindex)
       s_histindex = 0;
 
-    REG["/"] = pat;
+    _set_reg_ ("/", pat);
     }
 
   if (draw)
@@ -2396,8 +2440,18 @@ private define s_exit_rout (s, pat, draw)
       {
       markbacktick (s);
       s_fcol = s_fcol > s._maxlen ? s._indent : s_fcol;
-      s._i = s_lnr;
-      s.ptr[0] = s.rows[0];
+
+      if (s_lnr < s._avlins)
+        {
+        s._i = 0;
+        s.ptr[0] = s_lnr + 1;
+        }
+      else
+        {
+        s._i = s_lnr - 2;
+        s.ptr[0] = s.rows[0] + 2;
+        }
+
       s.ptr[1] = s_fcol;
       s._index = s_fcol;
       s._findex = s._indent;
@@ -2559,31 +2613,34 @@ private define search_forward (s, str)
 private define search (s)
 {
   variable
-    cur_lang = input->getlang (),
-    origlnr,
-    dothesearch,
-    type,
-    typesearch,
     chr,
-    pchr,
-    str,
-    pat = "";
+    origlnr,
+    dothesearch = qualifier_exists ("dothesearch"),
+    cur_lang = input->getlang (),
+    type = qualifier ("type", keys->BSLASH == s._chr ? "forward" : "backward"),
+    typesearch = type == "forward" ? &search_forward : &search_backward,
+    pchr = type == "forward" ? "/" : "?",
+    pat = qualifier ("pat",  ""),
+    str = pchr + pat;
+
+  s_found = 0;
+  s_lnr = qualifier ("lnr", __vlnr (s, '.'));
+  s_ltype = type;
+  s_fcol = s.ptr[1];
+  s_col = strlen (str);
+
+  if (dothesearch)
+    {
+    (@typesearch) (s, pat);
+    s_exit_rout (s, pat, s_found, cur_lang);
+    return;
+    }
+
+  origlnr = s_lnr;
 
   if (length (s_history))
     s_histindex = 0;
 
-  s_found = 0;
-  s_lnr = __vlnr (s, '.');
-
-  s_fcol = s.ptr[1];
-  origlnr = s_lnr;
-
-  type = keys->BSLASH == s._chr ? "forward" : "backward";
-  pchr = type == "forward" ? "/" : "?";
-  str = pchr;
-  s_col = 1;
-
-  typesearch = type == "forward" ? &search_forward : &search_backward;
   __vwrite_prompt (str, s_col);
 
   forever
@@ -2593,7 +2650,7 @@ private define search (s)
 
     if (033 == chr)
       {
-      s_exit_rout (s, NULL, 0);
+      s_exit_rout (s, NULL, 0, cur_lang);
       break;
       }
 
@@ -2641,7 +2698,7 @@ private define search (s)
 
     if ('\r' == chr)
       {
-      s_exit_rout (s, pat, s_found);
+      s_exit_rout (s, pat, s_found, cur_lang);
       break;
       }
 
@@ -2722,6 +2779,55 @@ private define search (s)
     input->setlang (cur_lang);
 }
 
+private define search_next (s)
+{
+  variable reg = _get_reg_ ("/");
+  if (NULL == reg)
+    return;
+
+  variable lnr = __vlnr (s, '.');
+
+  if (s_ltype == "forward")
+    if (lnr == s._len)
+      lnr = 0;
+    else
+      lnr++;
+  else
+    ifnot (lnr)
+      lnr = s._len;
+    else
+      lnr--;
+
+  search (s;pat = reg, type = s_ltype, lnr = lnr, dothesearch);
+}
+
+private define search_prev (s)
+{
+  variable reg = _get_reg_ ("/");
+  if (NULL == reg)
+    return;
+
+  variable lnr = __vlnr (s, '.');
+
+  variable ltype = s_ltype;
+
+  s_ltype = (ltype == "forward") ? "backward" : "forward";
+
+  if (s_ltype == "forward")
+    if (lnr == s._len)
+      lnr = 0;
+    else
+      lnr++;
+  else
+    ifnot (lnr)
+      lnr = s._len;
+    else
+      lnr--;
+
+  search (s;pat = reg, type = s_ltype, lnr = lnr, dothesearch);
+  s_ltype = ltype;
+}
+
 private define search_word (s)
 {
   variable
@@ -2741,6 +2847,7 @@ private define search_word (s)
   s_lnr = __vlnr (s, '.');
 
   type = '*' == s._chr ? "forward" : "backward";
+  s_ltype = type;
 
   typesearch = type == "forward" ? &search_forward : &search_backward;
 
@@ -2777,7 +2884,7 @@ private define search_word (s)
     {
     ifnot (s_found)
       {
-      s_exit_rout (s, NULL, 0);
+      s_exit_rout (s, NULL, 0, NULL);
       return;
       }
 
@@ -2788,13 +2895,13 @@ private define search_word (s)
 
     if (033 == chr)
       {
-      s_exit_rout (s, NULL, 0);
+      s_exit_rout (s, NULL, 0, NULL);
       return;
       }
 
     if ('\r' == chr)
       {
-      s_exit_rout (s, pat, s_found);
+      s_exit_rout (s, pat, s_found, NULL);
       return;
       }
 
@@ -3068,9 +3175,9 @@ vis.l_down = &v_l_down;
 
 private define v_l_loop (vs, s)
 {
-  variable chr, i, size = s.st_.st_size;
+  variable chr, i, size = s.st_.st_size, reg = "\"", reginit = 0;
 
-  while (chr = getch (), any ([vs.l_keys, ['0':'9']] == chr))
+  while (chr = getch (), any ([vs.l_keys, ['0':'9'], '"'] == chr))
     {
     VEDCOUNT = 1;
 
@@ -3086,6 +3193,22 @@ private define v_l_loop (vs, s)
 
       VEDCOUNT = integer (VEDCOUNT);
       }
+
+    if ('"' == chr)
+      if (reginit)
+        return;
+      else
+        {
+        reg = getch ();
+        ifnot (any (_regs_ () == reg))
+          return;
+
+        if (any (_rdregs_ == reg))
+          return;
+
+        reg = char (reg);
+        reginit = 1;
+        }
 
     if (chr == keys->DOWN)
       {
@@ -3116,7 +3239,7 @@ private define v_l_loop (vs, s)
 
     if ('y' == chr)
       {
-      _set_reg_ ("\"", strjoin (vs.lines, "\n") + "\n");
+      _set_reg_ (reg, strjoin (vs.lines, "\n") + "\n");
       seltoX (strjoin (vs.lines, "\n") + "\n");
       break;
       }
@@ -3160,7 +3283,7 @@ private define v_l_loop (vs, s)
 
     if ('d' == chr)
       {
-      _set_reg_ ("\"", strjoin (vs.lines, "\n") + "\n");
+      _set_reg_ (reg, strjoin (vs.lines, "\n") + "\n");
       seltoX (strjoin (vs.lines, "\n") + "\n");
       s.lines[vs.lnrs] = NULL;
       s.lines = s.lines[wherenot (_isnull (s.lines))];
@@ -3334,6 +3457,8 @@ private define v_char_mode (vs, s)
   variable
     sel,
     chr,
+    reginit = 0,
+    reg = "\"",
     cur = 0;
 
   vs.startcol = [vs.col[0]];
@@ -3343,8 +3468,24 @@ private define v_char_mode (vs, s)
 
   v_hl_ch (vs, s);
 
-  while (chr = getch (), any (vs.c_keys == chr))
+  while (chr = getch (), any ([vs.c_keys, '"'] == chr))
     {
+    if ('"' == chr)
+      if (reginit)
+        return;
+      else
+        {
+        reg = getch ();
+        ifnot (any (_regs_ () == reg))
+          return;
+
+        if (any (_rdregs_ == reg))
+          return;
+
+        reg = char (reg);
+        reginit = 1;
+        }
+
     if (keys->RIGHT == chr)
       {
       vs.c_right (s, cur);
@@ -3360,7 +3501,7 @@ private define v_char_mode (vs, s)
     if ('y' == chr)
       {
       sel = strjoin (vs.sel, "\n");
-      _set_reg_ ("\"", sel);
+      _set_reg_ (reg, sel);
       seltoX (sel);
       break;
       }
@@ -3372,7 +3513,7 @@ private define v_char_mode (vs, s)
         return;
 
       sel = strjoin (vs.sel, "\n");
-      _set_reg_ ("\"", sel);
+      _set_reg_ (reg, sel);
       seltoX (sel);
 
       variable line = s.lines[vs.startlnr];
@@ -4348,18 +4489,19 @@ private define ed_newline (s)
 
 private define ed_Put (s)
 {
-  variable reg = qualifier ("reg", "\"");
+  variable reg = _get_reg_ (qualifier ("reg", "\""));
 
-  ifnot (assoc_key_exists (REG, reg))
+  if (NULL == reg)
     return;
 
   variable
-    lines = strchop (REG[reg], '\n', 0),
+    lines = strchop (reg, '\n', 0),
     lnr = __vlnr (s, '.');
 
-  if ('\n' == REG[reg][-1])
+  if (length (lines) > 1)
     {
-    lines = lines[[:-2]];
+    variable ind = '\n' == reg[-1] ? -2 : -1;
+    lines = lines[[:ind]];
     ifnot (lnr)
       s.lines = [lines, s.lines];
     else
@@ -4382,19 +4524,21 @@ private define ed_Put (s)
 
 private define ed_put (s)
 {
-  variable reg = qualifier ("reg", "\"");
-  variable lines = strchop (REG[reg], '\n', 0);
+  variable reg = _get_reg_ (qualifier ("reg", "\""));
   variable lnr = __vlnr (s, '.');
 
-  ifnot (assoc_key_exists (REG, reg))
+  if (NULL == reg)
     if (qualifier_exists ("return_line"))
       return s.lines[lnr];
     else
       return;
 
-  if ('\n' == REG[reg][-1])
+  variable lines = strchop (reg, '\n', 0);
+
+  if (length (lines) > 1)
     {
-    lines = lines[[:-2]];
+    variable ind = '\n' == reg[-1] ? -2 : -1;
+    lines = lines[[:ind]];
     s.lines = [s.lines[[:lnr]], lines, s.lines[[lnr + 1:]]];
     s._len += length (lines);
     }
@@ -4492,23 +4636,8 @@ private define ins_reg (s, line)
 {
   variable reg = getch ();
 
-  ifnot (any (['=', '/', '%', '"', '*', ['a':'z'], ['A':'Z']] == reg))
+  ifnot (any (_regs_ () == reg))
     return;
-
-  if ('=' == reg)
-    {
-    variable res = __eval (NULL;return_str);
-    ifnot (NULL == res)
-      REG["="] = res;
-    else
-      return;
-    }
-
-  if ('*' == reg)
-    REG["*"] = getXsel ();
-
-  if ('%' == reg)
-    REG["%"] = s._abspath;
 
   @line = ed_put (s;reg = char (reg), return_line);
 }
@@ -5058,6 +5187,7 @@ private define ins_esc (is, s, line)
     }
 
   topline (" -- pager --");
+
   __vdraw_tail (s);
 }
 
@@ -5625,11 +5755,8 @@ define __substitute ()
 private define _register_ (s)
 {
   variable reg = getch ();
-  ifnot (any ([['a':'z'], ['A':'Z'], '"', '*'] == reg))
+  ifnot (any (_regs_ () == reg))
     return;
-
-  if (reg == '*')
-    REG["*"] = getXsel ();
 
   reg = char (reg);
 
@@ -5693,6 +5820,8 @@ VED_PAGER[string ('0')]           = &pg_bol;
 VED_PAGER[string ('u')]           = &undo;
 VED_PAGER[string ('#')]           = &search_word;
 VED_PAGER[string ('*')]           = &search_word;
+VED_PAGER[string ('n')]           = &search_next;
+VED_PAGER[string ('N')]           = &search_prev;
 VED_PAGER[string ('v')]           = &vis_mode;
 VED_PAGER[string ('V')]           = &vis_mode;
 VED_PAGER[string ('~')]           = &ed_toggle_case;
@@ -5834,3 +5963,5 @@ new_wind ();
 %%% DO
 % backspace on pager, deletes ws in front of cursor [DONE]
 % real time code evaluation
+% insert menu for C-X top
+  % math symbols
