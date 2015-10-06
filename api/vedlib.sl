@@ -2444,7 +2444,7 @@ private define s_exit_rout (s, pat, draw, cur_lang)
       if (s_lnr < s._avlins)
         {
         s._i = 0;
-        s.ptr[0] = s_lnr + 1;
+        s.ptr[0] = s.rows[0] + s_lnr;
         }
       else
         {
@@ -2774,17 +2774,10 @@ private define search (s)
     if (dothesearch)
       (@typesearch) (s, pat);
     }
-
-  ifnot (input->getlang () == cur_lang)
-    input->setlang (cur_lang);
 }
 
-private define search_next (s)
+private define s_getlnr (s)
 {
-  variable reg = _get_reg_ ("/");
-  if (NULL == reg)
-    return;
-
   variable lnr = __vlnr (s, '.');
 
   if (s_ltype == "forward")
@@ -2798,37 +2791,28 @@ private define search_next (s)
     else
       lnr--;
 
-  search (s;pat = reg, type = s_ltype, lnr = lnr, dothesearch);
+  return lnr;
 }
 
-private define search_prev (s)
+private define s_backslash_reg_ (s)
 {
   variable reg = _get_reg_ ("/");
   if (NULL == reg)
     return;
 
-  variable lnr = __vlnr (s, '.');
+  if (s._chr == 'N')
+    {
+    variable ltype = s_ltype;
+    s_ltype = (ltype == "forward") ? "backward" : "forward";
+    }
 
-  variable ltype = s_ltype;
+  search (s;pat = reg, type = s_ltype, lnr = s_getlnr (s), dothesearch);
 
-  s_ltype = (ltype == "forward") ? "backward" : "forward";
-
-  if (s_ltype == "forward")
-    if (lnr == s._len)
-      lnr = 0;
-    else
-      lnr++;
-  else
-    ifnot (lnr)
-      lnr = s._len;
-    else
-      lnr--;
-
-  search (s;pat = reg, type = s_ltype, lnr = lnr, dothesearch);
-  s_ltype = ltype;
+  if (s._chr == 'N')
+    s_ltype = ltype;
 }
 
-private define search_word (s)
+private define s_search_word_ (s)
 {
   variable
     str,
@@ -5818,10 +5802,10 @@ VED_PAGER[string ('$')]           = &pg_eol;
 VED_PAGER[string ('^')]           = &pg_bolnblnk;
 VED_PAGER[string ('0')]           = &pg_bol;
 VED_PAGER[string ('u')]           = &undo;
-VED_PAGER[string ('#')]           = &search_word;
-VED_PAGER[string ('*')]           = &search_word;
-VED_PAGER[string ('n')]           = &search_next;
-VED_PAGER[string ('N')]           = &search_prev;
+VED_PAGER[string ('#')]           = &s_search_word_;
+VED_PAGER[string ('*')]           = &s_search_word_;
+VED_PAGER[string ('n')]           = &s_backslash_reg_;
+VED_PAGER[string ('N')]           = &s_backslash_reg_;
 VED_PAGER[string ('v')]           = &vis_mode;
 VED_PAGER[string ('V')]           = &vis_mode;
 VED_PAGER[string ('~')]           = &ed_toggle_case;
