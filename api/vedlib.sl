@@ -250,13 +250,35 @@ define __get_null_str (indent)
 
 define __vgetlines (fname, indent, st)
 {
-  if (-1 == access (fname, F_OK) || 0 == st.st_size)
+  if (-1 == access (fname, F_OK))
     {
     st.st_size = 0;
     return [__get_null_str (indent)];
     }
 
+  if (-1 == access (fname, R_OK))
+    {
+    send_msg_dr (fname + ": is not readable", 1, NULL, NULL);
+    st.st_size = 0;
+    return [__get_null_str (indent)];
+    }
+
+  if (-1 == access (fname, W_OK))
+    {
+    send_msg_dr (fname + ": is Read Only", 1, NULL, NULL);
+    st._flags |= VED_RDONLY;
+    }
+
+  variable lines = readfile (fname);
+
+  if (NULL == lines || 0 == length (lines))
+    {
+    lines = [__get_null_str (indent)];
+    st.st_size = 0;
+    }
+
   indent = repeat (" ", indent);
+
   return array_map (String_Type, &sprintf, "%s%s", indent, readfile (fname));
 }
 
@@ -564,19 +586,19 @@ private define waddline (s, line, clr, row)
 private define _set_clr_ (s, clr, set)
 {
   s.clrs[-1] = clr;
-  SMGIMG[s.rows[-1]][1] = clr;
+  smg->IMG[s.rows[-1]][1] = clr;
   if (set)
     smg->hlregion (clr, s.rows[-1], 0, 1, COLUMNS);
 }
 
-define __vset_clr_fg (b, set)
+define __vset_clr_fg (s, set)
 {
-  _set_clr_ (b, VED_INFOCLRFG, set);
+  _set_clr_ (s, VED_INFOCLRFG, set);
 }
 
-define __vset_clr_bg (b, set)
+define __vset_clr_bg (s, set)
 {
-  _set_clr_ (b, VED_INFOCLRBG, set);
+  _set_clr_ (s, VED_INFOCLRBG, set);
 }
 
 private define _initrowsbuffvars_ (s)
@@ -1218,7 +1240,8 @@ private define _draw_ (s)
 {
   if (-1 == s._len)
     {
-    s.lins = [" "];
+    send_msg ("_draw_ (), caught -1 == s._len condition", 1);
+    s.lins = [__get_null_str (s._indent)];
     s.lnrs = [0];
     s._ii = 0;
 
@@ -1258,20 +1281,23 @@ private define _draw_ (s)
   ar = array_map (String_Type, &substr, s.lins, 1, s._maxlen);
 
   variable indices = [0:length (ar) - 1];
+  variable clrs = @s.clrs;
+  variable arlen = length (ar);
+  variable rowslen = length (s.rows);
 
-  if (length (ar) < length (s.rows) - 1)
+  if (arlen < rowslen - 1)
     {
-    variable t = String_Type[length (s.rows) - length (ar) - 1];
-    t[*] = " ";
+    clrs[[arlen:length (clrs) -2]] = 5;
+    variable t = String_Type[rowslen - arlen - 1];
+    t[*] = "~";
     ar = [ar, t];
     }
 
   ar = [ar, __vtail (s;;__qualifiers ())];
 
-  _for i (0, length (ar) - 1)
-    SMGIMG[s.rows[i]] = {[ar[i]], [s.clrs[i]], [s.rows[i]], [s.cols[i]]};
+  smg->set_img (s.rows, ar, clrs, s.cols);
 
-  smg->aratrcaddnstr (ar, s.clrs, s.rows, s.cols, COLUMNS);
+  smg->aratrcaddnstr (ar, clrs, s.rows, s.cols, COLUMNS);
 
   s.lexicalhl (ar[indices], s.vlins);
 
@@ -1425,10 +1451,8 @@ private define autoindent (s, indent, line)
     @indent = (@f) (s, line);
 }
 
-private define lexicalhl ()
+private define lexicalhl (s, lines, vlines)
 {
-  loop (3)
-    pop ();
 }
 
 define deftype ()

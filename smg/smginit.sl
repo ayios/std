@@ -1,3 +1,33 @@
+importfrom ("std", "slsmg", NULL, &on_eval_err);
+
+public variable LINES     = SLsmg_Screen_Rows;
+public variable COLUMNS   = SLsmg_Screen_Cols;
+public variable PROMPTROW = SLsmg_Screen_Rows - 2;
+public variable MSGROW    = SLsmg_Screen_Rows - 1;
+public variable COLOR = struct
+  {
+  normal = "white",
+  error = "brightred",
+  success = "brightgreen",
+  warn = "brightmagenta",
+  prompt = "yellow",
+  border = "brightred",
+  focus = "brightcyan",
+  hlchar = "blackonyellow",
+  hlregion = "white",
+  topline = "blackonbrown",
+  infofg = "blue",
+  infobg = "brown",
+  diffpl = "blackongreen",
+  diffmn = "blackoncyan",
+  visual = "blackonbrown",
+  };
+
+static variable IMG;
+
+SLsmg_Tab_Width = 1;
+
+private variable SMGINITED = 0;
 private variable SUSPENDSTATE = 0;
 
 private define set_basic_color (field, color)
@@ -44,11 +74,14 @@ array_map (Void_Type, &slsmg_define_color, [20:21:1],
 array_map (Void_Type, &slsmg_define_color, [22:23:1],
   "black", array_map (String_Type, &substr,
   ["blackongreen", "blackoncyan"], 8, -1));
- 
-static define get_color (clr)
+
+private define get_color (clr)
 {
   return get_struct_field (COLOR, clr);
 }
+
+array_map (Void_Type, &set_struct_field, COLOR, get_struct_field_names (COLOR),
+  array_map (Integer_Type, &get_color, get_struct_field_names (COLOR)));
 
 static define refresh ()
 {
@@ -136,8 +169,7 @@ static define addnstr (str, len)
 static define addnstrdr (str, len, nr, nc)
 {
   slsmg_write_nstring (str, len);
-  slsmg_gotorc (nr, nc);
-  slsmg_refresh ();
+  setrcdr (nr, nc);
 }
 
 static define atrcaddnstr (str, clr, row, col, len)
@@ -150,8 +182,7 @@ static define atrcaddnstr (str, clr, row, col, len)
 static define atrcaddnstrdr (str, clr, row, col, nr, nc, len)
 {
   atrcaddnstr (str, clr, row, col, len);
-  slsmg_gotorc (nr, nc);
-  slsmg_refresh ();
+  setrcdr (nr, nc);
 }
 
 static define aratrcaddnstr (ar, clrs, rows, cols, len)
@@ -162,8 +193,7 @@ static define aratrcaddnstr (ar, clrs, rows, cols, len)
 static define aratrcaddnstrdr (ar, clrs, rows, cols, nr, nc, len)
 {
   array_map (Void_Type, &atrcaddnstr, ar, clrs, rows, cols, len);
-  slsmg_gotorc (nr, nc);
-  slsmg_refresh ();
+  setrcdr (nr, nc);
 }
 
 static define eraseeol ()
@@ -183,14 +213,21 @@ static define atrceraseeoldr (row, col)
   slsmg_refresh ();
 }
 
-static define set_img (lines)
+static define set_img (lines, ar, clrs, cols)
 {
   variable i;
- 
-  SMGIMG = List_Type[lines];
- 
-  _for i (0, length (SMGIMG) - 1)
-    SMGIMG[i] = {" ", 0, i, 0};
+
+  if (NULL == clrs)
+    clrs = (clrs = Integer_Type[length (lines)], clrs[*] = 0, clrs);
+
+  if (NULL == cols)
+    cols = (cols = Integer_Type[length (lines)], cols[*] = 0, cols);
+
+  if (NULL == ar)
+    ar = (ar = String_Type[length (lines)], ar[*] = " ", ar);
+
+  _for i (0, length (lines) -1)
+    IMG[lines[i]] = {ar[i], clrs[i], lines[i], cols[i]};
 }
 
 static define restore (r, ptr, refresh)
@@ -205,18 +242,35 @@ static define restore (r, ptr, refresh)
 
   _for i (0, len - 1)
     {
-    ar = [ar, SMGIMG[r[i]][0]];
-    clrs = [clrs, SMGIMG[r[i]][1]];
-    rows = [rows, SMGIMG[r[i]][2]];
-    cols = [cols, SMGIMG[r[i]][3]];
+    ar = [ar, IMG[r[i]][0]];
+    clrs = [clrs, IMG[r[i]][1]];
+    rows = [rows, IMG[r[i]][2]];
+    cols = [cols, IMG[r[i]][3]];
     }
 
   aratrcaddnstr (ar, clrs, rows, cols, columns);
 
   ifnot (NULL == ptr)
-    smg->setrc (ptr[0], ptr[1]);
+    setrc (ptr[0], ptr[1]);
 
   ifnot (NULL == refresh)
-    smg->refresh ();
+    refresh ();
 }
 
+public define send_msg_dr (str, clr, row, col)
+{
+  variable
+    lcol = NULL == col ? strlen (str) : col,
+    lrow = NULL == row ? MSGROW : row;
+
+  atrcaddnstrdr (str, clr, MSGROW, 0, lrow, lcol, COLUMNS);
+}
+
+public define send_msg (str, clr)
+{
+  atrcaddnstr (str, clr, MSGROW, 0, COLUMNS);
+}
+
+init ();
+IMG = List_Type[LINES - 2];
+set_img ([0:LINES - 3], NULL, NULL, NULL);

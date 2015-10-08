@@ -1,12 +1,8 @@
 private variable esc_pend = 2;
-static variable alias = Assoc_Type[String_Type];
-static variable curlang;
-
-static define toggle_map ()
-{
-  curlang = curlang == length (maps) - 1 ? 0 : curlang + 1;
-  return maps[curlang];
-}
+private variable curlang = 0;
+private variable getchar_lang;
+private variable maps = Ref_Type[2];
+private variable TTY_INITED = 0;
 
 private define el_getch ()
 {
@@ -89,6 +85,12 @@ private define en_getch ()
   return chr;
 }
 
+private define toggle_map ()
+{
+  curlang = curlang == length (maps) - 1 ? 0 : curlang + 1;
+  return maps[curlang];
+}
+
 public define getch ();
 public define getch ()
 {
@@ -103,7 +105,7 @@ public define getch ()
   variable chr = (@getchar_lang) (;;__qualifiers ());
   while (any ([-1, 0] == chr))
     chr = (@getchar_lang) (;;__qualifiers ());
- 
+
   if (any (keys->rmap.changelang == chr))
     if (qualifier_exists ("disable_langchange"))
       return chr;
@@ -138,7 +140,7 @@ static define get_el_lang ()
 
 static define getmapname ()
 {
-  return alias[string (maps[curlang])];
+  return strup (substr (string (maps[curlang]), 2, 2));
 }
 
 static define getlang ()
@@ -159,5 +161,7 @@ static define at_exit ()
   TTY_INITED = @(__get_reference ("input->TTY_Inited"));
 }
 
-alias["&en_getch"] = "US";
-alias["&el_getch"] = "EL";
+maps[0] = input->get_en_lang ();
+maps[1] = input->get_el_lang ();
+
+getchar_lang = maps[0];
