@@ -32,6 +32,7 @@ private variable regexps = [
 |(?<=&|\s|\[|\()(exception_to_array(?=\s|,))\
 |(?<=\s|\[|^)((PERM|FILE_FLAGS)+\s*(?==|\[))\
 |(?<=\s|\[|:)((LINES|COLUMNS)(?=\s|:|\]|\)))\
+|(?<=\s|\[|:)(((PROMPT|MSG)+ROW)(?=\s|:|\]|\)))\
 |(?<=&|\s|\[|\(|^)((getref|load|import)+f...(?=\s|,))\
 |(?<=\s|\[|\(|^)((LCL|USR|STD|MDL|A|HIST|ROOT)+(DATA)?DIR(?=\s|,|\]|\[|;|\))))+"R, 0),
 % intrinsic functions
@@ -111,6 +112,7 @@ private variable regexps = [
 |(?<=&|\s|\[|\()(string_match(?=\s|,))\
 |(?<=&|\s|\[|\(|^)(sigprocmask(?=\s|,))\
 |(?<=&|\s|\[|\()(list_to_array(?=\s|,))\
+|(?<=&|\s|\[|\()(_function_name(?=\s|,))\
 |(?<=&|\s|\[|\(|^)(__set_argc_argv(?=\s))\
 |(?<=&|\s|\[|\()(l?stat_\w*[e|s](?=\s|,))\
 |(?<=&|\s|\[|\()(qualifier_exists(?=\s|,))\

@@ -376,3 +376,17 @@ define clear_stack ()
   while (d--, d > 1)
     pop ();
 }
+
+define ns_use (ns, prev)
+{
+  ifnot (NULL == prev)
+    @prev = current_namespace ();
+
+  try
+    use_namespace (ns);
+  catch NamespaceError:
+    {
+    eval ("sleep (0.000001);", ns);
+    use_namespace (ns);
+    }
+}

@@ -258,14 +258,14 @@ define __vgetlines (fname, indent, st)
 
   if (-1 == access (fname, R_OK))
     {
-    send_msg_dr (fname + ": is not readable", 1, NULL, NULL);
+    send_msg (fname + ": is not readable", 1);
     st.st_size = 0;
     return [__get_null_str (indent)];
     }
 
   if (-1 == access (fname, W_OK))
     {
-    send_msg_dr (fname + ": is Read Only", 1, NULL, NULL);
+    send_msg (fname + ": is Read Only", 1);
     st._flags |= VED_RDONLY;
     }
 
@@ -279,7 +279,7 @@ define __vgetlines (fname, indent, st)
 
   indent = repeat (" ", indent);
 
-  return array_map (String_Type, &sprintf, "%s%s", indent, readfile (fname));
+  return array_map (String_Type, &sprintf, "%s%s", indent, lines);
 }
 
 private define _on_lang_change_ (mode, ptr)
@@ -1240,7 +1240,7 @@ private define _draw_ (s)
 {
   if (-1 == s._len)
     {
-    send_msg ("_draw_ (), caught -1 == s._len condition", 1);
+    send_msg ("_draw_ (), caught -1 == s._len condition" + s._fname, 1);
     s.lins = [__get_null_str (s._indent)];
     s.lnrs = [0];
     s._ii = 0;
@@ -1287,9 +1287,10 @@ private define _draw_ (s)
 
   if (arlen < rowslen - 1)
     {
-    clrs[[arlen:length (clrs) -2]] = 5;
+    ifnot (s._type == "ashell")
+      clrs[[arlen:length (clrs) -2]] = 5;
     variable t = String_Type[rowslen - arlen - 1];
-    t[*] = "~";
+    t[*] = s._type == "ashell" ? " " : "~";
     ar = [ar, t];
     }
 

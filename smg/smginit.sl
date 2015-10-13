@@ -218,19 +218,28 @@ static define set_img (lines, ar, clrs, cols)
   variable i;
 
   if (NULL == clrs)
-    clrs = (clrs = Integer_Type[length (lines)], clrs[*] = 0, clrs);
+    {
+    clrs = Integer_Type[length (lines)];
+    clrs[*] = 0;
+    }
 
   if (NULL == cols)
-    cols = (cols = Integer_Type[length (lines)], cols[*] = 0, cols);
+    {
+    cols = Integer_Type[length (lines)];
+    cols[*] = 0;
+    }
 
   if (NULL == ar)
-    ar = (ar = String_Type[length (lines)], ar[*] = " ", ar);
+    {
+    ar = String_Type[length (lines)];
+    ar[*] = " ";
+    }
 
   _for i (0, length (lines) -1)
     IMG[lines[i]] = {ar[i], clrs[i], lines[i], cols[i]};
 }
 
-static define restore (r, ptr, refresh)
+static define restore (r, ptr, redraw)
 {
   variable len = length (r);
   variable ar = String_Type[0];
@@ -253,7 +262,7 @@ static define restore (r, ptr, refresh)
   ifnot (NULL == ptr)
     setrc (ptr[0], ptr[1]);
 
-  ifnot (NULL == refresh)
+  ifnot (NULL == redraw)
     refresh ();
 }
 
