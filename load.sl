@@ -295,23 +295,6 @@ public define getreffrom (ns, lib, dons, errfunc)
     }
 }
 
-private define _execfrom_ (ns, lib, func, errfunc)
-{
-  func = NULL == func ? "main" : func;
-  return getreffrom (ns, lib, "main", errfunc;fun = func, force);
-}
-
-public define execfrom (ns, lib, func, errfunc, args)
-{
-  func = _execfrom_ (ns, lib, func, errfunc);
-  % but what to do, if func is NULL?
-  % it can return NULL, but NULL is a valid function returned value
-  % and even the caller might not wait a value.
-  % so the caller must be sure that ns, lib, func exists.
-  % this is risky.
-  (@func) (__push_list (args);;__qualifiers ());
-}
-
 public define loadfile (file, ns, errfunc)
 {
   variable exception;
@@ -375,18 +358,4 @@ define clear_stack ()
   variable d = _stkdepth () + 1;
   while (d--, d > 1)
     pop ();
-}
-
-define ns_use (ns, prev)
-{
-  ifnot (NULL == prev)
-    @prev = current_namespace ();
-
-  try
-    use_namespace (ns);
-  catch NamespaceError:
-    {
-    eval ("sleep (0.000001);", ns);
-    use_namespace (ns);
-    }
 }

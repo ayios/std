@@ -1,39 +1,7 @@
-%typedef struct
-%  {
-%  resume,
-%  _resume,
-%  main,
-%  keys,
-%  } Lib_Type;
-%
-%private define _null_ ()
-%{
-%%CLEAR
-%}
-%
-%typedef struct
-%  {
-%  func,
-%  regstd,
-%  args,
-%  } Action_Type;
-%
+%typedef struct  { resume, _resume,  main, keys, %  } Lib_Type;
+%private define _null_ () %{ %%CLEAR %}
+%typedef struct   {   func,   regstd,   args,   } Action_Type; 
 %private variable _L_ = Assoc_Type[Lib_Type];
-%
-%static define __init__ (pgnam)
-%{
-%  variable s = @Lib_Type;
-%%  s.keys = Assoc_Type[Action_Type];
-%%  s.keys["key"].func = &_null_;
-%%  s = struct {std[fields]};
-%%  f = qualifier ("features");
-%%  _for i (0, length (f) - 1)
-%%  s = {@s, f}; % growstruct ()
-%}
-%
-%% is under resuming => var
-%% get lines -> return an array
-%
 %% list type for the stack
 %% l = __pop_list( 
 %%            __push_list ({11,12,13,14,10}),
@@ -43,15 +11,50 @@
 %
 %
 
-ns_use ("de", &$1);
+$1 = current_namespace ();
+
+eval ("sleep (0.000001);", "ns");
+use_namespace ("ns");
+
+private define new__ (s, ns)
+{
+  eval ("sleep (0.000001);", ns);
+
+  variable fields = qualifier ("__");
+
+  if (NULL == fields)
+    return;
+
+  eval ("static variable __ = struct {" + fields + "};", ns);
+}
+
+private define use__ (s, ns, prev)
+{
+  ifnot (NULL == prev)
+    @prev = current_namespace ();
+
+  try
+    use_namespace (ns);
+  catch NamespaceError:
+    {
+    s.new (ns;;__qualifiers ());
+    use_namespace (ns);
+    }
+}
+
+static variable __ = struct {use = &use__, new = &new__};
+
+__.use ("de", NULL;__ = "bug");
 
 private variable _debug = 0;
-static define bug(msg){ifnot(_debug)ifnot(qualifier_exists("force"))return;
+private define bug__(msg){ifnot(_debug)ifnot(qualifier_exists("force"))return;
 send_msg_dr(msg,1,NULL,NULL);if(qualifier_exists("wait"))()=getch();}
 
-ns_use ("io", NULL);
+__.bug = &bug__;
 
-static define read (fn)
+ns->__.use ("io", NULL;__ = "read");
+
+private define read (s, fn)
 {
   variable fd = open (fn, O_RDONLY);
   variable buf;
@@ -66,7 +69,17 @@ static define read (fn)
   return str;
 }
 
-ns_use ("R", NULL);
+__.read = &read;
+
+ns->__.use ("an", NULL;__ = "fun");
+
+private define fun__ (buf)
+{
+}
+
+__.fun = &fun__;
+
+ns->__.use ("R", NULL;__ = "rehash");
 
 private variable _T = Assoc_Type[DataType_Type];
 _T["i"] = Integer_Type;
@@ -101,7 +114,7 @@ private define reg_fun (fun)
   variable fnf = qualifier ("fn_fun", &_fnf_);
   variable fn = (@fnf) (qualifier ("fun", fun);;__qualifiers ());
   variable st = stat_file (fn);
-  variable buf = io-> read (fn);
+  variable buf = io->__.read (fn);
   variable f = struct
     {
     mtime = st.st_mtime,
@@ -128,10 +141,6 @@ private define R_ (req)
 {
   ifnot (assoc_key_exists (_r_, req))
     (@_R_[req]) (req;;__qualifiers ());
-}
-
-static define function (buf)
-{
 }
 
 static define _R_get (req)
@@ -161,16 +170,10 @@ public define R__ ()
     }
 }
 
-
-%%%
-
-static variable __ = struct
-{
-rehash = _R_get ("rehash__";dir = path_dirname (__FILE__) + "/reqs/", ext = ""),
-};
+__.rehash = _R_get ("rehash__";dir = path_dirname (__FILE__) + "/reqs/", ext = ""),
 
 $1 = strlen ($1) ? $1 : "Global";
-ns_use (__tmp ($1), NULL);
+ns->__.use (__tmp ($1), NULL);
 
 %$6 = R__ ("nr");
 %$7 = (@r-> _R_get ("nr"));

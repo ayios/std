@@ -1,4 +1,4 @@
 private define rehash__ (s, fun)
 {
-  de->bug ("should rehash `" + fun + "'function OR register it to _R_";;__qualifiers ());
+  de->__.bug ("should rehash `" + fun + "'function OR register it to _R_";;__qualifiers ());
 }
