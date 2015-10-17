@@ -116,6 +116,7 @@ private variable regexps = [
 |(?<=&|\s|\[|\(|^)(__set_argc_argv(?=\s))\
 |(?<=&|\s|\[|\()(l?stat_\w*[e|s](?=\s|,))\
 |(?<=&|\s|\[|\()(qualifier_exists(?=\s|,))\
+|(?<=&|\s|\[|\(|^)(new_exception)(?=\s|,)\
 |(?<=&|\s|\[|\(|@)(__get_reference(?=\s|,))\
 |(?<=&|\s|\[|\()(assoc_\w*_\w*[s,y](?=\s|,))\
 |(?<=&|\s|\[|\(|;|@)(__qualifiers(?=\s|,|\)))\

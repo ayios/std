@@ -745,8 +745,8 @@ define __vdraw_wind ()
     s.draw (;dont_draw);
     }
 
-  cur.draw ();
-  smg->setrc (cur.ptr[0], cur.ptr[1]);
+  cur.draw (;dont_draw);
+  toplinedr ("-- pager --");
   if (cur._autochdir && 0 == VED_ISONLYPAGER)
     () = chdir (cur._dir);
 }
@@ -1966,7 +1966,7 @@ private define pg_Yank (s)
   seltoX (line + "\n");
 }
 
-private define pg_reread (s)
+define __vreread (s)
 {
   s.lines = __vgetlines (s._fname, s._indent, s.st_);
 
@@ -5793,7 +5793,7 @@ private define _register_ (s)
 VED_PAGER[string ('"')] = &_register_;
 VED_PAGER[string (keys->CTRL_a)]  = &_incr_nr_;
 VED_PAGER[string (keys->CTRL_x)]  = &_decr_nr_;
-VED_PAGER[string (keys->CTRL_l)]  = &pg_reread;
+VED_PAGER[string (keys->CTRL_l)]  = &__vreread;
 VED_PAGER[string (keys->UP)]      = &pg_up;
 VED_PAGER[string (keys->DOWN)]    = &pg_down;
 VED_PAGER[string (keys->ESC_esc)] = &pg_write_on_esc;

@@ -36,10 +36,12 @@ define addfname (fname)
 private define _edit_other ()
 {
   ifnot (_NARGS)
+    {
+    __vreread (get_cur_buf ());
     return;
+    }
 
   variable fname = ();
-
   addfname (fname);
 }
 
