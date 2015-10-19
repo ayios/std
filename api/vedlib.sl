@@ -423,8 +423,8 @@ define __get_hex (chr, dir)
 }
 
 %define string_get_inline_nr_as_str (str)
-%{ % %
-%} % %
+%{
+%}
 
 define __vfind_nr (indent, line, col, start, end, ishex, isoct, isbin)
 {
@@ -486,6 +486,15 @@ define __vfind_nr (indent, line, col, start, end, ishex, isoct, isbin)
   if (1 < len && 0 == @isbin)
     if ('0' == nr[0])
       while (col++, col < len && (@isoct = any (['0':'7'] == nr[col]), @isoct));
+
+  if (nr[-1] == '.')
+    if (len > 1)
+      {
+      nr = substr (nr, 1, len - 1);
+      @end--;
+      }
+    else
+      return "";
 
   if (@ishex || @isoct || @isbin)
     try
@@ -745,8 +754,8 @@ define __vdraw_wind ()
     s.draw (;dont_draw);
     }
 
-  cur.draw (;dont_draw);
-  toplinedr ("-- pager --");
+  cur.draw ();
+  smg->setrc (cur.ptr[0], cur.ptr[1]);
   if (cur._autochdir && 0 == VED_ISONLYPAGER)
     () = chdir (cur._dir);
 }
@@ -2177,9 +2186,10 @@ private define _set_nr_ (s, incrordecr)
 
   variable format = sprintf ("%s%%%s",
     ishex ? "0x0" : isoct ? "0" : "",
-    ishex ? "x" : isoct ? "o" : isbin ? "B" : isdbl ? "f" : "d");
+    ishex ? "x" : isoct ? "o" : isbin ? "B" : isdbl ? ".3f" : "d");
 
   nr = sprintf (format, nr);
+
   if (isbin)
     while (strlen (nr) mod 4)
       nr = "0" + nr;
@@ -3250,6 +3260,7 @@ private define v_l_loop (vs, s)
       {
       _set_reg_ (reg, strjoin (vs.lines, "\n") + "\n");
       seltoX (strjoin (vs.lines, "\n") + "\n");
+      de->__.bug ("yanked");
       break;
       }
 
@@ -3313,6 +3324,7 @@ private define v_l_loop (vs, s)
       s.st_.st_size = getsizear (s.lines);
       set_modified (s);
       s.draw ();
+      de->__.bug ("deleted");
       return;
       }
 
@@ -3512,6 +3524,7 @@ private define v_char_mode (vs, s)
       sel = strjoin (vs.sel, "\n");
       _set_reg_ (reg, sel);
       seltoX (sel);
+      de->__.bug ("yanked");
       break;
       }
 
@@ -3555,6 +3568,7 @@ private define v_char_mode (vs, s)
       waddline (s, __vgetlinestr (s, s.lines[vs.startlnr], 1), 0, s.ptr[0]);
 
       __vdraw_tail (s);
+      _->__._ ("de").__.bug ("deleted");
       return;
       }
     }
