@@ -4659,7 +4659,7 @@ private define ins_reg (s, line)
 {
   variable reg = getch ();
 
-  ifnot (any (_regs_ () == reg))
+  ifnot (any ([_regs_ (), '='] == reg))
     return;
 
   @line = ed_put (s;reg = char (reg), return_line);
