@@ -109,7 +109,7 @@ private variable vis = struct
   bw_up,
   bw_left,
   bw_right,
-  bw_keys = ['x', 'I', 'd', 'y', keys->DOWN, keys->UP, keys->RIGHT, keys->LEFT],
+  bw_keys = ['x', 'I', 'i', 'd', 'y', keys->DOWN, keys->UP, keys->RIGHT, keys->LEFT],
   bw_maxlen,
   needsdraw,
   startrow,
@@ -3777,7 +3777,7 @@ private define v_bw_mode (vs, s)
       continue;
       }
 
-    if ('d' == chr)
+    if (any (['d', 'x'] == chr))
       {
       sel = strjoin (vs.sel, "\n");
       _set_reg_ ("\"", sel);
@@ -3812,7 +3812,7 @@ private define v_bw_mode (vs, s)
       break;
       }
 
-    if ('I' == chr)
+    if (any (['I', 'i'] == chr))
       {
       variable t = rline->__gettxt ("", vs.vlins[0] - 1, vs.startcol)._lin;
       _for i (0, length (vs.lnrs) - 1)
