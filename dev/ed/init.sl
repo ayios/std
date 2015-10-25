@@ -36,34 +36,32 @@ private define error__handler ()
   variable l__ = _NS_[err.ns].__;
 
   if (NULL == l__)
-    return;
+    throw err.exc;
 
-  variable err_fun = l__.err_handler;
+  variable err_fun = l__.error_handler;
 
   if (NULL == err_fun)
-    return;
+    throw err.exc;
 
   (@err_fun) (err);
+}
+
+private define gen_err_s (fun, line)
+{
+  return struct {fun = fun, line = line};
 }
 
 private define check__ns (ns)
 {
   ifnot (assoc_key_exists (_NS_, ns))
     ifnot (qualifier_exists ("init__ns"))
-      {
-      ___ ("de").bug (ns + " doesn't exists, specify the 'init__ns' qualifier to set it");
-      ___ ("err").set_errno (NULL, ns,
-        ___ ("err").exc_to_array ( ___ ("err").exc_generate ("", ns + "doesn't exists",
-          NULL, _function_name,  __LINE__, "__",  "Run Time Error", __RunTimeError)));
-
-      error__handler ();
-      return NULL;
-      }
+      throw __RunTimeError, ns + " doesn't exists, specify the 'init__ns' qualifier to set it",
+        gen_err_s (_function_name, __LINE__ - 2);
     else
       {
       ___ ("_").init (ns;;__qualifiers ());
       return ___ (ns);
-     }
+      }
 
   return ___ (ns);
 }
@@ -81,12 +79,7 @@ private define check__fun (ns, fun)
       }
 
   if (NULL == ref)
-    {
-     ___ ("err").set_errno (NULL, ns,
-       ___ ("err").exc_to_array ( ___ ("err").exc_generate ("", fun + " is NULL",
-          NULL, _function_name,  __LINE__, "__",  "Run Time Error", __RunTimeError)));
-     error__handler ();
-    }
+    throw __RunTimeError, "fun is NULL", gen_err_s (_function_name, __LINE__ - 2);
 
   return ref;
 }
@@ -108,21 +101,29 @@ public define ____ ()
 
     {
     case 2:
+      variable exc;
+      variable args = qualifier ("args", {});
       fun = ();
       ns = ();
-      variable s = check__ns (ns;;struct {@__qualifiers (), init__ns});
+      try
+        {
+        $_ (check__ns (ns;;struct {@__qualifiers (), init__ns}));
+        fun = check__fun (ns, fun;;struct {@__qualifiers (), reg__fun});
+        (@fun) (___ (ns), __push_list (args));
+        }
+      catch __RunTimeError:
+        {
+        exc = __get_exception_info ();
+        exc =  ___ ("err").exc_generate (NULL,
+        "caller : " + ns + " " + exc.message, NULL, exc.object.fun,
+          exc.object.line, ___ ("_")._["dir"]["__FILE__"], exc.descr, exc.error);
 
-      if (NULL == s)
-        return NULL;
-
-      fun = check__fun (ns, fun;;struct {@__qualifiers (), reg__fun});
-
-      if (fun == NULL)
-        return;
-
-      variable args = qualifier ("args", {});
-      (@fun) (___ (ns), __push_list (args));
-    }
+        ___ ("de").bug (exc.message;hold);
+        ___ ("err").set_errno (NULL, __RunTimeError, ns, ___ ("err").exc_to_array (exc));
+        ___ ("de").bug (" v" + exc.message;hold);
+        error__handler ();
+        }
+     }
 }
 
 private define eval__string ()
@@ -143,7 +144,7 @@ private define eval__ (s, ns, buf)
     }
   catch __EvalError:
     {
-    ___ ("err").set_errno (NULL, buf, ns, ___ ("err").exc_to_array (NULL));
+    ___ ("err").set_errno (buf, __EvalError, ns, ___ ("err").exc_to_array (NULL));
     error__handler ();
     }
 }
@@ -182,6 +183,10 @@ private define reg__fun (s, ns, fun)
   variable fnf = qualifier ("fn_fun", &_fnf_);
   variable fn = (@fnf) (ns, fun;;__qualifiers ());
   variable st = stat_file (fn);
+  if (NULL == st)
+    throw __RunTimeError, "registered fun: " + fun + ", in ns " + ns + ", doesn't exists",
+      gen_err_s (_function_name, __LINE__ - 2);
+
   variable buf = ___ ("io").read (fn);
 
   _NS_[ns].___[fun].st_mtime = st.st_mtime;
@@ -240,6 +245,9 @@ private define set__ns (s, ns)
   _NS_[ns].__.error_handler = qualifier ("error_handler");
   _NS_[ns].__._ = eval (``_``, ns);
 
+  variable buf = ``public define `` + ns + `` (){return ___ (_function_name);}``;
+  eval (buf);
+
   variable fun = qualifier ("fun");
   if (NULL == fun)
     return;
@@ -294,18 +302,19 @@ array_map (&add__fun, NULL, "_",
 
 `, "_");
 
-___ ("_")._["dir"] = Assoc_Type[String_Type];
-___ ("_")._["dir"]["me"] = path_dirname (__FILE__);
-___ ("_")._["dir"]["ns"] = ___ ("_")._["dir"]["me"] + "/ns/";
-___ ("_")._["_g_"] = NULL;
+_._["dir"] = Assoc_Type[String_Type];
+_._["dir"]["__FILE__"] = __FILE__;
+_._["dir"]["me"] = path_dirname (__FILE__);
+_._["dir"]["ns"] = _._["dir"]["me"] + "/ns/";
+_._["_g_"] = NULL;
 
-_->__.use ("err", NULL;fun = ["exc_to_array", "exc_generate", "set_errno", "get_errno"]);
+_.use ("err", NULL; fun = ["exc_to_array", "exc_generate", "set_errno", "get_errno"]);
 
 private variable __errno = NULL;
 
-private define set_errno__ (s, buf, ns, err)
+private define set_errno__ (s, buf, exc, ns, err)
 {
-  __errno = struct {buf = buf, ns = ns, err = err};
+  __errno = struct {buf = buf, exc = exc, ns = ns, err = err};
 }
 
 private define get_errno__ (s)
@@ -321,7 +330,7 @@ private define exc_to_array__ (s, exc)
   if (NULL == exc)
     return ["No exception in the stack"];
 
-  return strchop (sprintf ("Exception: %s\n\
+  return strchop (sprintf ("Exception: %S\n\
 Message:     %s\n\
 Object:      %S\n\
 Function:    %s\n\
@@ -351,7 +360,7 @@ array_map (___ ("_").add_fun, NULL, "err",
   ["exc_to_array", "exc_generate", "set_errno", "get_errno"],
   [&exc_to_array__, &exc_generate__, &set_errno__, &get_errno__]);
 
-_->__.use ("io", NULL;fun = ["read"]);
+___ ("_").use ("io", NULL;fun = ["read"]);
 
 private define read__ (s, fn)
 {
