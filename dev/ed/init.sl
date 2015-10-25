@@ -118,9 +118,7 @@ public define ____ ()
         "caller : " + ns + " " + exc.message, NULL, exc.object.fun,
           exc.object.line, ___ ("_")._["dir"]["__FILE__"], exc.descr, exc.error);
 
-        ___ ("de").bug (exc.message;hold);
         ___ ("err").set_errno (NULL, __RunTimeError, ns, ___ ("err").exc_to_array (exc));
-        ___ ("de").bug (" v" + exc.message;hold);
         error__handler ();
         }
      }
@@ -243,7 +241,7 @@ private define set__ns (s, ns)
     };
 
   _NS_[ns].__.error_handler = qualifier ("error_handler");
-  _NS_[ns].__._ = eval (``_``, ns);
+  _NS_[ns].__._ = _NS_[ns]._;
 
   variable buf = ``public define `` + ns + `` (){return ___ (_function_name);}``;
   eval (buf);
@@ -267,7 +265,6 @@ private define init__ (s, ns)
 
   variable buf = ``
 
-  static variable _ = Assoc_Type[Any_Type];
   static variable __ = struct
     {
     _,
@@ -381,7 +378,7 @@ ___ ("_").add_fun ("io", "read", &read__);
 
 _->__.use ("de", NULL;fun = ["bug", "msg_handler", "hold_handler"]);
 
-_["_debug"] = 1;
+__._["_debug"] = 1;
 
 private define msg_handler__ (s, msg)
 {
@@ -395,7 +392,7 @@ private define hold_handler__ (s)
 
 private define bug__ (s, msg)
 {
-  ifnot (_["_debug"])
+  ifnot (de._["_debug"])
     ifnot (qualifier_exists ("force"))
       return;
 
