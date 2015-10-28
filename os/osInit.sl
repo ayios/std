@@ -371,7 +371,7 @@ define osloop ()
     _loop_ ();
   catch RunTimeError:
     {
-    array_map (&tostderr, exception_to_array (__get_exception_info.object));
+    array_map (&tostderr, err__.exc_to_array (__get_exception_info.object));
     smg->init ();
     draw (ERR); % new func: draw_and_take_some_action
     _loop_ ();

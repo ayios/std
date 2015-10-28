@@ -1,3 +1,546 @@
+importfrom ("std", "slsmg", NULL, &on_eval_err);
+
+private variable getchar_lang;
+private variable maps = Ref_Type[2];
+private variable TTY_INITED = 0;
+private variable esc_pend = 2;
+private variable alias = Assoc_Type[String_Type];
+private variable curlang;
+private variable BSLASH = 0x2f;
+private variable QMARK = 0x3f;
+private variable UP = 0x101;
+private variable DOWN = 0x102;
+private variable LEFT = 0x103;
+private variable RIGHT = 0x104;
+private variable PPAGE = strncmp ("st-", getenv ("TERM"), 3) ? 0x10a : 0x105;
+private variable NPAGE = strncmp ("st-", getenv ("TERM"), 3) ? 0x10d : 0x106;
+private variable HOME = strncmp ("st-", getenv ("TERM"), 3)  ? 0x109 : 0x107;
+private variable END = strncmp ("st-", getenv ("TERM"), 3)   ? 0x10c : 0x108;
+private variable REDO = 0x10E;
+private variable UNDO = 0x10F;
+private variable BACKSPACE = 0x110;
+private variable IC = 0x112;
+private variable DELETE = 0x113;
+private variable F1 = 0x201;
+private variable F2 = 0x202;
+private variable F3 = 0x203;
+private variable F4 = 0x204;
+private variable F5 = 0x205;
+private variable F6 = 0x206;
+private variable F7 = 0x207;
+private variable F8 = 0x208;
+private variable F9 = 0x209;
+private variable F10 = 0x20a;
+private variable F11 = 0x20b;
+private variable F12 = 0x20c;
+private variable CTRL_a = 0x1;
+private variable CTRL_b = 0x2;
+private variable CTRL_d = 0x4;
+private variable CTRL_e = 0x5;
+private variable CTRL_f = 0x6;
+private variable CTRL_h = 0x8;
+private variable CTRL_j = 0xa;
+private variable CTRL_k = 0xb;
+private variable CTRL_l = 0xc;
+private variable CTRL_n = 0xe;
+private variable CTRL_o = 0xf;
+private variable CTRL_p = 0x10;
+private variable CTRL_r = 0x12;
+private variable CTRL_t = 0x14;
+private variable CTRL_u = 0x15;
+private variable CTRL_v = 0x16;
+private variable CTRL_w = 0x17;
+private variable CTRL_x = 0x18;
+private variable CTRL_y = 0x19;
+private variable CTRL_z = 0x1a;
+private variable CTRL_BSLASH = 0x1c;
+private variable CTRL_BRACKETRIGHT = 0x1d;
+private variable ESC_esc = 0x1001a;
+private variable ESC_q = 0x10070;
+private variable rmap = struct
+  {
+  osappnew = [F2, 0x10065], % Esc_f
+  osapprec = [F1, 0x1006f], % Esc_p
+  windmenu = [F3, 0x10076], % Esc_w
+  battery = [F9, 0x10061],  % Esc_b
+  changelang = [F10, 0x1006b], % Esc_l
+  % navigation
+  home = [HOME, CTRL_a],
+  end = [END, CTRL_e],
+  left = [LEFT, CTRL_b],
+  right = [RIGHT, CTRL_f],
+  backspace = [BACKSPACE, CTRL_h, 0x07F],
+  delete = [DELETE],
+  delword = [CTRL_w],
+  deltoend = [CTRL_u],
+  % special keys
+  % last components in previous commands
+  lastcmp = [0xae, 0x1f], % ALT + . (not supported from all terms), CTRL + _
+  % keep the command line, execute another and re-enter the keep'ed command
+  lastcur = [ESC_q],
+  histup = [CTRL_r, UP],
+  histdown = [DOWN],
+  };
+
+private variable SUSPENDSTATE = 0;
+
+public variable SMGINITED = 0;
+public variable SMGIMG;
+public variable LINES;
+public variable COLUMNS;
+public variable PROMPTROW;
+public variable MSGROW;
+public variable COLOR = struct
+  {
+  normal = "white",
+  error = "brightred",
+  success = "brightgreen",
+  warn = "brightmagenta",
+  prompt = "yellow",
+  border = "brightred",
+  focus = "brightcyan",
+  hlchar = "blackonyellow",
+  hlregion = "white",
+  topline = "blackonbrown",
+  infofg = "blue",
+  infobg = "brown",
+  diffpl = "blackongreen",
+  diffmn = "blackoncyan",
+  visual = "blackonbrown",
+  };
+
+private define set_basic_color (field, color)
+{
+  variable colors =
+    [
+    "white", "red", "green", "brown", "blue", "magenta",
+    "cyan", "lightgray", "gray", "brightred", "brightgreen",
+    "yellow", "brightblue", "brightmagenta", "brightcyan",
+    "blackongray", "blackonwhite", "blackonred", "blackonbrown",
+    "blackonyellow", "brownonyellow", "brownonwhite", "blackongreen",
+    "blackoncyan",
+    ];
+
+  set_struct_field (COLOR, field, wherefirst (colors == color));
+}
+
+array_map (Void_Type, &set_basic_color,
+  ["normal", "error", "success", "warn", "prompt",
+   "border", "focus", "hlchar",   "hlregion", "topline",
+   "infofg", "infobg", "diffpl", "diffmn", "visual"
+  ],
+  [COLOR.normal, COLOR.error, COLOR.success, COLOR.warn,
+   COLOR.prompt, COLOR.border, COLOR.focus, COLOR.hlchar,
+   COLOR.hlregion, COLOR.topline, COLOR.infofg, COLOR.infobg,
+   COLOR.diffpl, COLOR.diffmn, COLOR.visual]);
+
+array_map (Void_Type, &slsmg_define_color, [0:14:1],
+  [
+  "white", "red", "green", "brown", "blue", "magenta",
+  "cyan", "lightgray", "gray", "brightred", "brightgreen",
+  "yellow", "brightblue", "brightmagenta", "brightcyan"
+  ], "black");
+s
+array_map (Void_Type, &slsmg_define_color, [15:19:1],
+  "black", array_map (String_Type, &substr,
+  ["blackongray", "blackonwhite", "blackonred", "blackonbrown",
+  "blackonyellow"], 8, -1));
+
+array_map (Void_Type, &slsmg_define_color, [20:21:1],
+  "brown", array_map (String_Type, &substr,
+  ["brownonyellow", "brownonwhite"], 8, -1));
+
+array_map (Void_Type, &slsmg_define_color, [22:23:1],
+  "black", array_map (String_Type, &substr,
+  ["blackongreen", "blackoncyan"], 8, -1));
+
+static define get_color (clr)
+{
+  return get_struct_field (COLOR, clr);
+}
+
+static define refresh ()
+{
+  slsmg_refresh ();
+}
+
+static define init ()
+{
+  if (SMGINITED)
+    return;
+
+  slsmg_init_smg ();
+  SMGINITED = 1;
+}
+
+static define reset ()
+{
+  ifnot (SMGINITED)
+    return;
+
+  slsmg_reset_smg ();
+  SMGINITED = 0;
+}
+
+static define suspend ()
+{
+  if (SUSPENDSTATE)
+    return;
+
+  slsmg_suspend_smg ();
+  SUSPENDSTATE = 1;
+}
+
+static define resume ()
+{
+  ifnot (SUSPENDSTATE)
+    return;
+
+  slsmg_resume_smg ();
+  SUSPENDSTATE = 0;
+}
+
+static define setrc (row, col)
+{
+  slsmg_gotorc (row, col);
+}
+
+static define setrcdr (row, col)
+{
+  slsmg_gotorc (row, col);
+  slsmg_refresh ();
+}
+
+static define getrc (row, col)
+{
+  return [slsmg_get_row (), slsmg_get_column ()];
+}
+
+static define char_at ()
+{
+  return slsmg_char_at ();
+}
+
+static define hlregion (clr, r, c, dr, dc)
+{
+  slsmg_set_color_in_region (clr, r, c, dr, dc);
+}
+
+static define hlregiondr (clr, r, c, dr, dc)
+{
+  slsmg_set_color_in_region (clr, r, c, dr, dc);
+  slsmg_refresh ();
+}
+
+static define cls ()
+{
+  slsmg_cls ();
+}
+
+static define addnstr (str, len)
+{
+  slsmg_write_nstring (str, len);
+}
+
+static define addnstrdr (str, len, nr, nc)
+{
+  slsmg_write_nstring (str, len);
+  setrcdr (nr, nc);
+}
+
+static define atrcaddnstr (str, clr, row, col, len)
+{
+  slsmg_gotorc (row, col);
+  slsmg_set_color (clr);
+  slsmg_write_nstring (str, len);
+}
+
+static define atrcaddnstrdr (str, clr, row, col, nr, nc, len)
+{
+  atrcaddnstr (str, clr, row, col, len);
+  setrcdr (nr, nc);
+}
+
+static define aratrcaddnstr (ar, clrs, rows, cols, len)
+{
+  array_map (Void_Type, &atrcaddnstr, ar, clrs, rows, cols, len);
+}
+
+static define aratrcaddnstrdr (ar, clrs, rows, cols, nr, nc, len)
+{
+  array_map (Void_Type, &atrcaddnstr, ar, clrs, rows, cols, len);
+  setrcdr (nr, nc);
+}
+
+static define eraseeol ()
+{
+  slsmg_erase_eol ();
+}
+
+static define atrceraseeol (row, col)
+{
+  slsmg_gotorc (row, col);
+  slsmg_erase_eol ();
+}
+
+static define atrceraseeoldr (row, col)
+{
+  atrceraseeol (row, col);
+  slsmg_refresh ();
+}
+
+static define set_img (lines)
+{
+  variable i;
+
+  SMGIMG = List_Type[lines];
+
+  _for i (0, length (SMGIMG) - 1)
+    SMGIMG[i] = {" ", 0, i, 0};
+}
+
+static define restore (r, ptr, refresh)
+{
+  variable len = length (r);
+  variable ar = String_Type[0];
+  variable rows = Integer_Type[0];
+  variable clrs = Integer_Type[0];
+  variable cols = Integer_Type[0];
+  variable columns = qualifier ("columns", COLUMNS);
+  variable i;
+
+  _for i (0, len - 1)
+    {
+    ar = [ar, SMGIMG[r[i]][0]];
+    clrs = [clrs, SMGIMG[r[i]][1]];
+    rows = [rows, SMGIMG[r[i]][2]];
+    cols = [cols, SMGIMG[r[i]][3]];
+    }
+
+  aratrcaddnstr (ar, clrs, rows, cols, columns);
+
+  ifnot (NULL == ptr)
+    setrc (ptr[0], ptr[1]);
+
+  ifnot (NULL == refresh)
+    refresh ();
+}
+
+define getscreensize ()
+{
+  return SLsmg_Screen_Rows, SLsmg_Screen_Cols;
+}
+
+SLsmg_Tab_Width = 1;
+
+(LINES, COLUMNS) = getscreensize ();
+
+PROMPTROW = LINES - 2;
+
+MSGROW = LINES - 1;
+
+public define send_msg_dr (str, clr, row, col)
+{
+  variable
+    lcol = NULL == col ? strlen (str) : col,
+    lrow = NULL == row ? MSGROW : row;
+
+  atrcaddnstrdr (str, clr, MSGROW, 0, lrow, lcol, COLUMNS);
+}
+
+public define send_msg (str, clr)
+{
+  atrcaddnstr (str, clr, MSGROW, 0, COLUMNS);
+}
+
+array_map (Void_Type, &set_struct_field, COLOR, get_struct_field_names (COLOR),
+  array_map (Integer_Type, &get_color, get_struct_field_names (COLOR)));
+
+init ();
+set_img (LINES - 2);
+
+send_msg_dr ("init", 1, NULL, NULL);
+loadfrom ("api/smgved", "smgInit", "smg", &on_eval_err);
+loadfrom ("dev/ed", "init", "ed", &on_eval_err);
+importfrom ("std", "pcre", NULL, &on_eval_err);
+
+private define toggle_map ()
+{
+  curlang = curlang == length (maps) - 1 ? 0 : curlang + 1;
+  return maps[curlang];
+}
+
+private define el_getch ()
+{
+  variable
+    esc_key = qualifier ("esc_key", 033),
+    chr,
+    index,
+    vowel,
+    el =  [[913:929:1], [931:937:1],[945:969:1],';',':'],
+    eng = [
+      'A','B','G','D','E','Z','H','U','I','K','L','M','N','J','O','P','R','S','T','Y',
+      'F','X','C','V',
+      'a','b','g','d','e','z','h','u','i','k','l','m','n','j','o','p','r','w', 's','t',
+      'y','f','x','c','v','q','Q'],
+    accent_vowels = ['ά','έ','ή','ί','ό','ύ','ώ','΄','Ά','Έ','Ό','Ί','Ώ','Ύ','Ή'],
+    vowels_in_eng = ['a','e','h','i','o','y','v',';','A','E','O','I','V','Y','H'],
+    ais = ['ϊ', 'ΐ', '¨'],
+    ais_eng = ['i', ';', ':'];
+
+  while (0 == input_pending (1))
+    continue;
+
+  chr = getkey ();
+
+  if (chr == esc_key)
+    if (0 == input_pending (esc_pend))
+	    return esc_key;
+    else
+      chr = getkey () + 65535;
+
+  if (';' == chr)
+    {
+    while (0 == input_pending (1))
+      continue;
+    vowel = getkey ();
+    index = wherefirst_eq (vowels_in_eng, vowel);
+    if (NULL == index)
+      return -1;
+    else
+      chr = accent_vowels[index];
+    }
+  else if (':' == chr)
+    {
+    while (0 == input_pending (1))
+      continue;
+    vowel = getkey ();
+    index = wherefirst_eq (ais_eng, vowel);
+    if (NULL == index)
+      return -1;
+    else
+      chr = ais[index];
+    }
+  else
+    {
+    index = wherefirst_eq (eng, chr);
+    ifnot (NULL == index)
+      chr = el[index];
+    }
+
+  return chr;
+}
+
+private define en_getch ()
+{
+  variable
+    esc_key = qualifier ("esc_key", 033),
+    chr;
+
+  while (0 == input_pending (1))
+    continue;
+
+  chr = getkey ();
+
+  if (chr == esc_key)
+    if (0 == input_pending (esc_pend))
+	    return esc_key;
+    else
+      chr = getkey () + 65535;
+
+  return chr;
+}
+
+public define getch ();
+public define getch ()
+{
+  ifnot (TTY_INITED)
+    {
+    init_tty (-1, 0, 0);
+    TTY_INITED = @(__get_reference ("input->TTY_Inited"));
+    }
+
+  esc_pend = qualifier ("esc_pend", 2);
+
+  variable chr = (@getchar_lang) (;;__qualifiers ());
+  while (any ([-1, 0] == chr))
+    chr = (@getchar_lang) (;;__qualifiers ());
+
+  if (any (rmap.changelang == chr))
+    if (qualifier_exists ("disable_langchange"))
+      return chr;
+    else
+      {
+      getchar_lang = toggle_map ();
+
+      variable callbackf = qualifier ("on_lang");
+      variable args = qualifier ("on_lang_args");
+
+      ifnot (NULL == callbackf)
+        ifnot (NULL == args)
+          (@callbackf) (__push_list (args));
+        else
+          (@callbackf);
+
+      return getch ();
+      }
+  else
+    return chr;
+}
+
+static define get_en_lang ()
+{
+  return &en_getch;
+}
+
+static define get_el_lang ()
+{
+  return &el_getch;
+}
+
+static define getmapname ()
+{
+  return alias[string (maps[curlang])];
+}
+
+static define getlang ()
+{
+  return maps[curlang];
+}
+
+static define setlang (lang)
+{
+  getchar_lang = lang;
+}
+
+static define at_exit ()
+{
+  if (TTY_INITED)
+    reset_tty ();
+
+  TTY_INITED = @(__get_reference ("input->TTY_Inited"));
+}
+
+alias["&en_getch"] = "US";
+alias["&el_getch"] = "EL";
+loadfrom ("input", "inputinit", 1, &on_eval_err);
+
+maps[0] = input->get_en_lang ();
+maps[1] = input->get_el_lang ();
+
+input->curlang = 0;
+getchar_lang = maps[0];
+define tostderr ()
+  {
+  pop ();
+  }
+
+define exit_me ();
+
+define tostderr ()
+  {
+  pop ();
+  }
 typedef struct
   {
   _i,
@@ -97,17 +640,17 @@ private variable vis = struct
   l_up,
   l_page_up,
   l_page_down,
-  l_keys = ['s', 'y', 'Y', 'd', '>', '<', keys->DOWN, keys->UP, keys->PPAGE, keys->NPAGE],
+  l_keys = ['s', 'y', 'Y', 'd', '>', '<', DOWN, UP, PPAGE, NPAGE],
   c_mode,
   c_left,
   c_right,
-  c_keys = ['y', 'd', keys->DOWN, keys->RIGHT, keys->UP, keys->LEFT],
+  c_keys = ['y', 'd', DOWN, RIGHT, UP, LEFT],
   bw_mode,
   bw_down,
   bw_up,
   bw_left,
   bw_right,
-  bw_keys = ['x', 'I', 'i', 'd', 'y', keys->DOWN, keys->UP, keys->RIGHT, keys->LEFT],
+  bw_keys = ['x', 'I', 'd', 'y', DOWN, UP, RIGHT, LEFT],
   bw_maxlen,
   needsdraw,
   startrow,
@@ -248,36 +791,14 @@ define __get_null_str (indent)
 
 define __vgetlines (fname, indent, st)
 {
-  if (-1 == access (fname, F_OK))
+  if (-1 == access (fname, F_OK) || 0 == st.st_size)
     {
     st.st_size = 0;
     return [__get_null_str (indent)];
-    }
-
-  if (-1 == access (fname, R_OK))
-    {
-    send_msg (fname + ": is not readable", 1);
-    st.st_size = 0;
-    return [__get_null_str (indent)];
-    }
-
-  if (-1 == access (fname, W_OK))
-    {
-    send_msg (fname + ": is Read Only", 1);
-    st._flags |= VED_RDONLY;
-    }
-
-  variable lines = readfile (fname);
-
-  if (NULL == lines || 0 == length (lines))
-    {
-    lines = [__get_null_str (indent)];
-    st.st_size = 0;
     }
 
   indent = repeat (" ", indent);
-
-  return array_map (String_Type, &sprintf, "%s%s", indent, lines);
+  return array_map (String_Type, &sprintf, "%s%s", indent, readfile (fname));
 }
 
 private define _on_lang_change_ (mode, ptr)
@@ -421,8 +942,8 @@ define __get_hex (chr, dir)
 }
 
 %define string_get_inline_nr_as_str (str)
-%{
-%}
+%{ % %
+%} % %
 
 define __vfind_nr (indent, line, col, start, end, ishex, isoct, isbin)
 {
@@ -484,15 +1005,6 @@ define __vfind_nr (indent, line, col, start, end, ishex, isoct, isbin)
   if (1 < len && 0 == @isbin)
     if ('0' == nr[0])
       while (col++, col < len && (@isoct = any (['0':'7'] == nr[col]), @isoct));
-
-  if (nr[-1] == '.')
-    if (len > 1)
-      {
-      nr = substr (nr, 1, len - 1);
-      @end--;
-      }
-    else
-      return "";
 
   if (@ishex || @isoct || @isbin)
     try
@@ -593,19 +1105,19 @@ private define waddline (s, line, clr, row)
 private define _set_clr_ (s, clr, set)
 {
   s.clrs[-1] = clr;
-  smg->IMG[s.rows[-1]][1] = clr;
+  SMGIMG[s.rows[-1]][1] = clr;
   if (set)
     smg->hlregion (clr, s.rows[-1], 0, 1, COLUMNS);
 }
 
-define __vset_clr_fg (s, set)
+define __vset_clr_fg (b, set)
 {
-  _set_clr_ (s, VED_INFOCLRFG, set);
+  _set_clr_ (b, VED_INFOCLRFG, set);
 }
 
-define __vset_clr_bg (s, set)
+define __vset_clr_bg (b, set)
 {
-  _set_clr_ (s, VED_INFOCLRBG, set);
+  _set_clr_ (b, VED_INFOCLRBG, set);
 }
 
 private define _initrowsbuffvars_ (s)
@@ -1247,8 +1759,7 @@ private define _draw_ (s)
 {
   if (-1 == s._len)
     {
-    send_msg ("_draw_ (), caught -1 == s._len condition" + s._fname, 1);
-    s.lins = [__get_null_str (s._indent)];
+    s.lins = [" "];
     s.lnrs = [0];
     s._ii = 0;
 
@@ -1288,24 +1799,20 @@ private define _draw_ (s)
   ar = array_map (String_Type, &substr, s.lins, 1, s._maxlen);
 
   variable indices = [0:length (ar) - 1];
-  variable clrs = @s.clrs;
-  variable arlen = length (ar);
-  variable rowslen = length (s.rows);
 
-  if (arlen < rowslen - 1)
+  if (length (ar) < length (s.rows) - 1)
     {
-    ifnot (s._type == "ashell")
-      clrs[[arlen:length (clrs) -2]] = 5;
-    variable t = String_Type[rowslen - arlen - 1];
-    t[*] = s._type == "ashell" ? " " : "~";
+    variable t = String_Type[length (s.rows) - length (ar) - 1];
+    t[*] = " ";
     ar = [ar, t];
     }
 
   ar = [ar, __vtail (s;;__qualifiers ())];
 
-  smg->set_img (s.rows, ar, clrs, s.cols);
+  _for i (0, length (ar) - 1)
+    SMGIMG[s.rows[i]] = {[ar[i]], [s.clrs[i]], [s.rows[i]], [s.cols[i]]};
 
-  smg->aratrcaddnstr (ar, clrs, s.rows, s.cols, COLUMNS);
+  smg->aratrcaddnstr (ar, s.clrs, s.rows, s.cols, COLUMNS);
 
   s.lexicalhl (ar[indices], s.vlins);
 
@@ -1459,8 +1966,10 @@ private define autoindent (s, indent, line)
     @indent = (@f) (s, line);
 }
 
-private define lexicalhl (s, lines, vlines)
+private define lexicalhl ()
 {
+  loop (3)
+    pop ();
 }
 
 define deftype ()
@@ -1973,7 +2482,7 @@ private define pg_Yank (s)
   seltoX (line + "\n");
 }
 
-define __vreread (s)
+private define pg_reread (s)
 {
   s.lines = __vgetlines (s._fname, s._indent, s.st_);
 
@@ -2069,9 +2578,9 @@ define handle_w (s)
 {
   variable chr = getch ();
 
-  if (any (['w', 's', keys->CTRL_w, 'd', 'k', 'n', ',', '.', ['0':'9']] == chr))
+  if (any (['w', 's', CTRL_w, 'd', 'k', 'n', ',', '.', ['0':'9']] == chr))
     {
-    if (any (['w', keys->CTRL_w, keys->DOWN] == chr))
+    if (any (['w', CTRL_w, DOWN] == chr))
       {
       _change_frame_ (s);
       return;
@@ -2184,10 +2693,9 @@ private define _set_nr_ (s, incrordecr)
 
   variable format = sprintf ("%s%%%s",
     ishex ? "0x0" : isoct ? "0" : "",
-    ishex ? "x" : isoct ? "o" : isbin ? "B" : isdbl ? ".3f" : "d");
+    ishex ? "x" : isoct ? "o" : isbin ? "B" : isdbl ? "f" : "d");
 
   nr = sprintf (format, nr);
-
   if (isbin)
     while (strlen (nr) mod 4)
       nr = "0" + nr;
@@ -2650,7 +3158,7 @@ private define search (s)
     origlnr,
     dothesearch = qualifier_exists ("dothesearch"),
     cur_lang = input->getlang (),
-    type = qualifier ("type", keys->BSLASH == s._chr ? "forward" : "backward"),
+    type = qualifier ("type", BSLASH == s._chr ? "forward" : "backward"),
     typesearch = type == "forward" ? &search_forward : &search_backward,
     pchr = type == "forward" ? "/" : "?",
     pat = qualifier ("pat",  ""),
@@ -2688,8 +3196,8 @@ private define search (s)
       }
 
     if ((' ' <= chr < 64505) &&
-        0 == any (chr == [keys->rmap.backspace, keys->rmap.delete,
-        [keys->UP:keys->RIGHT], [keys->F1:keys->F12]]))
+        0 == any (chr == [rmap.backspace, rmap.delete,
+        [UP:RIGHT], [F1:F12]]))
       {
       if (s_col == strlen (pat) + 1)
         pat += char (chr);
@@ -2700,7 +3208,7 @@ private define search (s)
       dothesearch = 1;
       }
 
-    if (any (chr == keys->rmap.backspace) && strlen (pat))
+    if (any (chr == rmap.backspace) && strlen (pat))
       if (s_col - 1)
         {
         if (s_col == strlen (pat) + 1)
@@ -2714,7 +3222,7 @@ private define search (s)
         dothesearch = 1;
         }
 
-    if (any (chr == keys->rmap.delete) && strlen (pat))
+    if (any (chr == rmap.delete) && strlen (pat))
       {
       ifnot (s_col - 1)
         (pat = substr (pat, 2, -1), dothesearch = 1);
@@ -2723,10 +3231,10 @@ private define search (s)
          dothesearch = 1);
       }
 
-    if (any (chr == keys->rmap.left) && s_col != 1)
+    if (any (chr == rmap.left) && s_col != 1)
       s_col--;
 
-    if (any (chr == keys->rmap.right) && s_col != strlen (pat) + 1)
+    if (any (chr == rmap.right) && s_col != strlen (pat) + 1)
       s_col++;
 
     if ('\r' == chr)
@@ -2735,7 +3243,7 @@ private define search (s)
       break;
       }
 
-    if (chr == keys->UP)
+    if (chr == UP)
       ifnot (NULL == s_histindex)
         {
         pat = s_history[s_histindex];
@@ -2751,7 +3259,7 @@ private define search (s)
         continue;
         }
 
-    if (chr == keys->DOWN)
+    if (chr == DOWN)
       ifnot (NULL == s_histindex)
         {
         pat = s_history[s_histindex];
@@ -2767,7 +3275,7 @@ private define search (s)
         continue;
         }
 
-    if (chr == keys->CTRL_n)
+    if (chr == CTRL_n)
       {
       if (type == "forward")
         if (s_lnr == s._len)
@@ -2783,7 +3291,7 @@ private define search (s)
       (@typesearch) (s, pat);
       }
 
-    if (chr == keys->CTRL_p)
+    if (chr == CTRL_p)
       {
       typesearch = type == "forward" ? &search_backward : &search_forward;
       if (type == "backward")
@@ -2907,7 +3415,7 @@ private define s_search_word_ (s)
 
     chr = getch (;disable_langchange);
 
-    ifnot (any ([keys->CTRL_n, 033, '\r'] == chr))
+    ifnot (any ([CTRL_n, 033, '\r'] == chr))
       continue;
 
     if (033 == chr)
@@ -2922,7 +3430,7 @@ private define s_search_word_ (s)
       return;
       }
 
-    if (chr == keys->CTRL_n)
+    if (chr == CTRL_n)
       {
       if (type == "forward")
         if (s_lnr == s._len)
@@ -3227,27 +3735,27 @@ private define v_l_loop (vs, s)
         reginit = 1;
         }
 
-    if (chr == keys->DOWN)
+    if (chr == DOWN)
       {
       loop (VEDCOUNT)
         vs.l_down (s);
       continue;
       }
 
-    if (chr == keys->UP)
+    if (chr == UP)
       {
       loop (VEDCOUNT)
         vs.l_up (s);
       continue;
       }
 
-    if (chr == keys->PPAGE)
+    if (chr == PPAGE)
       {
       vs.l_page_up (s;count = VEDCOUNT);
       continue;
       }
 
-    if (chr == keys->NPAGE)
+    if (chr == NPAGE)
       {
       vs.l_page_down (s;count = VEDCOUNT);
       continue;
@@ -3258,7 +3766,6 @@ private define v_l_loop (vs, s)
       {
       _set_reg_ (reg, strjoin (vs.lines, "\n") + "\n");
       seltoX (strjoin (vs.lines, "\n") + "\n");
-      de__.bug ("yanked");
       break;
       }
 
@@ -3322,7 +3829,6 @@ private define v_l_loop (vs, s)
       s.st_.st_size = getsizear (s.lines);
       set_modified (s);
       s.draw ();
-      de__.bug ("deleted");
       return;
       }
 
@@ -3505,13 +4011,13 @@ private define v_char_mode (vs, s)
         reginit = 1;
         }
 
-    if (keys->RIGHT == chr)
+    if (RIGHT == chr)
       {
       vs.c_right (s, cur);
       continue;
       }
 
-    if (keys->LEFT == chr)
+    if (LEFT == chr)
       {
       vs.c_left (s, cur);
       continue;
@@ -3522,7 +4028,6 @@ private define v_char_mode (vs, s)
       sel = strjoin (vs.sel, "\n");
       _set_reg_ (reg, sel);
       seltoX (sel);
-      de__.bug ("yanked");
       break;
       }
 
@@ -3566,7 +4071,6 @@ private define v_char_mode (vs, s)
       waddline (s, __vgetlinestr (s, s.lines[vs.startlnr], 1), 0, s.ptr[0]);
 
       __vdraw_tail (s);
-      de__.bug ("deleted");
       return;
       }
     }
@@ -3751,31 +4255,31 @@ private define v_bw_mode (vs, s)
 
   while (chr = getch (), any (vs.bw_keys == chr))
     {
-    if (keys->UP == chr)
+    if (UP == chr)
       {
       vs.bw_up (s);
       continue;
       }
 
-    if (keys->DOWN == chr)
+    if (DOWN == chr)
       {
       vs.bw_down (s);
       continue;
       }
 
-    if (keys->RIGHT == chr)
+    if (RIGHT == chr)
       {
       vs.bw_right (s);
       continue;
       }
 
-    if (keys->LEFT == chr)
+    if (LEFT == chr)
       {
       vs.bw_left (s);
       continue;
       }
 
-    if (any (['d', 'x'] == chr))
+    if ('d' == chr)
       {
       sel = strjoin (vs.sel, "\n");
       _set_reg_ ("\"", sel);
@@ -3810,7 +4314,7 @@ private define v_bw_mode (vs, s)
       break;
       }
 
-    if (any (['I', 'i'] == chr))
+    if ('I' == chr)
       {
       variable t = rline->__gettxt ("", vs.vlins[0] - 1, vs.startcol)._lin;
       _for i (0, length (vs.lnrs) - 1)
@@ -3954,11 +4458,11 @@ private define vis_mode (s)
     mode = ["bw", "lw", "cw"],
     vs = v_init (s);
 
-  vs.mode = mode[wherefirst ([keys->CTRL_v, 'V', 'v'] == s._chr)];
+  vs.mode = mode[wherefirst ([CTRL_v, 'V', 'v'] == s._chr)];
 
   if (s._chr == 'v')
     vs.c_mode (s);
-  else if (s._chr == keys->CTRL_v)
+  else if (s._chr == CTRL_v)
     vs.bw_mode (s);
   else
     vs.l_mode (s);
@@ -4204,7 +4708,7 @@ private define ed_del_chr (s)
   if ((0 == s.ptr[1] - s._indent && 'X' == chr) || 0 > len - s._indent)
     return;
 
-  if (any (['x', keys->rmap.delete] == chr))
+  if (any (['x', rmap.delete] == chr))
     {
     _set_reg_ (reg, substr (line, col + 1, 1));
     line = substr (line, 1, col) + substr (line, col + 2, - 1);
@@ -4657,7 +5161,7 @@ private define ins_reg (s, line)
 {
   variable reg = getch ();
 
-  ifnot (any ([_regs_ (), '='] == reg))
+  ifnot (any (_regs_ () == reg))
     return;
 
   @line = ed_put (s;reg = char (reg), return_line);
@@ -4751,9 +5255,6 @@ private define ins_del_prev (is, s, line)
 
   len = strlen (@line);
 
-  ifnot (len)
-    @line = __get_null_str (s._indent);
-
   s._index--;
 
   ifnot (s.ptr[1])
@@ -4778,7 +5279,7 @@ private define ins_del_prev (is, s, line)
 
   s.ptr[1]--;
 
-  if (s._index == len && len)
+  if (s._index == len)
     waddlineat (s, " ", 0, s.ptr[0], s.ptr[1], s._maxlen);
   else
     {
@@ -4969,7 +5470,7 @@ private define ins_page_up (is, s, line)
   s.lines[is.lnr] = @line;
   s._findex = s._indent;
 
-  (@VED_PAGER[string (keys->PPAGE)]) (s;modified);
+  (@VED_PAGER[string (PPAGE)]) (s;modified);
   is.lnr = __vlnr (s, '.');
   @line = __vline (s, '.');
 
@@ -4987,7 +5488,7 @@ private define ins_page_down (is, s, line)
   s.lines[is.lnr] = @line;
   s._findex = s._indent;
 
-  (@VED_PAGER[string (keys->NPAGE)]) (s;modified);
+  (@VED_PAGER[string (NPAGE)]) (s;modified);
   is.lnr = __vlnr (s, '.');
   @line = __vline (s, '.');
 
@@ -5291,7 +5792,7 @@ define ctrl_completion_rout (s, line, type)
 
     chr = getch ();
 
-    if (any (keys->rmap.backspace == chr))
+    if (any (rmap.backspace == chr))
       {
       if (1 == strlen (item))
         {
@@ -5349,7 +5850,7 @@ define ctrl_completion_rout (s, line, type)
       return;
       }
 
-    if (any ([keys->CTRL_n, keys->DOWN] == chr))
+    if (any ([CTRL_n, DOWN] == chr))
       {
       index++;
       if (index > length (ar))
@@ -5358,7 +5859,7 @@ define ctrl_completion_rout (s, line, type)
       indexchanged = 1;
       }
 
-    if (any ([keys->CTRL_p, keys->UP] == chr))
+    if (any ([CTRL_p, UP] == chr))
       {
       index--;
       ifnot (index)
@@ -5367,7 +5868,7 @@ define ctrl_completion_rout (s, line, type)
       indexchanged = 1;
       }
 
-    ifnot (any ([iwchars, keys->CTRL_n, keys->DOWN, keys->CTRL_p, keys->UP] == chr))
+    ifnot (any ([iwchars, CTRL_n, DOWN, CTRL_p, UP] == chr))
       {
       smg->restore (rows, s.ptr, 1);
       smg->refresh ();
@@ -5464,7 +5965,7 @@ define ins_ctrl_x_completion (is, s, line)
   switch (chr)
 
     {
-    case keys->CTRL_l:
+    case CTRL_l:
       ins_linecompletion (s, line);
     }
 
@@ -5497,7 +5998,7 @@ private define ins_getline (is, s, line)
       return;
       }
 
-    if (keys->ESC_esc == is.chr)
+    if (ESC_esc == is.chr)
       {
       s.lins[s.ptr[0] - s.rows[0]] = @line;
       s.lines[is.lnr] = @line;
@@ -5516,55 +6017,55 @@ private define ins_getline (is, s, line)
       return;
       }
 
-    if (keys->CTRL_n == is.chr)
+    if (CTRL_n == is.chr)
       {
       ins_wordcompletion (s, line);
       continue;
       }
 
-    if (keys->CTRL_x == is.chr)
+    if (CTRL_x == is.chr)
       {
       ins_ctrl_x_completion (is, s, line);
       continue;
       }
 
-    if (keys->UP == is.chr)
+    if (UP == is.chr)
       {
       ins_up (is, s, line);
       continue;
       }
 
-    if (keys->DOWN == is.chr)
+    if (DOWN == is.chr)
       {
       ins_down (is, s, line);
       continue;
       }
 
-    if (keys->NPAGE == is.chr)
+    if (NPAGE == is.chr)
       {
       ins_page_down (is, s, line);
       continue;
       }
 
-    if (keys->PPAGE == is.chr)
+    if (PPAGE == is.chr)
       {
       ins_page_up (is, s, line);
       continue;
       }
 
-    if (any (keys->rmap.left == is.chr))
+    if (any (rmap.left == is.chr))
       {
       ins_left (is, s, line);
       continue;
       }
 
-    if (any (keys->rmap.right == is.chr))
+    if (any (rmap.right == is.chr))
       {
       ins_right (is, s, line);
       continue;
       }
 
-    if (any (keys->CTRL_y == is.chr))
+    if (any (CTRL_y == is.chr))
       {
       ifnot (strlen (is.prev_l))
         continue;
@@ -5573,7 +6074,7 @@ private define ins_getline (is, s, line)
       continue;
       }
 
-    if (any (keys->CTRL_e == is.chr))
+    if (any (CTRL_e == is.chr))
       {
       ifnot (strlen (is.next_l))
         continue;
@@ -5582,31 +6083,31 @@ private define ins_getline (is, s, line)
       continue;
       }
 
-    if (keys->CTRL_r == is.chr)
+    if (CTRL_r == is.chr)
       {
       ins_reg (s, line);
       continue;
       }
 
-    if (any (keys->rmap.home == is.chr))
+    if (any (rmap.home == is.chr))
       {
       ins_bol (is, s, line);
       continue;
       }
 
-    if (any (keys->rmap.end == is.chr))
+    if (any (rmap.end == is.chr))
       {
       ins_eol (is, s, line);
       continue;
       }
 
-    if (any (keys->rmap.backspace == is.chr))
+    if (any (rmap.backspace == is.chr))
       {
       ins_del_prev (is, s, line);
       continue;
       }
 
-    if (any (keys->rmap.delete == is.chr))
+    if (any (rmap.delete == is.chr))
       {
       ins_del_next (is, s, line);
       continue;
@@ -5785,11 +6286,11 @@ private define _register_ (s)
   reg = char (reg);
 
   variable chr = getch ();
-  ifnot (any (['D', 'c', 'd', 'Y', 'p', 'P', 'x', 'X', keys->rmap.delete]
+  ifnot (any (['D', 'c', 'd', 'Y', 'p', 'P', 'x', 'X', rmap.delete]
     == chr))
     return;
 
-  if (any (['x', 'X', keys->rmap.delete] == chr))
+  if (any (['x', 'X', rmap.delete] == chr))
     ed_del_chr (s;reg = reg, chr = chr);
   else if ('Y' == chr)
     pg_Yank (s;reg = reg);
@@ -5806,25 +6307,25 @@ private define _register_ (s)
 }
 
 VED_PAGER[string ('"')] = &_register_;
-VED_PAGER[string (keys->CTRL_a)]  = &_incr_nr_;
-VED_PAGER[string (keys->CTRL_x)]  = &_decr_nr_;
-VED_PAGER[string (keys->CTRL_l)]  = &__vreread;
-VED_PAGER[string (keys->UP)]      = &pg_up;
-VED_PAGER[string (keys->DOWN)]    = &pg_down;
-VED_PAGER[string (keys->ESC_esc)] = &pg_write_on_esc;
-VED_PAGER[string (keys->HOME)]    = &pg_bof;
-VED_PAGER[string (keys->NPAGE)]   = &pg_page_down;
-VED_PAGER[string (keys->CTRL_f)]  = &pg_page_down;
-VED_PAGER[string (keys->CTRL_b)]  = &pg_page_up;
-VED_PAGER[string (keys->PPAGE)]   = &pg_page_up;
-VED_PAGER[string (keys->RIGHT)]   = &pg_right;
-VED_PAGER[string (keys->LEFT)]    = &pg_left;
-VED_PAGER[string (keys->END)]     = &pg_eol;
-VED_PAGER[string (keys->CTRL_w)]  = &handle_w;
-VED_PAGER[string (keys->CTRL_r)]  = &redo;
-VED_PAGER[string (keys->BSLASH)]  = &search;
-VED_PAGER[string (keys->QMARK)]   = &search;
-VED_PAGER[string (keys->CTRL_v)]  = &vis_mode;
+VED_PAGER[string (CTRL_a)]  = &_incr_nr_;
+VED_PAGER[string (CTRL_x)]  = &_decr_nr_;
+VED_PAGER[string (CTRL_l)]  = &pg_reread;
+VED_PAGER[string (UP)]      = &pg_up;
+VED_PAGER[string (DOWN)]    = &pg_down;
+VED_PAGER[string (ESC_esc)] = &pg_write_on_esc;
+VED_PAGER[string (HOME)]    = &pg_bof;
+VED_PAGER[string (NPAGE)]   = &pg_page_down;
+VED_PAGER[string (CTRL_f)]  = &pg_page_down;
+VED_PAGER[string (CTRL_b)]  = &pg_page_up;
+VED_PAGER[string (PPAGE)]   = &pg_page_up;
+VED_PAGER[string (RIGHT)]   = &pg_right;
+VED_PAGER[string (LEFT)]    = &pg_left;
+VED_PAGER[string (END)]     = &pg_eol;
+VED_PAGER[string (CTRL_w)]  = &handle_w;
+VED_PAGER[string (CTRL_r)]  = &redo;
+VED_PAGER[string (BSLASH)]  = &search;
+VED_PAGER[string (QMARK)]   = &search;
+VED_PAGER[string (CTRL_v)]  = &vis_mode;
 VED_PAGER[string (033)]           = &pag_completion;
 VED_PAGER[string ('\r')]          = &__pg_on_carriage_return;
 VED_PAGER[string ('m')]           = &mark;
@@ -5866,24 +6367,17 @@ VED_PAGER[string ('>')]           = &ed_indent_out;
 VED_PAGER[string ('<')]           = &ed_indent_in;
 VED_PAGER[string ('x')]           = &ed_del_chr;
 VED_PAGER[string ('X')]           = &ed_del_chr;
-VED_PAGER[string (keys->rmap.delete[0])]    = &ed_del_chr;
-VED_PAGER[string (keys->rmap.backspace[0])] = &ed_del_trailws;
-VED_PAGER[string (keys->rmap.backspace[1])] = &ed_del_trailws;
-VED_PAGER[string (keys->rmap.backspace[2])] = &ed_del_trailws;
+VED_PAGER[string (rmap.delete[0])]    = &ed_del_chr;
+VED_PAGER[string (rmap.backspace[0])] = &ed_del_trailws;
+VED_PAGER[string (rmap.backspace[1])] = &ed_del_trailws;
+VED_PAGER[string (rmap.backspace[2])] = &ed_del_trailws;
 
 ifnot (NULL == DISPLAY)
   ifnot (NULL == XAUTHORITY)
     ifnot (NULL == XCLIP_BIN)
       loadfrom ("X", "seltoX", NULL, &on_eval_err);
 
-____.add_fun ("de", "hold_handler", &getch);
-
-private define msg_handler (s, msg)
-{
-  variable b = get_cur_buf ();
-  send_msg_dr (msg, 1, b.ptr[0], b.ptr[1]);
-}
-____.add_fun ("de", "msg_handler", &msg_handler);
+loadfrom ("dev/ed", "ed", "ed", &on_eval_err);
 
 new_wind ();
 

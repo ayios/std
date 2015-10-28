@@ -128,7 +128,7 @@ private define sed (file, s)
         }
       catch AnyError:
         {
-        array_map (&tostderr, ["WRITTING ERROR", exception_to_array ()]);
+        array_map (&tostderr, ["WRITTING ERROR", err__.exc_to_array ()]);
         }
       }
 }

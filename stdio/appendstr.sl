@@ -7,13 +7,13 @@ define appendstr (file, str)
     }
 
   variable fd = open (file, O_WRONLY|O_APPEND);
- 
+
   if (NULL == fd)
     {
     tostderr (file + ": " + errno_string (errno));
     return -1;
     }
- 
+
   if (-1 == lseek (fd, 0, SEEK_END))
     {
     tostderr (file + ": " + errno_string (errno));
@@ -38,13 +38,13 @@ define appendstr (file, str)
 define writestring (file, str)
 {
   variable fd = open (file, O_WRONLY|O_CREAT|O_TRUNC, qualifier ("flags", PERM["__PUBLIC"]));
- 
+
   if (NULL == fd)
     {
     tostderr (file + ": " + errno_string (errno));
     return -1;
     }
- 
+
   if (-1 == write (fd, str))
     {
     tostderr (file + ": " + errno_string (errno));

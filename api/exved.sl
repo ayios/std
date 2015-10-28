@@ -6,6 +6,9 @@ define __ved (argv)
 
   variable fname = 1 == length (argv) ? SCRATCH : argv[1];
 
+  if ("-" == fname)
+    fname = STDOUT;
+
   shell_pre_header ("ved " + fname);
 
   runapp (["ved", fname], proc->defenv ();;__qualifiers ());
