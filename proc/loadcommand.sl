@@ -236,6 +236,6 @@ try
   loadfrom ("com/" + com, "comInit", NULL, &on_eval_err);
 catch AnyError:
   {
-  array_map (&tostderr, err__.exc_to_array ());
+  array_map (&tostderr, err__.exc_to_array (NULL));
   (@_exit_me_) (1);
   }

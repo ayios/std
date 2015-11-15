@@ -297,16 +297,16 @@ private define cl_quit ()
     exit_me (0);
 }
 
-private define write_file ()
-{
-  variable
-    s = qualifier ("ved"),
-    overwrite = "w!" == qualifier ("argv0"),
-    args = __pop_list (_NARGS),
-    ptr = s.ptr;
-
-  __vwritefile (s, overwrite, ptr, args);
-}
+%private define write_file ()
+%{
+%  variable
+%    s = qualifier ("ved"),
+%    overwrite = "w!" == qualifier ("argv0"),
+%    args = __pop_list (_NARGS),
+%    ptr = s.ptr;
+%
+%  __vwritefile (s, overwrite, ptr, args);
+%}
 
 private define _read_ ()
 {
@@ -399,9 +399,9 @@ define _exit_ ()
 
 VED_CLINE["bp"] =       &_buffer_other_;
 VED_CLINE["bn"] =       &_buffer_other_;
-VED_CLINE["w!"] =       &write_file;
-VED_CLINE["w"]  =       &write_file;
-VED_CLINE["W"]  =       &write_file;
+%VED_CLINE["w!"] =       &write_file;
+%VED_CLINE["w"]  =       &write_file;
+%VED_CLINE["W"]  =       &write_file;
 VED_CLINE["r"]  =       &_read_;
 VED_CLINE["q"]  =       &cl_quit;
 VED_CLINE["Q"]  =       &cl_quit;

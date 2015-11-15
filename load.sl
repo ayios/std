@@ -20,6 +20,8 @@ catch ImportError:
 
 ROOTDIR = realpath (ROOTDIR);
 
+() = evalfile (ROOTDIR + "/std/__/__");
+
 public variable PID = getpid ();
 public variable UID = getuid ();
 public variable GID = getgid ();
@@ -82,18 +84,8 @@ public variable TEMPDIR = ROOTDIR + "/tmp";
 set_slang_load_path ("");
 set_import_module_path ("");
 
-public define exception_to_array ()
-{
-  return strchop (sprintf ("Caught an exception:%s\n\
-Message:     %s\n\
-Object:      %S\n\
-Function:    %s\n\
-Line:        %d\n\
-File:        %s\n\
-Description: %s\n\
-Error:       %d\n",
-    _push_struct_field_values (qualifier ("exc", __get_exception_info ()))), '\n', 0);
-}
+
+use_namespace ("Global");
 
 private define _load_ ()
 {
@@ -205,7 +197,7 @@ public define loadfrom (ns, lib, dons, errfunc)
 
     if (typeof (exception) == Struct_Type)
       {
-      excar = exception_to_array (;exc = exception);
+      excar = err__.exc_to_array (exception);
       err = exception.error;
       }
     else
@@ -240,7 +232,7 @@ public define importfrom (ns, module, dons, errfunc)
   catch ImportError:
     {
     exception = __get_exception_info ();
-    excar = exception_to_array (;exc = exception);
+    excar = err__.exc_to_array (exception);
 
     ifnot (NULL == errfunc)
       (@errfunc) (excar, exception.error);
@@ -277,7 +269,7 @@ public define getreffrom (ns, lib, dons, errfunc)
     exception = __get_exception_info ().object;
     if (typeof (exception) == Struct_Type)
       {
-      excar = exception_to_array (;exc = exception);
+      excar = err__.exc_to_array (exception);
       err = exception.error;
       }
     else
@@ -307,7 +299,7 @@ public define loadfile (file, ns, errfunc)
   catch AnyError:
     {
     exception = __get_exception_info ();
-    excar = exception_to_array (;exc = exception);
+    excar = err__.exc_to_array (exception);
 
     ifnot (NULL == errfunc)
       (@errfunc) (excar, exception.error);
@@ -358,4 +350,9 @@ define clear_stack ()
   variable d = _stkdepth () + 1;
   while (d--, d > 1)
     pop ();
+}
+
+define istype (m, t)
+{
+  NULL == m ? 0 : stat_is (t, m);
 }

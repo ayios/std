@@ -83,7 +83,6 @@ private define _execline_ (s)
 
   ifnot (any (assoc_get_keys (s.argvlist) == s.argv[0]))
     return;
-
   variable _addhistory = 1;
 
   if (1 < length (s.argv))
@@ -610,7 +609,7 @@ private define hlitem (s, ar, base, acol, item)
     icol = 0,
     colr = 5,
     index = 0,
-    header = qualifier ("header", " "),
+    header = qualifier ("header"),
     max_len = max (strlen (ar)) + 2,
     fmt = sprintf ("%%-%ds", max_len),
     lines;
@@ -1239,7 +1238,7 @@ static define commandcmp (s, commands)
     }
 }
 
-private define fnamecmpToprow (s, fname)
+static define fnamecmpToprow (s, fname)
 {
   variable
     ar,
@@ -1278,9 +1277,18 @@ private define fnamecmpToprow (s, fname)
     if (-1 == retval || 0 == length (ar))
       return 0;
 
-    if (qualifier_exists ("only_dirs") && length (ar))
-      ar = ar[where (array_map (Char_Type, &__isdirectory,
-        array_map (String_Type, &path_concat, file, ar)))];
+    if (length (ar))
+      if (qualifier_exists ("only_dirs"))
+        ar = ar[where (array_map (Char_Type, &__isdirectory,
+          array_map (String_Type, &path_concat, file, ar)))];
+      else if (qualifier_exists ("only_blcks"))
+        {
+        st = array_map (Struct_Type, &stat_file,
+          array_map (String_Type, &path_concat, file, ar));
+        st = st[wherenot (_isnull (st))];
+        st = array_map (Integer_Type, &get_struct_field, st, "st_mode");
+        ar = ar[where (array_map (Char_Type, &stat_is, "blk", st))];
+        }
 
     ifnot (length (ar))
       return 0;
@@ -1301,14 +1309,15 @@ private define fnamecmpToprow (s, fname)
 
     tmp = "";
 
-    chr = hlitem (s, append_dir_indicator (file, ar), file, s._col, &tmp; header = @fname);
+    chr = hlitem (s, append_dir_indicator (file, ar), file, s._col, &tmp;
+      header = qualifier ("header", @fname));
 
     s.cmp_lnrs = [s.cmp_lnrs[0] - 1, s.cmp_lnrs];
 
     if (033 == chr)
       {
       restore (s.cmp_lnrs, NULL, NULL, s._columns);
-      return 0;
+      return 033;
       }
 
     if (' ' == chr)
@@ -1527,6 +1536,8 @@ private define parse_argtype (s, arg, type, baselen)
 
       if (any (["directory", "mountpoint"]  == type))
         () = fnamecmpToprow (s, &tmp;only_dirs);
+      else if ("device" == type)
+        () = fnamecmpToprow (s, &tmp;only_blcks);
       else
         () = fnamecmpToprow (s, &tmp);
 
@@ -2033,3 +2044,4 @@ static define readline (s)
     prompt (s, s._lin, s._col);
     }
 }
+

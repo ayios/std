@@ -65,9 +65,39 @@ ifnot (NULL == APP.excom)
 
 private define _write_ (argv)
 {
-  if (any (["w", "w!", "W"]  == argv[0]))
+  variable b = get_cur_buf ();
+  variable lnrs = [0:b._len];
+  variable range = NULL;
+  variable append = NULL;
+  variable ind = is_arg ("--range=", argv);
+  variable lines;
+  variable file;
+  variable command;
+
+  ifnot (NULL == ind)
     {
-    __vwritefile (get_cur_buf (), "w!" == argv[0], [PROMPTROW, 1], argv[[1:]]);
+    variable arg = argv[ind];
+    argv[ind] = NULL;
+    argv = argv[wherenot (_isnull (argv))];
+    if (NULL == (lnrs = __vparse_arg_range (b, arg, lnrs), lnrs))
+      return;
+    }
+
+  ind = wherefirst (">>" == argv);
+  ifnot (NULL == ind)
+    {
+    append = 1;
+    argv[ind] = NULL;
+    argv = argv[wherenot (_isnull (argv))];
+    }
+
+  command = argv[0];
+  file = length (argv) - 1 ? argv[1] : NULL;
+
+  if (any (["w", "w!", "W"]  == command))
+    {
+    __vwritefile (b, "w!" == command, [PROMPTROW, 1], file, append;
+      lines = b.lines[lnrs]);
     return;
     }
 }
@@ -987,5 +1017,3 @@ define init_commands ()
 
   return a;
 }
-
-

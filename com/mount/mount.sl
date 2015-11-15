@@ -28,7 +28,7 @@ define main ()
     tostderr ("mount couldn't be found in PATH");
     exit_me (1);
     }
- 
+
   c.add ("mountpoint", &mountpoint;type = "string");
   c.add ("device", &device;type = "string");
   c.add ("v|verbose", &verbose);
@@ -36,16 +36,16 @@ define main ()
   c.add ("info", &info);
 
   i = c.process (__argv, 1);
- 
+
   if (mountpoint == NULL == device)
     {
     p = proc->init (0, openstdout, 0);
- 
+
     if (openstdout)
       initproc (p);
- 
+
     status = p.execv ([mount], NULL);
- 
+
     exit_me (status.exit_status);
     }
 
@@ -61,23 +61,29 @@ define main ()
     exit_me (1);
     }
 
-  ifnot (istype (stat_file (device).st_mode, "blk"))
+  if (-1 == access (device, F_OK))
     {
-    tostderr (sprintf ("%s is not a block device", device));
+    tostderr (sprintf ("%s device doesn't exists", device));
     exit_me (1);
     }
- 
+
+  ifnot (stat_is ("blk", stat_file (device).st_mode))
+    {
+    tostderr (sprintf ("%S is not a block device", device));
+    exit_me (1);
+    }
+
   if (VERBOSE)
     argv = [mount, "-v", device, mountpoint];
   else
     argv = [mount, device, mountpoint];
 
   p = proc->init (0, openstdout, 0);
- 
+
   if (openstdout)
     initproc (p);
- 
+
   status = p.execv (argv, NULL);
- 
+
   exit_me (status.exit_status);
 }

@@ -97,7 +97,7 @@ private variable vis = struct
   l_up,
   l_page_up,
   l_page_down,
-  l_keys = ['s', 'y', 'Y', 'd', '>', '<', keys->DOWN, keys->UP, keys->PPAGE, keys->NPAGE],
+  l_keys = ['w', 's', 'y', 'Y', 'd', '>', '<', keys->DOWN, keys->UP, keys->PPAGE, keys->NPAGE],
   c_mode,
   c_left,
   c_right,
@@ -402,6 +402,32 @@ define __vfind_Word (s, line, col, start, end)
   return substr (line, @start + 1, @end - @start + 1);
 }
 
+define __vparse_arg_range (s, arg, lnrs)
+{
+  arg = substr (arg, strlen ("--range=") + 1, -1);
+  ifnot (strlen (arg))
+    return NULL;
+
+  arg = strchop (arg, ',', 0);
+  ifnot (2 == length (arg))
+    return NULL;
+
+  variable i, ia;
+  variable range = ["", ""];
+  _for i (0, 1)
+    _for ia (0, strlen (arg[i]) - 1)
+      ifnot ('0' <= arg[i][ia] <= '9')
+        return NULL;
+      else
+        range[i] += char (arg[i][ia]);
+
+  range = array_map (Integer_Type, &atoi, range); % add an atoi array_map'ed
+  if (range[0] > range[1] || 0 > range[0] || range[1] > s._len)
+    return NULL;
+
+  return lnrs[[range[0]:range[1]]];
+}
+
 define __get_dec (chr, dir)
 {
   return any ([['0':'9'], '.'] == chr);
@@ -514,7 +540,7 @@ define __vwritetofile (file, lines, indent, bts)
   variable
     i,
     retval,
-    fp = fopen (file, "w");
+    fp = fopen (file, NULL == qualifier ("append") ? "w" : "a+");
 
   if (NULL == fp)
     return errno;
@@ -531,12 +557,11 @@ define __vwritetofile (file, lines, indent, bts)
   return 0;
 }
 
-define __vwritefile (s, overwrite, ptr, argv)
+define __vwritefile (s, overwrite, ptr, file, append)
 {
-  variable file;
   variable bts = 0;
 
-  if (NULL == argv || 0 == length (argv))
+  if (NULL == file)
     {
     if (s._flags & VED_RDONLY)
       return;
@@ -545,14 +570,14 @@ define __vwritefile (s, overwrite, ptr, argv)
     }
   else
     {
-    file = argv[0];
     ifnot (access (file, F_OK))
       {
       ifnot (overwrite)
-        {
-        send_msg_dr ("file exists, w! to overwrite", 1, ptr[0], ptr[1]);
-        return;
-        }
+        if (NULL == append)
+          {
+          send_msg_dr ("file exists, w! to overwrite", 1, ptr[0], ptr[1]);
+          return;
+          }
 
       if (-1 == access (file, W_OK))
         {
@@ -562,7 +587,8 @@ define __vwritefile (s, overwrite, ptr, argv)
       }
     }
 
-  variable retval = __vwritetofile (file, s.lines, s._indent, &bts);
+  variable retval = __vwritetofile (file, qualifier ("lines", s.lines), s._indent, &bts;
+  append = append);
 
   if (retval)
     {
@@ -587,8 +613,6 @@ private define waddline (s, line, clr, row)
   smg->atrcaddnstr (line, clr, row, s._indent, s._linlen);
   s.lexicalhl ([line], [row]);
 }
-
-%%% LIB
 
 private define _set_clr_ (s, clr, set)
 {
@@ -1186,7 +1210,7 @@ private define _set_reg_ (reg, sel)
     REG[reg] = REG[reg] + sel;
 }
 
-%%% MARK FUNCTIONS
+%%% MARK
 
 private define mark_init (m)
 {
@@ -1236,7 +1260,7 @@ private define mark_get ()
   return m;
 }
 
-%%% VED OBJECT FUNCTIONS
+%%% VED OBJECT
 
 define preloop (s)
 {
@@ -1484,8 +1508,6 @@ define deftype ()
 }
 
 % PAGER
-%% PG LIB
-%%% GENERIC (USED BY OTHER MODES)
 
 private define __pg_left (s)
 {
@@ -1527,8 +1549,6 @@ private define __pg_right (s, linlen)
 
   return 1;
 }
-
-%% USED BY PAGER COMMANDS
 
 private define _indent_in_ (s, line, i_)
 {
@@ -1624,8 +1644,6 @@ private define _gotoline_ (s)
     smg->setrcdr (s.ptr[0], s.ptr[1]);
     }
 }
-
-%% PG OBJECT FUNCTIONS
 
 private define pg_down (s)
 {
@@ -2115,7 +2133,7 @@ public define __pg_on_carriage_return (s)
 
 private define pg_write_on_esc (s)
 {
-  __vwritefile (s, NULL, s.ptr, NULL);
+  __vwritefile (s, NULL, s.ptr, NULL, NULL);
   send_msg_dr ("", 14, NULL, NULL);
   sleep (0.001);
   smg->setrcdr (s.ptr[0], s.ptr[1]);
@@ -2940,7 +2958,7 @@ private define s_search_word_ (s)
     }
 }
 
-%%% VISUAL MODE
+%%% VISUAL
 
 private define v_unhl_line (vs, s, index)
 {
@@ -3338,6 +3356,19 @@ private define v_l_loop (vs, s)
 
       rline->readline (rl);
       return;
+      }
+
+    if ('w' == chr)
+      {
+      rl = get_cur_rline ();
+      argv = ["w", sprintf ("--range=%d,%d", vs.lnrs[0], vs.lnrs[-1])];
+
+      rline->set (rl;line = strjoin (argv, " "), argv = argv,
+        col = int (sum (strlen (argv))) + length (argv),
+        ind = length (argv) - 1);
+
+      rline->readline (rl);
+      break;
       }
     }
 
@@ -3966,7 +3997,7 @@ private define vis_mode (s)
   vs.at_exit (s, vs.needsdraw);
 }
 
-% ED MODE
+% ED
 
 private define newline_str (s, indent, line)
 {
@@ -5396,6 +5427,52 @@ define ins_linecompletion (s, line)
   ctrl_completion_rout (s, line, _function_name ());
 }
 
+private define __vfind_ldfnane (str, i)
+{
+  @i = strlen (str);
+  ifnot (@i)
+    return "";
+
+  variable inv = [[0:32], [33:45], [58:64], [91:96]];
+  variable fn = ""; variable c;
+
+  do
+    {
+    c = substr (str, @i, 1);
+    if (any (inv == c[0]) || (c[0] > 122 && 0 == any (c[0] == EL_MAP)))
+      break;
+
+    fn = c + fn;
+    @i--;
+    }
+  while (@i);
+  fn;
+}
+
+define ins_fnamecompletion (lnr, s, line)
+{
+  variable rl = get_cur_rline ();
+
+  rline->set (rl;col = s.ptr[1], row = s.ptr[0]);
+
+  variable i;
+  variable orig = substr (@line, 1, s._index);
+  variable fn = __vfind_ldfnane (orig, &i);
+  variable r = rline->fnamecmpToprow (rl, &fn;header = NULL);
+  if (033 == r || 0 == strlen (fn) || fn == orig)
+    return;
+
+  @line = (i ? substr (@line, 1, i) : "") + fn +
+    (s._index + 1 == strlen (@line) ? "" : substr (@line, s._index + 2, -1));
+  s.lines[lnr] = @line;
+  s.st_.st_size = getsizear (s.lines);
+
+  set_modified (s);
+
+  waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
+  __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+}
+
 define blockcompletion (lnr, s, line)
 {
  variable f = __get_reference (s._type + "_blocks");
@@ -5417,8 +5494,8 @@ define blockcompletion (lnr, s, line)
     variable ar = strchop (assoc[@line], '\n', 0);
     % broken _for loop code,
     % trying to calc the indent
-    % when there is an initial string to narrow the results, might need
-    % a different approach
+    % when there is an initial string to narrow the results,
+    % might need a different approach
     %_for i (0, length (ar) - 1)
     %  (ar[i], ) = strreplace (ar[i], " ", "", strlen (item) - 1);
 
@@ -5474,6 +5551,11 @@ define ins_ctrl_x_completion (is, s, line)
     }
 
     {
+    case 'f':
+      ins_fnamecompletion (is.lnr, s, line);
+    }
+
+    {
     return;
     }
 }
@@ -5485,8 +5567,6 @@ define ins_wordcompletion (s, line)
 
 private define ins_getline (is, s, line)
 {
- % is = struct {@insfuncs, @is};
-
   forever
     {
     is.chr = getch (;on_lang = &_on_lang_change_, on_lang_args = {"insert", s.ptr});
@@ -5502,7 +5582,7 @@ private define ins_getline (is, s, line)
       s.lins[s.ptr[0] - s.rows[0]] = @line;
       s.lines[is.lnr] = @line;
       s.st_.st_size = getsizear (s.lines);
-      __vwritefile (s, NULL, s.ptr, NULL);
+      __vwritefile (s, NULL, s.ptr, NULL, NULL);
       s._flags &= ~VED_MODIFIED;
       send_msg_dr (s._abspath + " written", 0, s.ptr[0], s.ptr[1]);
       sleep (0.02);
@@ -5672,6 +5752,7 @@ define __substitute ()
   variable global = 0, ask = 1, pat = NULL, sub = NULL, ind, range = NULL;
   variable args = __pop_list (_NARGS);
   variable buf = get_cur_buf ();
+  variable lnrs = [0:buf._len];
 
   args = list_to_array (args, String_Type);
 
@@ -5700,26 +5781,8 @@ define __substitute ()
   ind = is_arg ("--range=", args);
   ifnot (NULL == ind)
     {
-    % add here the first execute func
-    ind = substr (args[ind], strlen ("--range=") + 1, -1);
-    ifnot (strlen (ind))
-      return;
-
-    ind = strchop (ind, ',', 0);
-    ifnot (2 == length (ind))
-      return;
-
-    variable i, ia;
-    range = ["", ""];
-    _for i (0, 1)
-      _for ia (0, strlen (ind[i]) - 1)
-        ifnot ('0' <= ind[i][ia] <= '9')
-          return;
-        else
-          range[i] += char (ind[i][ia]);
-
-    range = array_map (Integer_Type, &atoi, range); % add an atoi array_map'ed
-    if (range[0] > range[1])
+    lnrs = __vparse_arg_range (buf, args[ind], lnrs);
+    if (NULL == lnrs)
       return;
     }
 
@@ -5733,19 +5796,6 @@ define __substitute ()
 
   s.fname = path_basename (buf._abspath);
   s.ask = &_askonsubst_;
-
-  variable lnrs = [0:buf._len];
-
-  ifnot (NULL == range)
-    {
-    if (0 > range[0])
-      return;
-
-    ifnot (range[0] <= range[1] <= buf._len)
-      return;
-
-    lnrs = lnrs[[range[0]:range[1]]];
-    }
 
   variable retval = search->search_and_replace (s, buf.lines[lnrs]);
 

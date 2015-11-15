@@ -1,3 +1,9 @@
+% !!!
+% _ (no error) __ (errors) ___ (types)
+
+%typedef __DataTypeType
+% evalstr -> file (map?)
+% other name for fun and for filefun (levels - -- ---, NULL - zeroit)
 % resume, _resume;
 %% l = __pop_list( 
 %%            __push_list ({11,12,13,14,10}),
@@ -58,10 +64,7 @@ private define check__ns (ns)
       throw __RunTimeError, ns + " doesn't exists, specify the 'init__ns' qualifier to set it",
         gen_err_s (_function_name, __LINE__ - 2);
     else
-      {
       ___ ("_").init (ns;;__qualifiers ());
-      return ___ (ns);
-      }
 
   return ___ (ns);
 }
@@ -84,7 +87,7 @@ private define check__fun (ns, fun)
   return ref;
 }
 
-public define ____ ()
+public define _ ()
 {
   variable ns = "_", fun;
 

@@ -29,7 +29,7 @@ static define _pop_up_ (ar, row, col, ifocus)
   clrs[*] = bgclr;
   clrs[ifocus - 1] = fgclr;
   cols[*] = col;
- 
+
   smg->aratrcaddnstr (lar, clrs, rows, cols, maxlen);
 
   return rows;
@@ -51,7 +51,7 @@ static define pop_up (ar, row, col, ifocus)
 
   while (lrow--, lrow - 1 + length (lar) >= avail_lines);
   lrow++;
- 
+
   return _pop_up_ (lar, lrow, col, ifocus;;__qualifiers ());
 }
 
@@ -66,7 +66,7 @@ static define write_completion_routine (ar, startrow)
     cols = Integer_Type[len];
 
   clrs[*] = qualifier ("clr", defclr);
-  clrs[0] = lheaderclr;
+  ifnot (NULL == qualifier ("header")) clrs[0] = lheaderclr;
   cols[*] = qualifier ("startcol", 0);
 
   smg->aratrcaddnstr (ar, clrs, cmpl_lnrs, cols, columns);
@@ -80,21 +80,24 @@ static define printtoscreen (ar, lastrow, len, cmpl_lnrs)
     @len = 0;
     return @Array_Type[0];
     }
- 
+
   variable lines = qualifier ("lines", lastrow - 2);
   variable origlen = @len;
   variable hlreg = qualifier ("hl_region");
   variable lar = @len < lines ? @ar : ar[[:lines - 1]];
   variable startrow = lastrow - (length (lar) > lines ? lines : length (lar));
-  variable header = qualifier ("header", " ");
+  variable header = qualifier ("header");
 
-  @cmpl_lnrs = write_completion_routine ([header, lar], startrow - 1;;__qualifiers ());
+  ifnot (NULL == header)  lar = [header, lar];
+
+  @cmpl_lnrs = write_completion_routine (lar, startrow - (NULL == header ? 0 : 1)
+    ;;__qualifiers ());
 
   ifnot (NULL == hlreg)
     smg->hlregion (hlreg[0], hlreg[1], hlreg[2], hlreg[3], hlreg[4]);
- 
+
   @len = @len >= lines;
- 
+
   if (qualifier_exists ("refresh"))
     smg->setrcdr (lastrow - 1, strlen (lar)[-1] + 1);
 

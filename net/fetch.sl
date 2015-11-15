@@ -68,7 +68,7 @@ private define fetch (s, url)
   catch CurlError:
     {
     ifnot (qualifier_exists ("dont_print"))
-      array_map (Void_Type, &tostderr, err__.exc_to_array ());
+      array_map (Void_Type, &tostderr, err__.exc_to_array (NULL));
 
     ifnot (write_to_var)
       {

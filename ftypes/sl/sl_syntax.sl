@@ -95,6 +95,7 @@ private variable regexps = [
 |(?<=&|\s|\[|\()(strn?cmp(?=\s|,))\
 |(?<=&|\s|\[|\()(f?printf(?=\s|,))\
 |(?<=&|\s|\[|\()(realpath(?=\s|,))\
+|(?<=&|\s|\[|\()(_stk_roll(?=\s|,))\
 |(?<=^|\s|\[|\()(array_map(?=\s|,))\
 |(?<=&|\s|\[|\()(qualifier(?=\s|,))\
 |(?<=&|\s|\[|\()([l|f]seek(?=\s|,))\
@@ -110,6 +111,7 @@ private variable regexps = [
 |(?<=&|\s|\[|\()(list_append(?=\s|,))\
 |(?<=&|\s|\[|\()(errno_string(?=\s|,))\
 |(?<=&|\s|\[|\()(string_match(?=\s|,))\
+|(?<=&|\s|\[|\()(__is_callable(?=\s|,))\
 |(?<=&|\s|\[|\(|^)(sigprocmask(?=\s|,))\
 |(?<=&|\s|\[|\()(list_to_array(?=\s|,))\
 |(?<=&|\s|\[|\()(_function_name(?=\s|,))\
@@ -228,7 +230,7 @@ private variable regexps = [
 |((?<=\(|\[)SIGALRM(?=,|\]))\
 |((?<=\()SIG_(UN)?BLOCK(?=,))\
 |((?<=\(|\s|\[|}|@)\w+_Type(?=[,\s\]\[;\)]))\
-|((?<!\w)[\w]+Error(?=[:|,])))+"R, 0),
+|((?<!\w)[\w]+Error(?=[:|,|;])))+"R, 0),
 %errors
   pcre_compile ("\
 (((?<=\S)\s+$)\
