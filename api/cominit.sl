@@ -992,9 +992,9 @@ define init_commands ()
 
   a["w"] = @Argvlist_Type;
   a["w"].func = &_write_;
+  a["w"].args = ["--range= int first linenr, last linenr"];
 
-  a["w!"] = @Argvlist_Type;
-  a["w!"].func = &_write_;
+  a["w!"] = a["w"];
 
   a["bgjobs"] = @Argvlist_Type;
   a["bgjobs"].func = &_list_bg_jobs_;
