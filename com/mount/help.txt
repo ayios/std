@@ -17,4 +17,4 @@
 
   NOTES
 
-This is a simple mount command wrapper, because there are no specific S-Lang libs.
+This is a simple mount command wrapper.

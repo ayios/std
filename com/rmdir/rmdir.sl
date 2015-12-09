@@ -1,5 +1,5 @@
-loadfrom ("dir", "parents", NULL, &on_eval_err);
-loadfrom ("file", "remove", NULL, &on_eval_err);
+load.from ("dir", "parents", NULL;err_handler = &__err_handler__);
+load.from ("file", "remove", NULL;err_handler = &__err_handler__);
 
 define main ()
 {
@@ -25,7 +25,7 @@ define main ()
 
   if (i == __argc)
     {
-    tostderr (sprintf ("%s: argument is required", __argv[0]));
+    IO.tostderr (sprintf ("%s: argument is required", __argv[0]));
     exit_me (1);
     }
 
@@ -46,7 +46,7 @@ define main ()
 
     if (NULL== st)
       {
-      tostderr (sprintf ("failed to remove `%s': Not such directory", path_arr[i]));
+      IO.tostderr (sprintf ("failed to remove `%s': Not such directory", path_arr[i]));
       exit_code = 1;
       continue;
       }

@@ -1,4 +1,4 @@
-loadfrom ("file", "copyfile", NULL, &on_eval_err);
+load.from ("file", "copyfile", NULL;err_handler = &__err_handler__);
 
 define mvfile (source, dest, opts)
 {
@@ -15,7 +15,7 @@ define mvfile (source, dest, opts)
     retval = copyfile (dest, backup);
     if (-1 == retval)
       {
-      tostderr (sprintf ("%s: backup failed", backup));
+      IO.tostderr (sprintf ("%s: backup failed", backup));
       return -1;
       }
 
@@ -52,7 +52,7 @@ define mvfile (source, dest, opts)
       retval = copyfile (source, dest);
       if (-1 == retval)
         {
-        tostderr (sprintf
+        IO.tostderr (sprintf
           ("%s: failed to mv to %s, Couldn't bypass the Cross-device link", source, dest));
         return -1;
         }
@@ -60,19 +60,19 @@ define mvfile (source, dest, opts)
       if (-1 == remove (source))
         {
         () = remove (dest);
-        tostderr (sprintf
+        IO.tostderr (sprintf
           ("%s: failed to mv to %s, ERRNO: %s", source, dest, errno_string (errno)));
         return -1;
         }
       }
     else
       {
-      tostderr (sprintf (
+      IO.tostderr (sprintf (
         "Failed to move %s to %s, ERRNO: %s", source, dest, errno_string (errno)));
       return -1;
       }
     }
 
-  tostdout (sprintf ("`%s' -> `%s'%s", source, dest, backuptext));
+  IO.tostdout (sprintf ("`%s' -> `%s'%s", source, dest, backuptext));
   return 0;
 }

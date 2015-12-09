@@ -1,37 +1,37 @@
-importfrom ("std", "pcre", NULL, &on_eval_err);
+load.module ("std", "pcre", NULL;err_handler = &__err_handler__);
 
-loadfrom ("dir", "fswalk", NULL, &on_eval_err);
-loadfrom ("file", "copyfile", NULL, &on_eval_err);
-loadfrom ("string", "strtoint", NULL, &on_eval_err);
-loadfrom ("proc", "procInit", NULL, &on_eval_err);
-loadfrom ("stdio", "writefile", NULL, &on_eval_err);
+load.from ("dir", "fswalk", NULL;err_handler = &__err_handler__);
+load.from ("file", "copyfile", NULL;err_handler = &__err_handler__);
+load.from ("string", "strtoint", NULL;err_handler = &__err_handler__);
+load.from ("proc", "procInit", NULL;err_handler = &__err_handler__);
+load.from ("stdio", "writefile", NULL;err_handler = &__err_handler__);
 
 private variable
   MANDIR = "/usr/share/man/",
   LOCALMANDIR = "/usr/local/share/man/",
-  DATA_DIR = sprintf ("%s/man", LCLDATADIR),
+  DATA_DIR = sprintf ("%s/man", Dir.vget ("LCLDATADIR")),
   MYMANDIR = sprintf ("%s/manhier", DATA_DIR);
 
 private variable
-  gzip = which ("gzip"),
-  groff = which ("groff"),
-  col = which ("col");
+  gzip = Sys.which ("gzip"),
+  groff = Sys.which ("groff"),
+  col = Sys.which ("col");
 
 if (NULL == gzip)
   {
-  tostderr ("gzip hasn't been found in PATH");
+  IO.tostderr ("gzip hasn't been found in PATH");
   exit_me (1);
   }
 
 if (NULL == groff)
   {
-  tostderr ("groff hasn't been found in PATH");
+  IO.tostderr ("groff hasn't been found in PATH");
   exit_me (1);
   }
 
 if (NULL == col)
   {
-  tostderr ("col hasn't been found in PATH");
+  IO.tostderr ("col hasn't been found in PATH");
   exit_me (1);
   }
 
@@ -75,11 +75,11 @@ define getpage (page)
     status = p.execv ([groff, "-Tutf8", "-m", "man", fname], NULL);
     }
 
-  ar = readfile (errfn);
+  ar = IO.readfile (errfn);
  
   () = remove (errfn);
 
-  errfn = TEMPDIR + "/" + string (getpid) + substr (string (_time), 7, -1)  + "manerrs";
+  errfn = Dir.vget ("TEMPDIR") + "/" + string (getpid) + substr (string (_time), 7, -1)  + "manerrs";
 
   if (length (ar))
     {
@@ -173,7 +173,7 @@ define main ()
   if (-1 == access (DATA_DIR, F_OK))
     if (-1 == mkdir (DATA_DIR))
       {
-      tostderr (sprintf ("cannot create %s", DATA_DIR));
+      IO.tostderr (sprintf ("cannot create %s", DATA_DIR));
       exit_me (1);
       }
 
@@ -181,7 +181,7 @@ define main ()
     {
     if (-1 == mkdir (MYMANDIR))
       {
-      tostderr (sprintf ("cannot create %s", MYMANDIR));
+      IO.tostderr (sprintf ("cannot create %s", MYMANDIR));
       exit_me (1);
       }
 
@@ -229,7 +229,7 @@ define main ()
 
     ifnot (length (list))
       {
-      tostderr ("no man page found");
+      IO.tostderr ("no man page found");
       exit_me (1);
       }
 
@@ -241,12 +241,12 @@ define main ()
     {
     if (-1 == access (cachefile, F_OK))
       {
-      tostderr (sprintf ("%s: cache file not found, run again with --buildcache",
+      IO.tostderr (sprintf ("%s: cache file not found, run again with --buildcache",
         cachefile));
       exit_me (1);
       }
 
-    cache = readfile (cachefile);
+    cache = IO.readfile (cachefile);
     pat = pcre_compile (search, options);
     pos = strlen (MANDIR) + 4;
     man_page = String_Type[0];
@@ -257,7 +257,7 @@ define main ()
 
     ifnot (length (man_page))
       {
-      tostderr (sprintf ("%s: no man page matches the regexp", search));
+      IO.tostderr (sprintf ("%s: no man page matches the regexp", search));
       exit_me (1);
       }
 
@@ -285,20 +285,20 @@ define main ()
 
     if (NULL == retval || 0 == strlen (retval))
       {
-      tostderr ("man: Aborting ...");
+      IO.tostderr ("man: Aborting ...");
       exit_me (1);
       }
 
     retval = strtoint (retval);
     if (NULL == retval)
       {
-      tostderr ("man: Selection is not an integer, Aborting ...");
+      IO.tostderr ("man: Selection is not an integer, Aborting ...");
       exit_me (1);
       }
 
     if (0 == retval || retval > length (man_page))
       {
-      tostderr ("selection is out of range");
+      IO.tostderr ("selection is out of range");
       exit_me (1);
       }
 
@@ -312,7 +312,7 @@ define main ()
 
   if (i == __argc)
     {
-    tostderr ("man: argument is required");
+    IO.tostderr ("man: argument is required");
     exit_me (1);
     }
 
@@ -327,12 +327,12 @@ define main ()
     {
     if (-1 == access (cachefile, F_OK))
       {
-      tostderr (sprintf (
+      IO.tostderr (sprintf (
         "%s: cache file not found, run again with --buildcache", cachefile));
       exit_me (1);
       }
 
-    cache = readfile (cachefile);
+    cache = IO.readfile (cachefile);
     pat = pcre_compile (sprintf ("/%s\\056[0-9]", page), options);
     pos = strlen (MANDIR) + 4;
     man_page = NULL;
@@ -346,7 +346,7 @@ define main ()
 
     if (NULL == man_page)
       {
-      tostderr (sprintf ("%s: man page haven't been found", page));
+      IO.tostderr (sprintf ("%s: man page haven't been found", page));
       exit_me (1);
       }
 

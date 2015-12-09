@@ -1,9 +1,9 @@
-importfrom ("std", "pcre", NULL, &on_eval_err);
+load.module ("std", "pcre", NULL;err_handler = &__err_handler__);
 
-loadfrom ("file", "remove", NULL, &on_eval_err);
-loadfrom ("dir", "fswalk", NULL, &on_eval_err);
-loadfrom ("dir", "evaldir", NULL, &on_eval_err);
-loadfrom ("array", "arrayfuncs", NULL, &on_eval_err);
+load.from ("file", "remove", NULL;err_handler = &__err_handler__);
+load.from ("dir", "fswalk", NULL;err_handler = &__err_handler__);
+__.sadd ("Dir", "eval", "eval_", NULL;__DIRNS__ = Dir.vget ("STDDIR") + "/dir");
+load.from ("array", "arrayfuncs", NULL;err_handler = &__err_handler__);
 
 define assign_string_pattern (pat, pattern, what)
 {
@@ -72,12 +72,12 @@ define main ()
 
   if (i == __argc)
     {
-    tostderr (sprintf ("%s: argument is required", __argv[0]));
+    IO.tostderr (sprintf ("%s: argument is required", __argv[0]));
     exit_me (1);
     }
   else
     files = __argv[[i:]];
- 
+
   files = files[wherenot ("." == files)];
   files = files[where (strncmp (files, "--", 2))];
 
@@ -89,7 +89,7 @@ define main ()
       {
       if (NULL == no_preserve_root)
         {
-        tostderr ("Cannot remove the / (root) directory");
+        IO.tostderr ("Cannot remove the / (root) directory");
         exit_code = 1;
         files[i] = NULL;
         }
@@ -101,13 +101,13 @@ define main ()
       }
     else
       {
-      files[i] = evaldir (files[i];dont_change);
+      files[i] = Dir.eval (files[i];dont_change);
 
       st = lstat_file (files[i]);
 
       if (NULL == st)
         {
-        tostderr (sprintf ("%s: No such file", files[i]));
+        IO.tostderr (sprintf ("%s: No such file", files[i]));
         files[i] = NULL;
         exit_code = 1;
         continue;
@@ -116,7 +116,7 @@ define main ()
       if (stat_is ("dir", st.st_mode))
         if (NULL == recursive)
           {
-          tostdout (sprintf ("%s: omitting directory", files[i]));
+          IO.tostdout (sprintf ("%s: omitting directory", files[i]));
           files[i] = NULL;
           exit_code = 1;
           continue;
@@ -124,7 +124,7 @@ define main ()
         else
           {
           if (-1 == access (files[i], W_OK))
-            tostderr (sprintf ("%s: cannot remove, permission denied", files[i]));
+            IO.tostderr (sprintf ("%s: cannot remove, permission denied", files[i]));
           else
             list_append (dirlist, files[i]);
 
@@ -135,7 +135,7 @@ define main ()
 
       if (-1 == access (files[i], W_OK) && 0 == stat_is ("lnk", st.st_mode))
         {
-        tostderr (sprintf ("%s: cannot remove, permission denied", files[i]));
+        IO.tostderr (sprintf ("%s: cannot remove, permission denied", files[i]));
 
         files[i] = NULL;
 
@@ -172,13 +172,12 @@ define main ()
       {
       if (NULL == wherefirst (inter_opts == interactive))
         {
-        tostderr (sprintf
+        IO.tostderr (sprintf
           ("%s: wrong interactive option. Valid are (always,once,never)", interactive));
         exit_me (1);
         }
       }
     else interactive = "once";
- 
 
     if (interactive == "once")
       {
@@ -200,7 +199,7 @@ define main ()
 
         {
         case 'q':
-          tostdout ("Aborting ...");
+          IO.tostdout ("Aborting ...");
           exit_me (0);
         }
 
@@ -222,7 +221,7 @@ define main ()
 
             {
             case 'q':
-              tostdout ("Aborting ...");
+              IO.tostdout ("Aborting ...");
               exit_me (0);
             }
         }
@@ -234,7 +233,7 @@ define main ()
   _for i (0, length (filelist) - 1)
     {
     st = lstat_file (filelist[i]);
- 
+
     retval = __remove (filelist[i], &interactive, stat_is ("dir", st.st_mode));
 
     if (-1 == retval)
@@ -242,7 +241,7 @@ define main ()
 
     if ("exit" == interactive)
       {
-      tostdout ("Quiting ...");
+      IO.tostdout ("Quiting ...");
       exit_me (exit_code);
       }
     }

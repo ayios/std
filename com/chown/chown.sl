@@ -1,4 +1,4 @@
-loadfrom ("dir", "fswalk", NULL, &on_eval_err);
+load.from ("dir", "fswalk", NULL;err_handler = &__err_handler__);
  
 variable
   CHANGEREF = NULL,
@@ -9,7 +9,7 @@ define getcuruser (uid)
   variable
     line,
     rec,
-    lines = readfile ("/etc/passwd");
+    lines = IO.readfile ("/etc/passwd");
  
   uid = string (uid);
 
@@ -28,7 +28,7 @@ define getcurgroup (gid)
   variable
     line,
     rec,
-    lines = readfile ("/etc/group");
+    lines = IO.readfile ("/etc/group");
  
   gid = string (gid);
 
@@ -64,16 +64,16 @@ define change_ref (file, uid, gid, user, group)
 
   if (-1 == chown (file, uid, gid))
     {
-    tostderr (sprintf (
+    IO.tostderr (sprintf (
       "%s: could not change ownership, ERRNO: %s", file, errno_string (errno)));
     EXIT_CODE = 1;
     }
   else
     {
     if (uid == cur_uid && gid == cur_gid)
-      tostdout (sprintf ("ownership of `%s' retained as %s:%s", file, user, group));
+      IO.tostdout (sprintf ("ownership of `%s' retained as %s:%s", file, user, group));
     else
-      tostdout (sprintf ("changed ownership of `%s' from %s:%s to %s:%s",
+      IO.tostdout (sprintf ("changed ownership of `%s' from %s:%s to %s:%s",
         file, cur_user, cur_group, user, group));
     }
 }
@@ -102,16 +102,16 @@ define chown_it (file, uid, gid, user, group)
  
   if (-1 == (@whatchown) (file, uid, gid))
     {
-    tostderr (sprintf (
+    IO.tostderr (sprintf (
       "%s: could not change ownership, ERRNO: %s", file, errno_string (errno)));
     EXIT_CODE = 1;
     }
   else
     {
     if (uid == cur_uid && gid == cur_gid)
-      tostdout (sprintf ("ownership of `%s' retained as %s:%s", file, user, group));
+      IO.tostdout (sprintf ("ownership of `%s' retained as %s:%s", file, user, group));
     else
-      tostdout (sprintf ("changed ownership of `%s' from %s:%s to %s:%s",
+      IO.tostdout (sprintf ("changed ownership of `%s' from %s:%s to %s:%s",
         file, cur_user, cur_group, user, group));
     }
  
@@ -136,7 +136,7 @@ define _getuid (user)
 {
   variable
     rec,
-    lines = readfile ("/etc/passwd");
+    lines = IO.readfile ("/etc/passwd");
  
   rec = wherenot (strncmp (lines, sprintf ("%s:", user), strlen (user) + 1));
  
@@ -154,7 +154,7 @@ define _getgid (group)
 {
   variable
     rec,
-    lines = readfile ("/etc/group");
+    lines = IO.readfile ("/etc/group");
 
   rec = wherenot (strncmp (lines, sprintf ("%s:", group), strlen (group) + 1));
 
@@ -194,7 +194,7 @@ define main ()
  
   if (i == __argc)
     {
-    tostderr (sprintf ("%s: it requires a filename", __argv[0]));
+    IO.tostderr (sprintf ("%s: it requires a filename", __argv[0]));
     exit_me (1);
     }
  
@@ -203,7 +203,7 @@ define main ()
 
   if (NULL == user)
     {
-    tostderr ("--user option wasn't given");
+    IO.tostderr ("--user option wasn't given");
     exit_me (1);
     }
 
@@ -211,7 +211,7 @@ define main ()
 
   if (NULL == uid)
     {
-    tostderr (sprintf ("%s: No such user, aborting ...", user));
+    IO.tostderr (sprintf ("%s: No such user, aborting ...", user));
     exit_me (1);
     }
  
@@ -220,7 +220,7 @@ define main ()
     gid = _getgid (group);
     if (NULL == gid)
       {
-      tostderr (sprintf ("%s: No such group, aborting ...", group));
+      IO.tostderr (sprintf ("%s: No such group, aborting ...", group));
       exit_me (1);
       }
     }
@@ -231,7 +231,7 @@ define main ()
     {
     if (-1 == access (files[i], F_OK))
       {
-      tostderr (sprintf ("%s: No such file", files[i]));
+      IO.tostderr (sprintf ("%s: No such file", files[i]));
       continue;
       }
 

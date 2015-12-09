@@ -1,4 +1,4 @@
-define tostdout ()
+private define tostdout ()
 {
-  pop ();
+  loop (_NARGS) pop ();
 }

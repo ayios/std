@@ -1,1 +1,1 @@
-loadfrom ("ftypes/ashell", "ashell_settype", NULL, &on_eval_err);
+load.from ("ftypes/ashell", "ashell_settype", NULL;err_handler = &__err_handler__);

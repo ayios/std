@@ -1,6 +1,6 @@
-importfrom ("std", "fork", NULL, &on_eval_err);
-importfrom ("std", "socket", NULL, &on_eval_err);
+load.module ("std", "fork", NULL;err_handler = &__err_handler__);
+load.module ("std", "socket", NULL;err_handler = &__err_handler__);
 
-loadfrom ("posix", "read_fd", NULL, &on_eval_err);
-loadfrom ("parse", "is_arg", NULL, &on_eval_err);
-loadfrom ("proc", "procinit", 1, &on_eval_err);
+load.from ("posix", "read_fd", NULL;err_handler = &__err_handler__);
+load.from ("parse", "is_arg", NULL;err_handler = &__err_handler__);
+load.from ("proc", "procinit", 1;err_handler = &__err_handler__);

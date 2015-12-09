@@ -23,17 +23,17 @@ typedef struct
 variable Setid_Type = struct
   {
   setid = 1,
-  uid = UID,
-  gid = GID,
-  user = USER
+  uid = Env.vget ("UID"),
+  gid = Env.vget ("GID"),
+  user = Env.vget ("USER")
   };
 
-loadfrom ("proc", "envs", 1, &on_eval_err);
-loadfrom ("sock", "sockInit", NULL, &on_eval_err);
-loadfrom ("wind", "ostopline", NULL, &on_eval_err);
-loadfrom ("stdio", "appendstr", NULL, &on_eval_err);
-loadfrom ("api", "eval", NULL, &on_eval_err);
-loadfrom ("api", "clientfuncs", NULL, &on_eval_err);
+load.from ("proc", "envs", 1;err_handler = &__err_handler__);
+load.from ("sock", "sockInit", NULL;err_handler = &__err_handler__);
+load.from ("wind", "ostopline", NULL;err_handler = &__err_handler__);
+load.from ("stdio", "appendstr", NULL;err_handler = &__err_handler__);
+load.from ("api", "eval", NULL;err_handler = &__err_handler__);
+load.from ("api", "clientfuncs", NULL;err_handler = &__err_handler__);
 
 public variable RLINE;
 public variable CONNECTED_APPS = String_Type[0];
@@ -55,7 +55,7 @@ public variable _APPS_;
 define _log_ (str, logtype)
 {
   if (VERBOSITY & logtype)
-    tostderr (str);
+    IO.tostderr (str);
 }
 
 define __messages (argv)
@@ -154,11 +154,11 @@ define __get_con_apps ()
 
 define __connect_to_app (s)
 {
-  while (-1 == access (TEMPDIR + "/_" + s._appname + "_.init", F_OK))
+  while (-1 == access (Dir.vget ("TEMPDIR") + "/_" + s._appname + "_.init", F_OK))
     {
-    ifnot (access (TEMPDIR + "/_" + s._appname + "_.initerr", F_OK))
+    ifnot (access (Dir.vget ("TEMPDIR") + "/_" + s._appname + "_.initerr", F_OK))
       {
-      () = remove (TEMPDIR + "/_" + s._appname + "_.initerr");
+      () = remove (Dir.vget ("TEMPDIR") + "/_" + s._appname + "_.initerr");
 
       s.p_.atexit ();
 
@@ -166,7 +166,7 @@ define __connect_to_app (s)
 
       _log_ (s._appname +": evaluation err", LOGERR);
 
-      array_map (&tostderr, readfile (s.p_.stderr.file));
+      IO.tostderr (IO.readfile (s.p_.stderr.file));
 
       return -1;
       }
@@ -204,13 +204,13 @@ define __new_app (app)
 
   ifnot (any (app == _APPS_))
     {
-    tostderr (app + ": No such application");
+    IO.tostderr (app + ": No such application");
     return NULL;
     }
 
   variable setid = @Setid_Type;
 
-  loadfrom ("app/" + app, APPSINFO[app].init, app, &on_eval_err;force);
+  load.from ("app/" + app, APPSINFO[app].init, app;err_handler = &__err_handler__, force);
 
   variable ref = __get_reference (app + "->" + app);
   variable s = (@ref) (;;struct {@setid, dont_connect});
@@ -224,7 +224,7 @@ define __new_app (app)
   return s;
 }
 
-loadfrom ("os", "appinit", 1, &on_eval_err);
+load.from ("os", "appinit", 1;err_handler = &__err_handler__);
 
 private define _exit_me_ (argv)
 {
@@ -340,7 +340,7 @@ private define tabhook (s)
 define initrline ()
 {
   variable rl = rline->init (&init_commands;
-    histfile = HISTDIR + "/" + string (OSUID) + "oshistory",
+    histfile = Dir.vget ("HISTDIR") + "/" + string (OSUID) + "oshistory",
     tabhook = &tabhook,
     on_lang = &toplinedr,
     on_lang_args = {"-- OS --"});
@@ -352,14 +352,14 @@ private define  _loop_ ()
 {
   variable status = 0;
   try
-  forever
-    {
-    rline->set (RLINE);
-    rline->readline (RLINE);
-    topline (" -- OS CONSOLE --" + " (depth " + string (_stkdepth ()) + ")");
-    }
-  catch AnyError:
-    status = 1;
+    forever
+      {
+      rline->set (RLINE);
+      rline->readline (RLINE);
+      topline (" -- OS CONSOLE --" + " (depth " + string (_stkdepth ()) + ")");
+      }
+    catch AnyError:
+      status = 1;
 
   if (status)
     throw RunTimeError, " ", __get_exception_info ();
@@ -367,15 +367,15 @@ private define  _loop_ ()
 
 define osloop ()
 {
-  try
-    _loop_ ();
-  catch RunTimeError:
-    {
-    array_map (&tostderr, err__.exc_to_array (__get_exception_info.object));
-    smg->init ();
-    draw (ERR); % new func: draw_and_take_some_action
-    _loop_ ();
-    }
+  forever
+    try
+      _loop_ ();
+    catch RunTimeError:
+      {
+      IO.tostderr (__.efmt (__get_exception_info.object));
+      smg->init ();
+      draw (ERR); % new func: draw_and_take_some_action
+      }
 }
 
 private define _apptable_ ()
@@ -385,7 +385,7 @@ private define _apptable_ ()
   variable app;
   variable dir;
   variable apps;
-  variable dirs = [USRDIR, STDDIR, LCLDIR];
+  variable dirs = [Dir.vget ("USRDIR"), Dir.vget ("STDDIR"), Dir.vget ("LCLDIR")];
 
   _for i (0, length (dirs) - 1)
     {

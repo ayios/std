@@ -2,7 +2,7 @@ define runapp (argv, env)
 {
   smg->suspend ();
  
-  argv[0] = ROOTDIR + "/bin/" + argv[0];
+  argv[0] = Dir.vget ("ROOTDIR") + "/bin/" + argv[0];
 
   variable issudo = qualifier ("issudo");
  

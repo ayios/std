@@ -22,46 +22,47 @@ private define _parse_flags_mode_ (file, flags, mode)
 {
   if (-1 == access (file, F_OK))
     if (NULL == @flags)
-      @flags = FILE_FLAGS["<>"];
+      @flags = File.vget ("FLAGS")["<>"];
     else
-      ifnot (assoc_key_exists (FILE_FLAGS, @flags))
-        @flags = FILE_FLAGS["<>"];
+      ifnot (assoc_key_exists (File.vget ("FLAGS"), @flags))
+        @flags = File.vget ("FLAGS")["<>"];
       else
-        @flags = FILE_FLAGS[@flags];
+        @flags = File.vget ("FLAGS")[@flags];
   else
     if (NULL == @flags)
-      @flags = FILE_FLAGS["<>>|"];
+      @flags = File.vget ("FLAGS")["<>>|"];
     else
-      ifnot (assoc_key_exists (FILE_FLAGS, @flags))
-        @flags = FILE_FLAGS["<>>|"];
+      ifnot (assoc_key_exists (File.vget ("FLAGS"), @flags))
+        @flags = File.vget ("FLAGS")["<>>|"];
       else
-        @flags = FILE_FLAGS[@flags];
+        @flags = File.vget ("FLAGS")[@flags];
 
   ifnot (NULL == @mode)
     if (String_Type == typeof (@mode))
-      ifnot (assoc_key_exists (PERM, @mode))
+      ifnot (assoc_key_exists (File.vget ("PERM"), @mode))
         @mode = NULL;
 
   if (@flags & O_CREAT && NULL == @mode)
-    @mode = PERM["___PUBLIC"];
+    @mode = File.vget ("PERM")["___PUBLIC"];
 }
 
 private define _redir_ (stream, file, flags, mode)
 {
-  _parse_flags_mode_ (file, &flags, &mode);
-
   try
-    return redirstreamtofile (stream, file, flags, mode);
-  catch OpenError:
+    {
+    _parse_flags_mode_ (file, &flags, &mode);
+    redirstreamtofile (stream, file, flags, mode);
+    }
+  catch AnyError:
     {
     ifnot (qualifier_exists ("dont_print"))
-      tostderr (__get_exception_info.object);
+      IO.tostderr (__get_exception_info.object);
 
-    return NULL;
+    return NULL, NULL;
     }
 }
 
 define redir (fp, file, flags, mode)
 {
-  return _redir_ (fp, file, flags, mode;;__qualifiers ());
+   _redir_ (fp, file, flags, mode;;__qualifiers ());
 }

@@ -1,4 +1,4 @@
-loadfrom ("api", "runapp", NULL, &on_eval_err);
+load.from ("api", "runapp", NULL;err_handler = &__err_handler__);
 
 define __ved (argv)
 {

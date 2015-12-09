@@ -25,11 +25,11 @@ define go_idled ()
   return 1;
 }
 
-$1 = open (TEMPDIR + "/_" + APP.appname + "_.init", O_WRONLY|O_CREAT, S_IRWXU);
+$1 = open (Dir.vget ("TEMPDIR") + "/_" + APP.appname + "_.init", O_WRONLY|O_CREAT, S_IRWXU);
 
 $1 = socket (PF_UNIX, SOCK_STREAM, 0);
 bind ($1, SOCKADDR);
 listen ($1, 1);
 SOCKET = accept (__tmp ($1));
 
-() = remove (TEMPDIR + "/_" + APP.appname + "_.init");
+() = remove (Dir.vget ("TEMPDIR") + "/_" + APP.appname + "_.init");

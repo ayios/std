@@ -1,6 +1,6 @@
 define sl_lexicalhl ();
 
-loadfrom ("ftypes/sl", "sl_syntax", NULL, &on_eval_err);
+load.from ("ftypes/sl", "sl_syntax", NULL;err_handler = &__err_handler__);
 
 define sl_settype (s, fname, rows, lines)
 {

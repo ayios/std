@@ -158,11 +158,11 @@ public variable
 
 public variable UNDELETABLE = String_Type[0];
 public variable SPECIAL = String_Type[0];
-public variable XCLIP_BIN = which ("xclip");
-public variable VED_DIR = TEMPDIR + "/ved_" + string (PID) + "_" + string (_time)[[5:]];
+public variable XCLIP_BIN = Sys.which ("xclip");
+public variable VED_DIR = Dir.vget ("TEMPDIR") + "/ved_" + string (Env.vget ("PID")) + "_" + string (_time)[[5:]];
 
 public variable
-  s_histfile = HISTDIR + "/" + string (getuid ()) + "ved_search_history",
+  s_histfile = Dir.vget ("HISTDIR") + "/" + string (getuid ()) + "ved_search_history",
   s_histindex = NULL,
   s_history = {};
 
@@ -185,7 +185,7 @@ private define build_ftype_table ()
   variable i;
   variable ii;
   variable ft;
-  variable nss = [LCLDIR, STDDIR, USRDIR];
+  variable nss = [Dir.vget ("LCLDIR"), Dir.vget ("STDDIR"), Dir.vget ("USRDIR")];
 
   % priority local < std < usr
   _for i (0, length (nss) - 1)
@@ -202,14 +202,14 @@ private define build_ftype_table ()
 
 build_ftype_table ();
 
-() = mkdir (VED_DIR, PERM["PRIVATE"]);
+() = mkdir (VED_DIR, File.vget ("PERM")["PRIVATE"]);
 
-loadfrom ("search", "searchandreplace", "search", &on_eval_err);
-loadfrom ("string", "decode", NULL, &on_eval_err);
-loadfrom ("stdio", "appendstr", NULL, &on_eval_err);
-loadfrom ("array", "getsize", NULL, &on_eval_err);
-loadfrom ("pcre", "find_unique_words_in_lines", 1, &on_eval_err);
-loadfrom ("pcre", "find_unique_lines_in_lines", 1, &on_eval_err);
+load.from ("search", "searchandreplace", "search";err_handler = &__err_handler__);
+load.from ("string", "decode", NULL;err_handler = &__err_handler__);
+load.from ("stdio", "appendstr", NULL;err_handler = &__err_handler__);
+load.from ("array", "getsize", NULL;err_handler = &__err_handler__);
+load.from ("pcre", "find_unique_words_in_lines", 1;err_handler = &__err_handler__);
+load.from ("pcre", "find_unique_lines_in_lines", 1;err_handler = &__err_handler__);
 
 define getXsel (){return "";}
 define seltoX (sel){}
@@ -235,7 +235,7 @@ define init_ftype (ftype)
 
   variable type = @Ftype_Type;
 
-  loadfrom ("ftypes/" + ftype, ftype + "_functions", NULL, &on_eval_err);
+  load.from ("ftypes/" + ftype, ftype + "_functions", NULL;err_handler = &__err_handler__);
 
   type._type = ftype;
   return type;
@@ -267,7 +267,7 @@ define __vgetlines (fname, indent, st)
     st._flags |= VED_RDONLY;
     }
 
-  variable lines = readfile (fname);
+  variable lines = IO.readfile (fname);
 
   if (NULL == lines || 0 == length (lines))
     {
@@ -596,7 +596,7 @@ define __vwritefile (s, overwrite, ptr, file, append)
     return;
     }
 
-  tostderr (s._abspath + ": " + string (bts) + " bytes written\n");
+  IO.tostderr (s._abspath + ": " + string (bts) + " bytes written\n");
 
   if (file == s._abspath)
     s._flags &= ~VED_MODIFIED;
@@ -1408,15 +1408,11 @@ private define _loop_ (s)
 
 private define _vedloop_ (s)
 {
-  try
-    {
-    _loop_ (s);
-    }
-  catch AnyError:
-    {
-    (@__get_reference ("__vmessages"));
-    _loop_ (s);   % for now
-    }
+  forever
+    try
+      _loop_ (s);
+    catch AnyError:
+      (@__get_reference ("__vmessages"));
 }
 
 %%% SYNTAX PUBLIC FUNCTIONS
@@ -2031,7 +2027,7 @@ define _change_frame_ (s)
 
 define _new_frame_ (s)
 {
-  new_frame (TEMPDIR + "/" + string (_time) + ".noname");
+  new_frame (Dir.vget ("TEMPDIR") + "/" + string (_time) + ".noname");
   s = get_cur_buf ();
 }
 
@@ -2055,7 +2051,7 @@ define on_wind_change (w)
 
 define on_wind_new (w)
 {
-  variable fn = TEMPDIR + "/" + string (_time) + ".noname";
+  variable fn = Dir.vget ("TEMPDIR") + "/" + string (_time) + ".noname";
   variable s = init_ftype ("txt");
   variable func = __get_reference ("txt_settype");
   (@func) (s, fn, w.frame_rows[0], NULL);
@@ -2244,11 +2240,11 @@ define diff (lines, fname, retval)
     status,
     isbigin = strbytelen (lines) >= 256 * 256,
     p = proc->init (isbigin ? 0 : 1, 1, 1),
-    com = [which ("diff"), "-u", fname, "-"];
+    com = [Sys.which ("diff"), "-u", fname, "-"];
 
   if (isbigin)
     {
-    variable fn = VED_DIR + "/" + path_basename (fname) + "_" + string (PID);
+    variable fn = VED_DIR + "/" + path_basename (fname) + "_" + string (Env.vget ("PID"));
     () = writestring (fn, lines);
     com[-1] = fn;
     }
@@ -2284,7 +2280,7 @@ define patch (in, dir, retval)
 {
   variable isbigin = 256 * 256 >= strbytelen (in);
   variable isbigout = qualifier ("isbig", 0);
-  variable com = [which ("patch"), "-d", dir, "-r", VED_DIR + "/patchrej.diff"];
+  variable com = [Sys.which ("patch"), "-d", dir, "-r", VED_DIR + "/patchrej.diff"];
   variable out = "-";
 
   if (isbigin)
@@ -2325,7 +2321,7 @@ define patch (in, dir, retval)
 
   @retval = 0;
 
-  return isbigout ? strjoin (readfile (out), "\n") : p.stdout.out;
+  return isbigout ? strjoin (IO.readfile (out), "\n") : p.stdout.out;
 }
 
 define set_modified (s)
@@ -2461,7 +2457,7 @@ private variable
 
 private define _init_search_hist_ ()
 {
-  variable ar = readfile (s_histfile);
+  variable ar = IO.readfile (s_histfile);
   if (NULL != ar && length (ar))
     {
     array_map (&list_append, s_history, ar);
@@ -3276,7 +3272,7 @@ private define v_l_loop (vs, s)
       {
       _set_reg_ (reg, strjoin (vs.lines, "\n") + "\n");
       seltoX (strjoin (vs.lines, "\n") + "\n");
-      de__.bug ("yanked");
+      send_msg ("yanked", 1);
       break;
       }
 
@@ -3340,7 +3336,7 @@ private define v_l_loop (vs, s)
       s.st_.st_size = getsizear (s.lines);
       set_modified (s);
       s.draw ();
-      de__.bug ("deleted");
+      send_msg ("deleted", 1);
       return;
       }
 
@@ -3553,7 +3549,7 @@ private define v_char_mode (vs, s)
       sel = strjoin (vs.sel, "\n");
       _set_reg_ (reg, sel);
       seltoX (sel);
-      de__.bug ("yanked");
+      send_msg ("yanked", 1);
       break;
       }
 
@@ -3597,7 +3593,7 @@ private define v_char_mode (vs, s)
       waddline (s, __vgetlinestr (s, s.lines[vs.startlnr], 1), 0, s.ptr[0]);
 
       __vdraw_tail (s);
-      de__.bug ("deleted");
+      send_msg ("deleted", 1);
       return;
       }
     }
@@ -5329,10 +5325,10 @@ define ctrl_completion_rout (s, line, type)
         smg->restore (rows, s.ptr, 1);
         return;
         }
-      else
-        item = substr (item, 1, strlen (item) - 1);
 
+      item = substr (item, 1, strlen (item) - 1);
       smg->restore (rows, NULL, NULL);
+      waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
       continue;
       }
 
@@ -5401,20 +5397,27 @@ define ctrl_completion_rout (s, line, type)
     ifnot (any ([iwchars, keys->CTRL_n, keys->DOWN, keys->CTRL_p, keys->UP] == chr))
       {
       smg->restore (rows, s.ptr, 1);
-      smg->refresh ();
+      waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
+      smg->setrcdr (s.ptr[0], s.ptr[1]);
       return;
       }
     else if (any ([iwchars] == chr))
       item += char (chr);
 
     ifnot (indexchanged)
+      {
       smg->restore (rows, NULL, NULL);
+      waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
+      }
 
     % BUG HERE
     if (indexchanged)
       if (index > 1)
         if (index > LINES - 4)
+          {
+          index--;
           ar = ar[[1:]];
+          }
     % when ar has been changed and index = 1
     }
 }
@@ -5790,7 +5793,7 @@ define __substitute ()
   if (NULL == s)
     {
     variable err = ();
-    tostderr (err);
+    IO.tostderr (err);
     return;
     }
 
@@ -5921,19 +5924,16 @@ VED_PAGER[string (keys->rmap.backspace[0])] = &ed_del_trailws;
 VED_PAGER[string (keys->rmap.backspace[1])] = &ed_del_trailws;
 VED_PAGER[string (keys->rmap.backspace[2])] = &ed_del_trailws;
 
-ifnot (NULL == DISPLAY)
-  ifnot (NULL == XAUTHORITY)
+ifnot (NULL == Env.vget ("DISPLAY"))
+  ifnot (NULL == Env.vget ("XAUTHORITY"))
     ifnot (NULL == XCLIP_BIN)
-      loadfrom ("X", "seltoX", NULL, &on_eval_err);
-
-____.add_fun ("de", "hold_handler", &getch);
+      load.from ("X", "seltoX", NULL;err_handler = &__err_handler__);
 
 private define msg_handler (s, msg)
 {
   variable b = get_cur_buf ();
   send_msg_dr (msg, 1, b.ptr[0], b.ptr[1]);
 }
-____.add_fun ("de", "msg_handler", &msg_handler);
 
 new_wind ();
 

@@ -8,7 +8,7 @@ define shell ()
 
   if (-1 == os->doproc (s, argv;;__qualifiers ()))
     return NULL;
- 
+
   if (qualifier_exists ("dont_connect"))
     return s;
 

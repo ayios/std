@@ -1,21 +1,21 @@
 static define defenv ()
 {
-  variable env = [
-    "TERM=" + TERM,
-    "PATH=" + PATH,
-    "LANG=" + LANG,
-    "HOME=" + HOME,
-    "LINES=" + string (LINES),
+  variable lenv = [
+    "TERM=" + Env.vget ("TERM"),
+    "PATH=" + Env.vget ("PATH"),
+    "LANG=" + Env.vget ("LANG"),
+    "HOME=" + Env.vget ("HOME"),
+    "SLANG_MODULE_PATH=" + Env.vget ("SLANG_MODULE_PATH"),
+    "SLSH_LIB_DIR=" + Env.vget ("SLSH_LIB_DIR"),
     "COLUMNS=" + string (COLUMNS),
-    "SLANG_MODULE_PATH=" + get_import_module_path (),
-    "SLSH_LIB_DIR=" + get_slang_load_path (),
+    "LINES=" + string (LINES),
     ];
 
-  ifnot (NULL == DISPLAY)
-    env = [env, "DISPLAY=" + DISPLAY];
- 
-  ifnot (NULL == XAUTHORITY)
-    env = [env, "XAUTHORITY=" + XAUTHORITY];
+  ifnot (NULL == Env.vget ("DISPLAY"))
+    lenv = [lenv, "DISPLAY=" + Env.vget ("DISPLAY")];
 
-  return env;
+  ifnot (NULL == Env.vget ("XAUTHORITY"))
+    lenv = [lenv, "XAUTHORITY=" + Env.vget ("XAUTHORITY")];
+
+  lenv;
 }

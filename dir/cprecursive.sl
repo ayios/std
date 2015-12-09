@@ -1,7 +1,7 @@
-importfrom ("std", "pcre", NULL, &on_eval_err);
-loadfrom ("stdio", "copy", NULL, &on_eval_err);
-loadfrom ("dir", "fswalk", NULL, &on_eval_err);
-loadfrom ("dir", "makedir", NULL, &on_eval_err);
+load.module ("std", "pcre", NULL;err_handler = &__err_handler__);
+load.from ("stdio", "copy", NULL;err_handler = &__err_handler__);
+load.from ("dir", "fswalk", NULL;err_handler = &__err_handler__);
+load.from ("dir", "makedir", NULL;err_handler = &__err_handler__);
 
 private define dir_callback (dir, st, source, dest, opts, exit_code)
 {
@@ -10,7 +10,7 @@ private define dir_callback (dir, st, source, dest, opts, exit_code)
     variable ldir = strtok (dir, "/");
     if (any (ldir[-1] == opts.ignoredir))
       {
-      tostdout (sprintf ("ignored dir: %s", dir));
+      IO.tostdout (sprintf ("ignored dir: %s", dir));
       return 0;
       }
     }
@@ -32,21 +32,21 @@ private define file_callback (file, st_source, source, dest, opts, exit_code)
   if (NULL == opts.copy_hidden)
     if ('.' == path_basename (file)[0])
       {
-      tostdout (sprintf ("omitting hidden file `%s'", file));
+      IO.tostdout (sprintf ("omitting hidden file `%s'", file));
       return 1;
       }
  
   ifnot (NULL == opts.matchpat)
     ifnot (pcre_exec (opts.matchpat, file))
       {
-      tostdout (sprintf ("ignore file: %s", file));
+      IO.tostdout (sprintf ("ignore file: %s", file));
       return 1;
       }
 
   ifnot (NULL == opts.ignorepat)
     if (pcre_exec (opts.ignorepat, file))
       {
-      tostdout (sprintf ("ignore file: %s", file));
+      IO.tostdout (sprintf ("ignore file: %s", file));
       return 1;
       }
 

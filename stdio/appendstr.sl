@@ -2,7 +2,7 @@ define appendstr (file, str)
 {
   if (-1 == access (file, F_OK|W_OK))
     {
-    tostderr (file + ": " + errno_string (errno));
+    IO.tostderr (file + ": " + errno_string (errno));
     return -1;
     }
 
@@ -10,25 +10,25 @@ define appendstr (file, str)
 
   if (NULL == fd)
     {
-    tostderr (file + ": " + errno_string (errno));
+    IO.tostderr (file + ": " + errno_string (errno));
     return -1;
     }
 
   if (-1 == lseek (fd, 0, SEEK_END))
     {
-    tostderr (file + ": " + errno_string (errno));
+    IO.tostderr (file + ": " + errno_string (errno));
     return -1;
     }
 
   if (-1 == write (fd, str))
     {
-    tostderr (file + ": " + errno_string (errno));
+    IO.tostderr (file + ": " + errno_string (errno));
     return -1;
     }
 
   if (-1 == close (fd))
     {
-    tostderr (file + ": " + errno_string (errno));
+    IO.tostderr (file + ": " + errno_string (errno));
     return -1;
     }
 
@@ -37,23 +37,23 @@ define appendstr (file, str)
 
 define writestring (file, str)
 {
-  variable fd = open (file, O_WRONLY|O_CREAT|O_TRUNC, qualifier ("flags", PERM["__PUBLIC"]));
+  variable fd = open (file, O_WRONLY|O_CREAT|O_TRUNC, qualifier ("flags", File.vget ("PERM")["__PUBLIC"]));
 
   if (NULL == fd)
     {
-    tostderr (file + ": " + errno_string (errno));
+    IO.tostderr (file + ": " + errno_string (errno));
     return -1;
     }
 
   if (-1 == write (fd, str))
     {
-    tostderr (file + ": " + errno_string (errno));
+    IO.tostderr (file + ": " + errno_string (errno));
     return -1;
     }
 
   if (-1 == close (fd))
     {
-    tostderr (file + ": " + errno_string (errno));
+    IO.tostderr (file + ": " + errno_string (errno));
     return -1;
     }
 

@@ -57,7 +57,7 @@ static define readhistory (histfile)
   if (-1 == access (histfile, F_OK|R_OK))
     return String_Type[0];
 
-  return readfile (histfile);
+  return IO.readfile (histfile);
 }
 
 private define _execFunc_Type_ (func, argv)
@@ -997,7 +997,7 @@ private define fnamecmp (s, start)
     tmp = strlen (s._lin) ? s.argv[s._ind] : "";
 
     file = ' ' == (s._lin)[-1] ? getcwd () :
-      sprintf ("%s%s", evaldir (tmp;dont_change), appendslash (tmp));
+      sprintf ("%s%s", Dir.eval (tmp;dont_change), appendslash (tmp));
 
     if (2 < strlen (file))
       if ("./" == file[[0:1]] && 0 == strlen (s.argv[s._ind]))
@@ -1259,7 +1259,7 @@ static define fnamecmpToprow (s, fname)
     pat = "";
     tmp = strlen (@fname) ? @fname : "";
     file = ' ' == (@fname)[-1] ? getcwd () :
-      sprintf ("%s%s", evaldir (tmp;dont_change), appendslash (tmp));
+      sprintf ("%s%s", Dir.eval (tmp;dont_change), appendslash (tmp));
 
     if (2 < strlen (file))
       if ("./" == file[[0:1]] && 0 == strlen (@fname))
@@ -1431,7 +1431,7 @@ private define getpattern (s, pat)
   rl._lin = rl.argv[0];
 
   variable
-    ar = readfile (STDDATADIR + "/Txt_Type/pcresyntax.txt"),
+    ar = IO.readfile (Dir.vget ("STDDATADIR") + "/Txt_Type/pcresyntax.txt"),
     len = length (ar),
     lines = s._lines - (strlen (s._lin) / s._columns) - 3,
     prow = s._prow - (strlen (s._lin) / s._columns) - (len > lines ? lines : len) - 1;
@@ -1581,7 +1581,7 @@ private define argcompletion (s)
         return 0;
       }
 
-    ar = readfile (file);
+    ar = IO.readfile (file);
     }
 
   if (NULL == ar || typeof (ar) != Array_Type || 0 == length (ar))

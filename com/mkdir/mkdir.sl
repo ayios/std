@@ -1,7 +1,8 @@
-loadfrom ("string", "modeconversion", NULL, &on_eval_err);
-loadfrom ("dir", "parents", NULL, &on_eval_err);
-loadfrom ("dir", "makedir", NULL, &on_eval_err);
-loadfrom ("dir", "evaldir", NULL, &on_eval_err);
+load.from ("string", "modeconversion", NULL;err_handler = &__err_handler__);
+load.from ("dir", "parents", NULL;err_handler = &__err_handler__);
+load.from ("dir", "makedir", NULL;err_handler = &__err_handler__);
+
+__.sadd ("Dir", "eval", "eval_", NULL;__DIRNS__ = Dir.vget ("STDDIR") + "/dir");
 
 define main ()
 {
@@ -25,7 +26,7 @@ define main ()
 
   if (__argc == i)
     {
-    tostderr ("a directory name is required");
+    IO.tostderr ("a directory name is required");
     exit_me (1);
     }
 
@@ -35,7 +36,7 @@ define main ()
     if (NULL == mode)
       {
       variable err = ();
-      tostderr (err);
+      IO.tostderr (err);
       exit_me (1);
       }
     }
@@ -44,7 +45,7 @@ define main ()
   dir = dir[where (strncmp (dir, "--", 2))];
 
   _for i (0, length (dir) - 1)
-    dir[i] = evaldir (dir[i];dont_change);
+    dir[i] = Dir.eval (dir[i];dont_change);
 
   ifnot (NULL == parents)
     _for i (0, length(dir) - 1)

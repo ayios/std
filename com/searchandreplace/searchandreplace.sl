@@ -1,12 +1,12 @@
-loadfrom ("search", "searchandreplaceInit", NULL, &on_eval_err);
+load.from ("search", "searchandreplaceInit", NULL;err_handler = &__err_handler__);
 
-importfrom ("std", "fork", NULL, &on_eval_err);
+load.module ("std", "fork", NULL;err_handler = &__err_handler__);
 
-loadfrom ("posix", "read_fd", NULL, &on_eval_err);
-loadfrom ("stdio", "writefile", NULL, &on_eval_err);
-loadfrom ("dir", "fswalk", NULL, &on_eval_err);
-loadfrom ("proc", "procInit", NULL, &on_eval_err);
-loadfrom ("file", "fileis", NULL, &on_eval_err);
+load.from ("posix", "read_fd", NULL;err_handler = &__err_handler__);
+load.from ("stdio", "writefile", NULL;err_handler = &__err_handler__);
+load.from ("dir", "fswalk", NULL;err_handler = &__err_handler__);
+load.from ("proc", "procInit", NULL;err_handler = &__err_handler__);
+load.from ("file", "fileis", NULL;err_handler = &__err_handler__);
 
 variable
   MAXDEPTH = 1,
@@ -24,7 +24,7 @@ variable
   NEWLINES = 0,
   INPLACE = NULL,
   NUMCHANGES,
-  DIFFEXEC = which ("diff"),
+  DIFFEXEC = Sys.which ("diff"),
   RECURSIVE = NULL,
   EXIT_CODE = 0;
 
@@ -51,11 +51,11 @@ define unified_diff (lines, fname)
     status,
     isbigin = strbytelen (lines) >= 256 * 256,
     p = proc->init (isbigin ? 0 : 1, 1, 1),
-    com = [which ("diff"), "-u", fname, "-"];
+    com = [Sys.which ("diff"), "-u", fname, "-"];
 
   if (isbigin)
     {
-    variable fn = TEMPDIR + "/" + path_basename (fname) + "_" + string (PID) + "_" +
+    variable fn = Dir.vget ("TEMPDIR") + "/" + path_basename (fname) + "_" + string (Env.vget ("PID")) + "_" +
       string (_time)[[5:]];
     writefile (lines, fn);
     com[-1] = fn;
@@ -64,10 +64,10 @@ define unified_diff (lines, fname)
     p.stdin.in = lines;
 
   status = p.execv (com, NULL);
- 
+
   if (NULL == status)
     return NULL;
- 
+
   ifnot (2 > status.exit_status)
     return NULL;
 
@@ -76,7 +76,7 @@ define unified_diff (lines, fname)
 
   return p.stdout.out;
 }
- 
+
 private define sed (file, s)
 {
   variable
@@ -84,21 +84,21 @@ private define sed (file, s)
     err,
     undiff,
     retval;
- 
-  ar = readfile (file);
- 
+
+  ar = IO.readfile (file);
+
   ifnot (length (ar))
     return;
- 
+
   s.fname = file;
- 
+
   s.askwhensubst = NULL == WHENSUBST ? 1 : 0;
-  retval = search->search_and_replace (s, readfile (file));
+  retval = search->search_and_replace (s, IO.readfile (file));
 
   if (NULL == retval)
     {
     err = ();
-    tostderr (err);
+    IO.tostderr (err);
     EXIT_CODE = 1;
     }
   else if (0 == retval)
@@ -111,24 +111,24 @@ private define sed (file, s)
         undiff = unified_diff (ar, file);
         undiff = NULL == undiff ? "No diff available" :
           ["    UNIFIED DIFF", repeat ("_", COLUMNS), strchop (undiff, '\n', 0)];
- 
+
         retval = ask ([
           sprintf ("@write changes to `%s' ? y[es]/n[o]", file),
           undiff,
           ], ['y', 'n']);
- 
+
         if ('n' == retval)
           return;
           }
- 
+
       try
         {
         writefile (ar, file);
-        tostdout (sprintf ("%s: was written, with %d changes", file, s.numchanges));
+        IO.tostdout (sprintf ("%s: was written, with %d changes", file, s.numchanges));
         }
       catch AnyError:
         {
-        array_map (&tostderr, ["WRITTING ERROR", err__.exc_to_array ()]);
+        IO.tostderr (["WRITTING ERROR", __.efmt (NULL)]);
         }
       }
 }
@@ -138,20 +138,20 @@ private define sanitycheck (file, st)
   if (INPLACE)
     if (-1 == access (file, W_OK))
       {
-      tostderr (sprintf ("%s: Is not writable", file));
+      IO.tostderr (sprintf ("%s: Is not writable", file));
       return -1;
       }
 
   ifnot (stat_is ("reg", st.st_mode))
     {
-    tostderr (sprintf
+    IO.tostderr (sprintf
       ("cannot operate on special file `%s': Operation not permitted", file));
     return -1;
     }
 
   if (1 == iself (file))
     {
-    tostderr (sprintf
+    IO.tostderr (sprintf
       ("cannot operate on binary file `%s': Operation not permitted", file));
     return -1;
     }
@@ -164,10 +164,10 @@ private define file_callback (file, st, type)
   ifnot (HIDDENFILES)
     if ('.' == path_basename (file)[0])
       return 1;
- 
+
   if (-1 == access (file, R_OK))
     {
-    tostderr (sprintf ("%s: Is not readable", file));
+    IO.tostderr (sprintf ("%s: Is not readable", file));
     return 1;
     }
 
@@ -227,13 +227,13 @@ define main ()
 
   if (i == __argc)
     {
-    tostderr (sprintf ("%s: argument (filename) is required", __argv[0]));
+    IO.tostderr (sprintf ("%s: argument (filename) is required", __argv[0]));
     exit_me (1);
     }
- 
+
   if (NULL == PAT || NULL == SUBSTITUTE)
     {
-    tostderr ("--pat and --sub can not be NULL");
+    IO.tostderr ("--pat and --sub can not be NULL");
     exit_me (1);
     }
 
@@ -242,7 +242,8 @@ define main ()
 
   if (NULL == type)
     {
-    tostderr (__get_exception_info.message);
+    err = ();
+    IO.tostderr (err);
     exit_me (1);
     }
 
@@ -250,7 +251,7 @@ define main ()
 
   if (NULL == DIFFEXEC)
     if (NULL == WHENWRITE)
-      tostderr ("diff executable couldn't be found, unified diff will be disabled");
+      IO.tostderr ("diff executable couldn't be found, unified diff will be disabled");
 
   if (NULL == RECURSIVE)
     maxdepth = 1;
@@ -267,13 +268,13 @@ define main ()
     {
     if (-1 == access (files[i], F_OK))
       {
-      tostderr (sprintf ("%s: No such file", files[i]));
+      IO.tostderr (sprintf ("%s: No such file", files[i]));
       continue;
       }
 
     if (-1 == access (files[i], R_OK))
       {
-      tostderr (sprintf ("%s: Is not readable", files[i]));
+      IO.tostderr (sprintf ("%s: Is not readable", files[i]));
       continue;
       }
 

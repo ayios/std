@@ -1,5 +1,5 @@
-loadfrom ("time", "isleap", NULL, &on_eval_err);
-loadfrom ("time", "checktmfmt", NULL, &on_eval_err);
+load.from ("time", "isleap", NULL;err_handler = &__err_handler__);
+load.from ("time", "checktmfmt", NULL;err_handler = &__err_handler__);
 
 define main ()
 {
@@ -30,7 +30,7 @@ define main ()
 
   if (i == __argc)
     {
-    tostderr (sprintf ("%s: additional argument is required", __argv[0]));
+    IO.tostderr (sprintf ("%s: additional argument is required", __argv[0]));
     exit_me (1);
     }
 
@@ -43,7 +43,7 @@ define main ()
 
     if (6 != length (tok))
       {
-      tostderr ("Error while parsing the time format");
+      IO.tostderr ("Error while parsing the time format");
       exit_me (1);
       }
 
@@ -54,7 +54,7 @@ define main ()
     if (NULL == retval)
       {
       variable err = ();
-      tostderr (err);
+      IO.tostderr (err);
       exit_me (1);
       }
  
@@ -62,7 +62,7 @@ define main ()
     tim = mktime (tim);
     if (-1 == tim)
       {
-      tostderr ("Error while parsing the time format");
+      IO.tostderr ("Error while parsing the time format");
       exit_me (1);
       }
     }
@@ -76,7 +76,7 @@ define main ()
       {
       ifnot (NULL == nocreate)
         {
-        tostderr (sprintf ("`%s': No such file and --no-create is given", files[i]));
+        IO.tostderr (sprintf ("`%s': No such file and --no-create is given", files[i]));
         exit_code = 1;
         continue;
         }
@@ -85,19 +85,19 @@ define main ()
 
       if (NULL == fp)
         {
-        tostderr (sprintf ("cannot touch `%s', ERRNO: %s", files[i], errno_string (errno)));
+        IO.tostderr (sprintf ("cannot touch `%s', ERRNO: %s", files[i], errno_string (errno)));
         exit_code = 1;
         continue;
         }
 
       if (-1 == fclose (fp))
         {
-        tostderr (sprintf ("cannot touch `%s', ERRNO: %s", files[i], errno_string (errno)));
+        IO.tostderr (sprintf ("cannot touch `%s', ERRNO: %s", files[i], errno_string (errno)));
         exit_code = 1;
         continue;
         }
 
-      tostdout (sprintf ("`%s': created", files[i]));
+      IO.tostdout (sprintf ("`%s': created", files[i]));
 
       if (atime == NULL == mtime)
         continue;
@@ -108,31 +108,31 @@ define main ()
     if (atime)
       if (-1 == utime (files[i], tim, st.st_mtime))
         {
-        tostderr (sprintf ("cannot touch `%s', ERRNO: %s", files[i], errno_string (errno)));
+        IO.tostderr (sprintf ("cannot touch `%s', ERRNO: %s", files[i], errno_string (errno)));
         exit_code = 1;
         }
       else
-        tostdout (sprintf ("`%s': access time has been changed", files[i]));
+        IO.tostdout (sprintf ("`%s': access time has been changed", files[i]));
 
     if (mtime)
       if (-1 == utime (files[i], st.st_atime, tim))
         {
-        tostderr (sprintf ("cannot touch `%s', ERRNO: %s", files[i], errno_string (errno)));
+        IO.tostderr (sprintf ("cannot touch `%s', ERRNO: %s", files[i], errno_string (errno)));
         exit_code = 1;
         }
       else
-        tostdout (sprintf ("`%s': modification time has been changed", files[i]));
+        IO.tostdout (sprintf ("`%s': modification time has been changed", files[i]));
 
     if (atime || mtime)
       continue;
 
     if (-1 == utime (files[i], tim, tim))
       {
-      tostderr (sprintf ("cannot touch `%s', ERRNO: %s", files[i], errno_string (errno)));
+      IO.tostderr (sprintf ("cannot touch `%s', ERRNO: %s", files[i], errno_string (errno)));
       exit_code = 1;
       }
     else
-      tostdout (files[i] + ": access and modification times have been changed");
+      IO.tostdout (files[i] + ": access and modification times have been changed");
     }
 
   exit_me (exit_code);

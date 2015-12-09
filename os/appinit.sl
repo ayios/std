@@ -8,7 +8,7 @@ static define runapp ()
 
   ifnot (any (app == _APPS_))
     {
-    tostderr (app + ": No such application");
+    IO.tostderr (app + ": No such application");
     return;
     }
 
@@ -32,7 +32,8 @@ static define runapp ()
 
   smg->reset ();
 
-  loadfrom ("app/" + app, APPSINFO[app].init, app, &on_eval_err;force);
+  load.from ("app/" + app, APPSINFO[app].init, app;
+    err_handler = &__err_handler__, force);
 
   variable ref = __get_reference (app + "->" + app);
   () = (@ref) (__push_list (args);;setid);
@@ -176,7 +177,7 @@ static define apploop (s)
 
 private define _addflags_ (p, s)
 {
-  p.stderr.file = TEMPDIR + "/" + string (PID) + "Srv" + s._appname + "err";
+  p.stderr.file = Dir.vget ("TEMPDIR") + "/" + string (Env.vget ("PID")) + "Srv" + s._appname + "err";
   p.stderr.wr_flags = ">|";
 }
 
@@ -189,7 +190,7 @@ static define init_app (name, dir, argv)
   s._procfile = dir + "/proc";;
   s._appname = name;
   s.argv = argv;
-  s._sockaddr = TEMPDIR + "/" + string (PID) + name + ".sock";
+  s._sockaddr = Dir.vget ("TEMPDIR") + "/" + string (Env.vget ("PID")) + name + ".sock";
 
   _log_ ("initing " + s._appname + ", sockaddress: " + s._sockaddr, LOGALL);
 
@@ -202,11 +203,11 @@ private define _getargvenv_ (p, s, argv)
 
   variable env = [proc->defenv (), sprintf ("SOCKADDR=%s", s._sockaddr)];
 
-  ifnot (NULL == DISPLAY)
-    env = [env, "DISPLAY=" + DISPLAY];
+  ifnot (NULL == Env.vget ("DISPLAY"))
+    env = [env, "DISPLAY=" + Env.vget ("DISPLAY")];
 
-  ifnot (NULL == XAUTHORITY)
-    env = [env, "XAUTHORITY=" + XAUTHORITY];
+  ifnot (NULL == Env.vget ("XAUTHORITY"))
+    env = [env, "XAUTHORITY=" + Env.vget ("XAUTHORITY")];
 
   return argv, env;
 }
@@ -243,5 +244,5 @@ static define doproc (s, argv)
 
   _log_ (s._appname  + " pid: " + string (s.p_.pid), LOGNORM);
 
-  return 0;
+  0;
 }

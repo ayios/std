@@ -1,4 +1,4 @@
-loadfrom ("time", "isleap", NULL, &on_eval_err);
+load.from ("time", "isleap", NULL;err_handler = &__err_handler__);
 
 define checktmfmt (tim)
 {

@@ -1,4 +1,4 @@
-importfrom ("std", "pcre", NULL, &on_eval_err);
+load.module ("std", "pcre", NULL;err_handler = &__err_handler__);
 
 typedef struct
   {
@@ -15,4 +15,4 @@ typedef struct
   lnronfile,
   } Search_Type;
 
-loadfrom ("search", "searchandreplace", "search", &on_eval_err);
+load.from ("search", "searchandreplace", "search";err_handler = &__err_handler__);

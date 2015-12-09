@@ -50,12 +50,12 @@ define __eval ()
   variable rl = rline->init (NULL;pchar = ">");
   rline->set (rl);
 
-  variable histfile = sprintf ("%s/%devalhistory", HISTDIR, getuid ());
+  variable histfile = sprintf ("%s/%devalhistory", Dir.vget ("HISTDIR"), getuid ());
   variable history = String_Type[0];
   variable tabcb = qualifier ("tabhook", &_tabcallback);
 
   ifnot (access (histfile, F_OK|R_OK))
-    history = readfile (histfile);
+    history = IO.readfile (histfile);
 
   send_msg ("Type an expression" , 0);
 

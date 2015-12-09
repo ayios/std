@@ -1,4 +1,4 @@
-private define tostdout ()
+private define tostderr ()
 {
   variable fmt = "%S";
   loop (_NARGS) fmt += " %S";
@@ -11,14 +11,14 @@ private define tostdout ()
 
     try
       {
-      () = array_map (Integer_Type, &fprintf, stdout, "%S%S", args,
+      () = array_map (Integer_Type, &fprintf, stderr, "%S%S", args,
         qualifier_exists ("n") ? "" : "\n");
       }
     catch AnyError:
       throw __Error, "IOWriteError::" + _function_name + "::" + errno_string (errno), NULL;
       }
   else
-    if (-1 == fprintf (stdout, fmt, __push_list (args), qualifier_exists ("n") ? "" : "\n"))
+    if (-1 == fprintf (stderr, fmt, __push_list (args), qualifier_exists ("n") ? "" : "\n"))
       throw __Error, "IOWriteError::" + _function_name + "::" +
         errno_string (errno), NULL;
 }

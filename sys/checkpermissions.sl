@@ -1,4 +1,4 @@
-loadfrom ("sys", "modetoint", NULL, &on_eval_err);
+load.from ("sys", "modetoint", NULL;err_handler = &__err_handler__);
 
 define checkperm (mode, perm)
 {

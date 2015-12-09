@@ -1,4 +1,4 @@
-loadfrom ("net", "fetch", NULL, &on_eval_err);
+load.from ("net", "fetch", NULL;err_handler = &__err_handler__);
 
 define isconnected ()
 {

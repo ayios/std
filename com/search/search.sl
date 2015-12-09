@@ -1,5 +1,5 @@
-importfrom ("std", "pcre", NULL, &on_eval_err);
-loadfrom ("dir", "fswalk", NULL, &on_eval_err);
+load.module ("std", "pcre", NULL;err_handler = &__err_handler__);
+load.from ("dir", "fswalk", NULL;err_handler = &__err_handler__);
 
 private variable
   MAXDEPTH = 1,
@@ -12,7 +12,7 @@ private variable
   LINENRS = Integer_Type[0],
   COLS = Integer_Type[0],
   FNAMES = String_Type[0],
-  LINES = String_Type[0],
+  LLINES = String_Type[0],
   INDEX = 0;
 
 private define grepit (lline, file)
@@ -28,7 +28,7 @@ private define grepit (lline, file)
     LINENRS = [LINENRS, INDEX];
     col = pcre_nth_match (PAT, 0);
     COLS = [COLS, holdcol + col[0] + 1];
-    LINES = [LINES, strreplace (orig, "\n", "\\n")];
+    LLINES = [LLINES, strreplace (orig, "\n", "\\n")];
 
     holdcol = COLS[-1];
 
@@ -46,7 +46,7 @@ private define exec (file)
   variable
     str,
     i = 0,
-    ar = readfile (file);
+    ar = IO.readfile (file);
 
   while (i < length (ar))
     {
@@ -61,10 +61,10 @@ private define exec (file)
       grepit (str, file);
     catch AnyError:
       {
-      tostderr (sprintf ("caught an error in exec func in script: %s", __FILE__));
-      tostderr (sprintf ("file that occured: %s", file));
-      tostderr (sprintf ("linenr that occured: %d", i));
-      tostderr (sprintf ("line that occured: %S", ar[i]));
+      IO.tostderr (sprintf ("caught an error in exec func in script: %s", __FILE__));
+      IO.tostderr (sprintf ("file that occured: %s", file));
+      IO.tostderr (sprintf ("linenr that occured: %d", i));
+      IO.tostderr (sprintf ("line that occured: %S", ar[i]));
       }
 
     INDEX++;
@@ -125,7 +125,7 @@ private define grep (file, depth)
 
   if (-1 == access (file, F_OK|R_OK))
     {
-    tostderr (sprintf ("%s: %s", file, errno_string (errno)));
+    IO.tostderr (sprintf ("%s: %s", file, errno_string (errno)));
     return 1;
     }
 
@@ -229,13 +229,13 @@ define main ()
 
   if (i == __argc && danglinglinks == NULL == findfiles)
     {
-    tostderr (sprintf ("%s: it requires a filename", __argv[0]));
+    IO.tostderr (sprintf ("%s: it requires a filename", __argv[0]));
     exit_me (1);
     }
 
   if (NULL == PAT && NULL == danglinglinks)
     {
-    tostderr (sprintf (
+    IO.tostderr (sprintf (
       "%s: pattern was not given, I don't know what to look", __argv[0]));
     exit_me (1);
     }
@@ -261,7 +261,7 @@ define main ()
       }
     catch ParseError:
       {
-      tostderr (err.descr);
+      IO.tostderr (err.descr);
       exit_me (1);
       }
     }
@@ -277,12 +277,12 @@ define main ()
 
     ifnot (length (LINENRS))
       {
-      tostdout ("Nothing found");
+      IO.tostdout ("Nothing found");
       exit_me (2);
       }
 
     _for i (0, length (LINENRS) - 1)
-      tostdout (sprintf ("%s|%d col %d| %s", FNAMES[i], LINENRS[i], COLS[i], LINES[i]));
+      IO.tostdout (sprintf ("%s|%d col %d| %s", FNAMES[i], LINENRS[i], COLS[i], LLINES[i]));
 
     exit_me (0);
     }
@@ -303,13 +303,12 @@ define main ()
 
   ifnot (length (ar))
     {
-    tostdout ("Nothing found");
+    IO.tostdout ("Nothing found");
     exit_me (2);
     }
   else
     _for i (0, length (ar) - 1)
-      array_map (Void_Type, &tostdout, array_map
-        (String_Type, &sprintf, "%s|0 col 0| 1", ar[i]));
+      IO.tostdout (array_map (String_Type, &sprintf, "%s|0 col 0| 1", ar[i]));
 
   exit_me (0);
 }

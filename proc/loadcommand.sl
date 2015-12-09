@@ -11,8 +11,8 @@ variable PPID = getenv ("PPID");
 variable BG = getenv ("BG");
 variable BGPIDFILE;
 variable BGX = 0;
-variable WRFIFO = TEMPDIR + "/" + string (PPID) + "_SRV_FIFO.fifo";
-variable RDFIFO = TEMPDIR + "/" + string (PPID) + "_CLNT_FIFO.fifo";
+variable WRFIFO = Dir.vget ("TEMPDIR") + "/" + string (PPID) + "_SRV_FIFO.fifo";
+variable RDFIFO = Dir.vget ("TEMPDIR") + "/" + string (PPID) + "_CLNT_FIFO.fifo";
 variable RDFD = NULL;
 variable WRFD = NULL;
 variable stdoutfile = getenv ("stdoutfile");
@@ -41,14 +41,26 @@ if (NULL == BG)
 
 ifnot (NULL == BG)
   {
-  BGPIDFILE = BG + "/" + string (PID) + ".RUNNING";
+  BGPIDFILE = BG + "/" + string (Env.vget ("PID")) + ".RUNNING";
   () = open (BGPIDFILE, O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR);
 
   signal (SIGALRM, &sigalrm_handler);
   }
 
+define at_exit ()
+{
+  variable msg = qualifier ("msg");
+
+  ifnot (NULL == msg)
+    if (String_Type == typeof (msg) ||
+       (Array_Type == typeof (msg) && _typeof (msg) == String_Type))
+      IO.tostderr (msg);
+}
+
 define exit_me_bg (x)
 {
+  at_exit (;;__qualifiers);
+
   () = rename (BGPIDFILE, substr (
     BGPIDFILE, 1, strlen (BGPIDFILE) - strlen (".RUNNING")) + ".WAIT");
 
@@ -63,6 +75,8 @@ define exit_me (x)
   variable ref = __get_reference ("input->at_exit");
   (@ref);
 
+  at_exit (;;__qualifiers);
+
   ifnot (NULL == BG)
     exit_me_bg (x);
 
@@ -76,46 +90,48 @@ define exit_me (x)
 
 _exit_me_ = NULL == BG ? &exit_me : &exit_me_bg;
 
-define tostderr (str)
+private define tostdout ()
 {
-  () = fprintf (stderr, "%s\n", str);
+  loop (_NARGS) pop ();
 }
 
-define tostdout ()
-{
-  pop ();
-}
+__.fput ("IO", "tostdout?", &tostdout;ReInitFunc = 1);
 
-define on_eval_err (ar, err)
+public define __err_handler__ (__r__)
 {
-  array_map (&tostderr, ar);
-  (@_exit_me_) (err);
+  variable code = 1;
+  if (Integer_Type == typeof (__r__))
+    code = __r__;
+
+  (@_exit_me_) (code;;__qualifiers);
 }
 
 ifnot (access (stdoutfile, F_OK))
-  stdoutfd = open (stdoutfile, FILE_FLAGS[stdoutflags]);
+  stdoutfd = open (stdoutfile, File.vget ("FLAGS")[stdoutflags]);
 else
-  stdoutfd = open (stdoutfile, FILE_FLAGS[stdoutflags], PERM["__PUBLIC"]);
+  stdoutfd = open (stdoutfile, File.vget ("FLAGS")[stdoutflags], File.vget ("PERM")["__PUBLIC"]);
 
 if (NULL == stdoutfd)
-  on_eval_err (errno_string (errno), 1);
+  (@_exit_me_) (1;msg = errno_string (errno));
 
-loadfrom ("proc", "getdefenv", 1, &on_eval_err);
-loadfrom ("sock", "sockInit", NULL, &on_eval_err);
-loadfrom ("input", "inputInit", NULL, &on_eval_err);
-loadfrom ("parse", "cmdopt", NULL, &on_eval_err);
+load.from ("proc", "getdefenv", 1;err_handler = &__err_handler__);
+load.from ("sock", "sockInit", NULL;err_handler = &__err_handler__);
+load.from ("input", "inputInit", NULL;err_handler = &__err_handler__);
+load.from ("parse", "cmdopt", NULL;err_handler = &__err_handler__);
 
 define verboseon ()
 {
-  loadfrom ("print", "comtostdout", NULL, &on_eval_err);
+  __.fput ("IO", "tostdout?", NULL;ReInitFunc = 1, FuncFname = "comtostdout",
+    FuncRefName = "tostdout", __DIRNS__ = __.vget ("__", "__DIRNS__") + "/../print");
 }
 
 define verboseoff ()
 {
-  loadfrom ("print", "null_tostdout", NULL, &on_eval_err);
+  __.fput ("IO", "tostdout?", NULL;ReInitFunc = 1, FuncFname = "null_tostdout",
+    FuncRefName = "tostdout", __DIRNS__ = __.vget ("__", "__DIRNS__") + "/../print");
 }
 
-loadfrom ("api", "comapi", NULL, &on_eval_err);
+load.from ("api", "comapi", NULL;err_handler = &__err_handler__);
 
 define initproc (p)
 {
@@ -128,7 +144,7 @@ if (NULL == BG)
 
 define sigint_handler (sig)
 {
-  tostderr ("process interrupted by the user");
+  IO.tostderr ("process interrupted by the user");
   (@_exit_me_) (130);
 }
 
@@ -233,9 +249,6 @@ define ask (questar, charar)
 }
 
 try
-  loadfrom ("com/" + com, "comInit", NULL, &on_eval_err);
+  load.from ("com/" + com, "comInit", NULL;err_handler = &__err_handler__);
 catch AnyError:
-  {
-  array_map (&tostderr, err__.exc_to_array (NULL));
-  (@_exit_me_) (1);
-  }
+  (@_exit_me_) (1;msg = __.efmt (NULL));

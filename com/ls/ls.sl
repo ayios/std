@@ -1,8 +1,9 @@
-importfrom ("std", "pcre", NULL, &on_eval_err);
+load.module ("std", "pcre", NULL;err_handler = &__err_handler__);
 
-loadfrom ("array", "arrayfuncs", NULL, &on_eval_err);
-loadfrom ("dir", "fswalk", NULL, &on_eval_err);
-loadfrom ("dir", "evaldir", NULL, &on_eval_err);
+load.from ("array", "arrayfuncs", NULL;err_handler = &__err_handler__);
+load.from ("dir", "fswalk", NULL;err_handler = &__err_handler__);
+
+__.sadd ("Dir", "eval", "eval_", NULL;__DIRNS__ = Dir.vget ("STDDIR") + "/dir");
 
 verboseon ();
 
@@ -63,7 +64,7 @@ define assign_filetype (type, filetype, code)
     index = wherefirst (ar[i] == st_mode);
     if (NULL == index)
       {
-      tostderr (ar[i] + ": Wrong file type, valid are: " + strjoin (st_mode, " - "));
+      IO.tostderr (ar[i] + ": Wrong file type, valid are: " + strjoin (st_mode, " - "));
       exit_me (1);
       }
 
@@ -130,7 +131,7 @@ define getpwuid (user_ar)
     line,
     indices,
     ar = String_Type[length (user_ar)],
-    lines = readfile ("/etc/passwd");
+    lines = IO.readfile ("/etc/passwd");
 
   if (NULL == lines)
     return array_map (String_Type, &string, user_ar);
@@ -166,7 +167,7 @@ define getgrgid (group_ar)
     line,
     indices,
     ar = String_Type[length (group_ar)],
-    lines = readfile ("/etc/group");
+    lines = IO.readfile ("/etc/group");
 
   if (NULL == lines)
     return array_map (String_Type, &string, group_ar);
@@ -252,7 +253,7 @@ define long_format (files, st)
       }
     }
 
-  array_map (Void_Type, &tostdout, files);
+  IO.tostdout (files);
 }
 
 define get_type (mode)
@@ -464,10 +465,10 @@ define print_to_screen (files, opts)
     if (NULL == opts.find)
       {
       files = format_ar_for_print (files, COLUMNS);
-      array_map (&tostdout, files);
+      IO.tostdout (files);
       }
     else
-      array_map (&tostdout, files);
+      IO.tostdout (files);
   else
     long_format (files, st);
 }
@@ -595,7 +596,7 @@ define main ()
  
   _for i (0, length (dir) - 1)
     if ("." != dir[i])
-      dir[i] = evaldir (dir[i];dont_change);
+      dir[i] = Dir.eval (dir[i];dont_change);
 
   ifnot (NULL == opts.pattern)
     opts.pattern = pcre_compile (opts.pattern, 0);
@@ -614,7 +615,7 @@ define main ()
     {
     if (access (dir[i], R_OK))
       {
-      tostderr (dir[i] + ": " + errno_string (errno));
+      IO.tostderr (dir[i] + ": " + errno_string (errno));
       EXIT_CODE = 1;
       continue;
       }

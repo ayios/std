@@ -1,4 +1,4 @@
-loadfrom ("net", "fetch", NULL, &on_eval_err);
+load.from ("net", "fetch", NULL;err_handler = &__err_handler__);
 
 private variable
   OUTFILE = "remote",
@@ -59,7 +59,7 @@ define main ()
 
   if (i + 1 > __argc && NULL == filelist)
     {
-    tostderr (sprintf ("%s: It needs at least an argument", __argv[0]));
+    IO.tostderr (sprintf ("%s: It needs at least an argument", __argv[0]));
     exit_me (1);
     }
 
@@ -67,11 +67,11 @@ define main ()
     {
     if (-1 == access (filelist, F_OK|R_OK))
       {
-      tostderr (sprintf ("%s: No such file", filelist));
+      IO.tostderr (sprintf ("%s: No such file", filelist));
       exit_me (1);
       }
 
-    urls = readfile (filelist);
+    urls = IO.readfile (filelist);
     }
   else
     urls = __argv[[i:__argc - 1]];

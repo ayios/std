@@ -1,6 +1,6 @@
-loadfrom ("dir", "fswalk", NULL, &on_eval_err);
-loadfrom ("dir", "cprecursive", NULL, &on_eval_err);
-loadfrom ("dir", "cprecursive_opts", NULL, &on_eval_err);
+load.from ("dir", "fswalk", NULL;err_handler = &__err_handler__);
+load.from ("dir", "cprecursive", NULL;err_handler = &__err_handler__);
+load.from ("dir", "cprecursive_opts", NULL;err_handler = &__err_handler__);
 
 private define file_callback (file, st, filelist)
 {
@@ -40,7 +40,7 @@ define mvdir (source, dest, opts)
     files = listdir (backup);
     if (NULL != files || length (files))
       {
-      tostderr (sprintf ("cannot backup `%s': Directory not empty", backup));
+      IO.tostderr (sprintf ("cannot backup `%s': Directory not empty", backup));
       return -1;
       }
  
@@ -50,7 +50,7 @@ define mvdir (source, dest, opts)
 
     if (-1 == retval)
       {
-      tostderr (sprintf ("%s: backup failed", backup));
+      IO.tostderr (sprintf ("%s: backup failed", backup));
       return -1;
       }
 
@@ -69,7 +69,7 @@ define mvdir (source, dest, opts)
   _for i (0, length (sourcefiles) - 1)
     if (-1 == remove (sourcefiles[i]))
       {
-      tostderr (sprintf ("%s: failed to remove file", sourcefiles[i]));
+      IO.tostderr (sprintf ("%s: failed to remove file", sourcefiles[i]));
       return -1;
       }
 
@@ -78,10 +78,10 @@ define mvdir (source, dest, opts)
   _for i (0, length (sourcedirs) - 1)
     if (-1 == rmdir (sourcedirs[i]))
       {
-      tostderr (sprintf ("%s: failed to remove dir", sourcedirs[i]));
+      IO.tostderr (sprintf ("%s: failed to remove dir", sourcedirs[i]));
       return -1;
       }
 
-  tostderr (sprintf ("`%s' -> `%s'%s", source, dest, backuptext));
+  IO.tostderr (sprintf ("`%s' -> `%s'%s", source, dest, backuptext));
   return 0;
 }

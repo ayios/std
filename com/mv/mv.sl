@@ -1,6 +1,7 @@
-loadfrom ("file", "mvfile", NULL, &on_eval_err);
-loadfrom ("dir", "mvdir", NULL, &on_eval_err);
-loadfrom ("dir", "evaldir", NULL, &on_eval_err);
+load.from ("file", "mvfile", NULL;err_handler = &__err_handler__);
+load.from ("dir", "mvdir", NULL;err_handler = &__err_handler__);
+__.sadd ("Dir", "eval", "eval_", NULL;
+  __DIRNS__ = Dir.vget ("STDDIR") + "/dir");
 
 define assign_interactive_noclobber (interactive, noclobber, code)
 {
@@ -48,20 +49,20 @@ define main ()
 
   ifnot (i + 2  <= __argc)
     {
-    tostderr (sprintf ("%s: additional argument is required", __argv[0]));
+    IO.tostderr (sprintf ("%s: additional argument is required", __argv[0]));
     exit_me (1);
     }
 
   opts.ignoredir = NULL;
 
-  dest = evaldir (__argv[-1]);
+  dest = Dir.eval (__argv[-1]);
   files = __argv[[i:__argc-2]];
 
   st_dest = stat_file (dest);
   if (NULL == st_dest || 0 == stat_is ("dir", st_dest.st_mode))
     if (length (files) > 1)
       {
-      tostderr (sprintf ("target `%s' is not a directory", dest));
+      IO.tostderr (sprintf ("target `%s' is not a directory", dest));
       exit_me (1);
       }
 
@@ -72,7 +73,7 @@ define main ()
 
     if (NULL == st_source)
       {
-      tostderr (sprintf ("cannot stat `%s': No such file or a directory", source));
+      IO.tostderr (sprintf ("cannot stat `%s': No such file or a directory", source));
       exit_code = 1;
       continue;
       }
@@ -96,7 +97,7 @@ define main ()
         (NULL != st_destname) && (st_source.st_ino == st_destname.st_ino)
         && (st_source.st_dev == st_destname.st_dev)))
       {
-      tostderr (sprintf ("`%s' and `%s' are the same file", source, destname));
+      IO.tostderr (sprintf ("`%s' and `%s' are the same file", source, destname));
       exit_code = 1;
       continue;
       }
@@ -109,7 +110,7 @@ define main ()
       {
       if (NULL != st_destname && stat_is ("dir", st_destname.st_mode))
         {
-        tostderr (sprintf (
+        IO.tostderr (sprintf (
           "cannot overwrite non-directory `%s' with directory `%s'", destname, source));
         exit_code = 1;
         continue;

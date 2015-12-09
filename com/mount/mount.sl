@@ -1,4 +1,4 @@
-loadfrom ("proc", "procInit", NULL, &on_eval_err);
+load.from ("proc", "procInit", NULL;err_handler = &__err_handler__);
 variable VERBOSE = 0;
 
 private define verbose ()
@@ -20,12 +20,12 @@ define main ()
     passwd,
     mountpoint = NULL,
     device = NULL,
-    mount = which ("mount"),
+    mount = Sys.which ("mount"),
     c = cmdopt_new (&_usage);
 
   if (NULL == mount)
     {
-    tostderr ("mount couldn't be found in PATH");
+    IO.tostderr ("mount couldn't be found in PATH");
     exit_me (1);
     }
 
@@ -51,25 +51,25 @@ define main ()
 
   if (NULL == mountpoint || NULL == device)
     {
-    tostderr ("--mountpoint= && --device= args are required");
+    IO.tostderr ("--mountpoint= && --device= args are required");
     exit_me (1);
     }
 
   if (-1 == access (mountpoint, F_OK))
     {
-    tostderr (sprintf ("%s mountpoint doesn't exists", mountpoint));
+    IO.tostderr (sprintf ("%s mountpoint doesn't exists", mountpoint));
     exit_me (1);
     }
 
   if (-1 == access (device, F_OK))
     {
-    tostderr (sprintf ("%s device doesn't exists", device));
+    IO.tostderr (sprintf ("%s device doesn't exists", device));
     exit_me (1);
     }
 
   ifnot (stat_is ("blk", stat_file (device).st_mode))
     {
-    tostderr (sprintf ("%S is not a block device", device));
+    IO.tostderr (sprintf ("%S is not a block device", device));
     exit_me (1);
     }
 

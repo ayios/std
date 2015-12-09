@@ -1,397 +1,29 @@
-new_exception ("__RunTimeError", AnyError, "__RTERROR");
-new_exception ("__EvalError", AnyError, "__EVLERROR");
+ifnot (-1 == is_defined ("__Error"))
+  new_exception ("__Error", AnyError, "__ERROR");
 
-public define $__ ()
+public define __use_namespace (ns)
 {
-  _pop_n (_NARGS);
-}
-
-eval (`
-private variable _NS_ = Assoc_Type[Struct_Type, struct
-  {
-  __ = struct
-    {
-    _ = Assoc_Type[Any_Type],
-    error_handler
-    },
-  ___ = Assoc_Type[Struct_Type, struct
-    {
-    st_mtime,
-    st_size,
-    fn,
-    fun
-    }]
-  }];
-
-private define ns_ (ns)
-{
-  return _NS_[ns];
-}
-
-private define ns__ ()
-{
-  return assoc_get_keys (_NS_);
-}
-
-public define ____ ()
-{
-  return ns_("__").__;
-}
-
-private define error__handler ()
-{
-  variable err = ns_("err").__.get_errno ();
-  variable l__ = ns_(err.ns).__;
-
-  if (NULL == l__)
-    throw err.exc;
-
-  variable err_fun = l__.error_handler;
-
-  if (NULL == err_fun)
-    throw err.exc;
-
-  (@err_fun) (err);
-}
-
-private define gen_err_s (fun, line)
-{
-  return struct {fun = fun, line = line};
-}
-
-private define check__fun (ns, fun)
-{
-  variable ref = NULL;
-  ifnot (NULL == wherefirst (get_struct_field_names (ns_(ns).__) == fun))
-    ref = get_struct_field (ns_(ns).__, fun);
-  else
-    if (qualifier_exists ("funref"))
-      {
-      ns_("__").__.add_fun (ns, fun, qualifier ("funref"));
-      ref = get_struct_field (ns_(ns).__, fun);
-      }
-    else if (qualifier_exists ("reg__fun"))
-      {
-      ns_("__").__.reg_fun (ns, fun;;__qualifiers ());
-      ref = get_struct_field (ns_(ns).__, fun);
-      }
-
-  if (NULL == ref || 0 == __is_callable (ref))
-    throw __RunTimeError, fun + " function is NULL",
-      gen_err_s (_function_name, __LINE__ - 2);
-
-  return ref;
-}
-
-private define check__ns (ns)
-{
-  ifnot (any (ns__ == ns))
-    ifnot (qualifier_exists ("init__ns"))
-      throw __RunTimeError, ns + " doesn't exists, specify the 'init__ns' qualifier to set it",
-        gen_err_s (_function_name, __LINE__ - 2);
-    else
-      ns_("__").__.init (ns;;__qualifiers ());
-}
-
-private variable lastns = "__";
-
-public define _____ ()
-{
-  variable ns = lastns, fun;
-
-  switch (_NARGS)
-
-    {
-    case 0: return ns_(ns).__;
-    }
-
-    {
-    case 1: ns = ();
-    lastns = ns;
-    check__ns (ns;;struct {@__qualifiers (), init__ns});
-    return ns_(ns).__;
-    }
-
-    {
-    case 2:
-      variable exc;
-      variable args = qualifier ("args", {});
-      fun = ();
-      ns = ();
-      try
-        {
-        check__ns (ns;;struct {@__qualifiers (), init__ns});
-        fun = check__fun (ns, fun;;struct {@__qualifiers (), reg__fun});
-        (@fun) (ns_(ns).__, __push_list (args);;__qualifiers ());
-        lastns = ns;
-        }
-      catch __RunTimeError:
-        {
-        exc = __get_exception_info ();
-        exc =  ns_("err").__.exc_generate (NULL,
-        "caller : " + ns + " " + exc.message, NULL, exc.object.fun,
-          exc.object.line, ns_("__").__._["dir"]["__FILE__"], exc.descr, exc.error);
-
-        ns_("err").__.set_errno (NULL, __RunTimeError, ns, ns_("err").__.exc_to_array (exc));
-        error__handler ();
-        }
-     }
-}
-
-public define __ ()
-{
-  variable args = __pop_list (_NARGS - 1);
-  variable fun = ();
-  _____ ("__", fun;;struct {@__qualifiers (), args = args});
-}
-
-private define eval__string ()
-{
-  try
-    {
-    eval (qualifier ("buf"), qualifier ("ns"));
-    }
-  catch AnyError:
-    throw __EvalError;
-}
-
-private define eval__ (s, ns, buf)
-{
-  try
-    {
-    eval__string (;buf = buf, ns = ns);
-    }
-  catch __EvalError:
-    {
-    ns_("err").__.set_errno (buf, __EvalError, ns, ns_("err").__.exc_to_array (NULL));
-    error__handler ();
-    }
-}
-
-private define add__field (ns, field)
-{
-  variable f = get_struct_field_names (ns_(ns).__);
-  variable s = eval (``struct {`` +
-    strjoin (f, ",") + "," + field + ``};``);
-
-  variable i;
-   _for i (0, length (f) - 1)
-     set_struct_field (s, f[i], get_struct_field (ns_(ns).__, f[i]));
-
-  ns_(ns).__ = s;
-}
-
-private define add__fun (s, ns, funnm, fun)
-{
-  if (NULL == wherefirst (get_struct_field_names (ns_(ns).__) == funnm))
-    add__field (ns, funnm);
-
-  set_struct_field (ns_(ns).__, funnm, fun);
-  ns_(ns).___[funnm].fun = get_struct_field (ns_(ns).__, funnm);
-}
-
-private define _fnf_ (ns, fun)
-{
-  return qualifier ("dir",
-    ns_("__").__._["dir"]["ns"] + ns + "/" + fun + qualifier ("rev", "_")
-    + qualifier ("ext", ".sl"));
-}
-
-private define reg__fun (s, ns, fun)
-{
-  variable fn = qualifier ("fnfun", _fnf_ (ns, fun;;__qualifiers ()));
-  variable st = stat_file (fn);
-
-  if (NULL == st)
-    throw __RunTimeError, "fun: " + fun + ", in ns " + ns + ","
-      + errno_string (errno), gen_err_s (_function_name, __LINE__ - 2);
-
-  variable buf = ns_("io").__.read (fn);
-
-  ns_(ns).___[fun].st_mtime = st.st_mtime;
-  ns_(ns).___[fun].st_size = st.st_size;
-  ns_(ns).___[fun].fn = fn;
-
-  ns_("__").__._["_g_"] = struct {fun = fun, ns = ns};
-
-  eval (buf + ``
-    eval ("____._[\"_g_\"] = &" +
-   ____._["_g_"].fun, ____._["_g_"].ns);``, ns);
-
-  add__fun (NULL, ns, fun, ____._["_g_"]);
-  ____._["_g_"] = NULL;
-}
-
-private define rehash__ (ns, fun)
-{
-  variable reh = 0;
-  variable exists = wherefirst (get_struct_field_names (ns_(ns).__) == fun);
-  ifnot (NULL == exists)
-    ifnot (NULL == ns_(ns).___[fun].fn)
-      {
-      variable st = stat_file (ns_(ns).___[fun].fn);
-      if (st.st_mtime != ns_(ns).___[fun].st_mtime ||
-          st.st_size != ns_(ns).___[fun].st_size)
-        reh = 1;
-      }
-
-  if (NULL == exists || qualifier_exists ("force") || reh)
-    ns_("__").__.reg_fun (ns, fun;;__qualifiers ());
-}
-
-private define reg__key (ns, fun)
-{
-  ns_(ns).___[fun] = struct
-    {
-    st_mtime = qualifier ("st_mtime"),
-    st_size = qualifier ("st_size"),
-    fn = qualifier ("fn"),
-    fun,
-    };
-
-  add__field (ns, fun);
-}
-
-private define set__ns (s, ns)
-{
-  ns_(ns).__ = qualifier ("__", ns_(ns).__);
-  ns_(ns).___ = qualifier ("___", Assoc_Type[Struct_Type, struct
-    {st_mtime, st_size}]);
-  ns_(ns).__.error_handler = qualifier ("error_handler");
-
-  variable buf = ``
-  public define `` + ns + ``__ ()
-    {
-    variable lns = _function_name;
-    lns = substr (lns, 1, strlen (lns) - 2);
-    ns_ (lns).__;
-    }
-
-  public define `` + ns + `` ()
-    {
-    variable args = __pop_list (_NARGS - 1);
-    variable fun = ();
-    variable lns = _function_name ();
-    _____ (lns, fun;;struct {@__qualifiers (), args = args});
-    }
-    ``;
-
-  eval (buf, "__");
-
-  variable fun = qualifier ("fun");
-  if (NULL == fun)
-    return;
-
-  variable i;
-  _for i (0, length (fun) - 1)
-    reg__key (ns, fun[i];;__qualifiers ());
-
-  if (qualifier_exists ("reg__fun"))
-    _for i (0,  length (fun) - 1)
-      ns_("__").__.reg_fun (ns, fun[i];;__qualifiers ());
-}
-
-private define init__ (s, ns)
-{
-  if (any (ns__ == ns))
-    ifnot (qualifier_exists ("reinit__ns"))
-      return;
-
-  eval (``sleep (0.0001);``, ns);
-  set__ns (s, ns;; __qualifiers ());
-}
-
-private define use__ (s, ns, prev)
-{
-  ifnot (NULL == prev)
-    @prev = current_namespace ();
-
   try
     use_namespace (ns);
   catch NamespaceError:
     {
-    ns_("__").__.init (ns;;__qualifiers ());
+    eval (`sleep (0.0001);`, ns);
     use_namespace (ns);
     }
 }
 
-init__ (NULL, "__";
-  fun = ["add_fun", "reg_fun", "use", "init", "eval", "rehash"]);
+__use_namespace ("IO");
 
-array_map (&add__fun, NULL, "__",
-  ["add_fun", "reg_fun", "use", "init", "eval", "rehash"],
-  [&add__fun, &reg__fun, &use__, &init__, &eval__, &rehash__]);
-
-`, "__");
-
-____._["dir"] = Assoc_Type[String_Type];
-____._["dir"]["__FILE__"] = __FILE__;
-____._["dir"]["me"] = path_dirname (__FILE__);
-____._["dir"]["ns"] = ____._["dir"]["me"] + "/ns/";
-____._["_g_"] = NULL;
-
-____.use ("err", NULL; fun = ["exc_to_array", "exc_generate", "set_errno", "get_errno"]);
-
-private variable __errno = NULL;
-
-private define set_errno__ (s, buf, exc, ns, err)
+private define readFD__ (fd)
 {
-  __errno = struct {buf = buf, exc = exc, ns = ns, err = err};
-}
+  if (NULL == fd)
+    throw __Error, "IOFDIsNullError::" + _function_name + ": File Descriptor is NULL", NULL;
 
-private define get_errno__ (s)
-{
-  return __errno;
-}
-
-private define exc_to_array__ (s, exc)
-{
-  if (NULL == exc)
-    exc = __get_exception_info ();
-
-  if (NULL == exc)
-    return ["No exception in the stack"];
-
-  return strchop (sprintf ("Exception: %S\n\
-Message:     %s\n\
-Object:      %S\n\
-Function:    %s\n\
-Line:        %d\n\
-File:        %s\n\
-Description: %s\n\
-Error:       %d\n",
-    _push_struct_field_values (exc)), '\n', 0);
-}
-
-private define exc_generate__ (s, trac, msg, obj, fun, line, file, descr, err)
-{
-  return struct
-    {
-    error = err,
-    descr = descr,
-    file = file,
-    line = line,
-    function = fun,
-    object = obj,
-    message = msg,
-    traceback = trac
-    };
-}
-
-array_map (____.add_fun, NULL, "err",
-  ["exc_to_array", "exc_generate", "set_errno", "get_errno"],
-  [&exc_to_array__, &exc_generate__, &set_errno__, &get_errno__]);
-
-____.use ("io", NULL;fun = ["read", "tostdout"]);
-
-private define read__ (s, fn)
-{
-  variable fd = open (fn, O_RDONLY);
   variable buf;
   variable str = "";
 
-  if (NULL == fd)
-    return NULL;
+  if (-1 == lseek (fd, qualifier ("FPPOS", 0), SEEK_SET))
+    throw __Error, "IOSeekError::" + _function_name + "::lseek error, " + errno_string (errno), NULL;
 
   while (read (fd, &buf, 1024) > 0)
     str += buf;
@@ -399,55 +31,652 @@ private define read__ (s, fn)
   return str;
 }
 
-private define tostdout__ (msg)
+private define tostderr ()
 {
-  () = fprintf (stdout, "%s\n", msg);
+  variable fmt = "%S";
+  loop (_NARGS) fmt += " %S";
+  variable args = __pop_list (_NARGS);
+
+  if (1 == length (args) && typeof (args[0]) == Array_Type &&
+    any ([String_Type, Integer_Type] == _typeof (args[0])))
+    {
+    args = args[0];
+
+    try
+      {
+      () = array_map (Integer_Type, &fprintf, stderr, "%S%S", args,
+        qualifier_exists ("n") ? "" : "\n");
+      }
+    catch AnyError:
+      throw __Error, "IOWriteError::" + _function_name + "::" + errno_string (errno), NULL;
+      }
+  else
+    if (-1 == fprintf (stderr, fmt, __push_list (args), qualifier_exists ("n") ? "" : "\n"))
+      throw __Error, "IOWriteError::" + _function_name + "::" +
+        errno_string (errno), NULL;
 }
 
-array_map (____.add_fun, NULL, "io",
-  ["read", "tostdout"],
-  [&read__, &tostdout__]);
-
-____.use ("input", NULL;fun = ["getch"]);
-
-private define getch__ ()
+private define  __tostderr__ ()
 {
-  variable ch;
-  () = system ("stty raw");
-  () = fread_bytes (&ch, 1, stdin);
-  () = system ("stty sane");
-  return ch[0];
+  variable args = __pop_list (_NARGS-1);
+  pop ();
+  tostderr (__push_list (args));
 }
 
-____.add_fun ("input", "getch", &getch__);
+public variable IO = struct {readfd = &readFD__, tostderr = &__tostderr__, tmp = &tostderr};
 
-____.use ("de", NULL;fun = ["bug", "msg_handler", "hold_handler"]);
+__use_namespace ("Struct");
 
-de__._["_debug"] = 1;
-
-private define msg_handler__ (s, msg)
+private define field_exists__ (self, s, field)
 {
-  io__.tostdout (msg);
+  wherefirst (get_struct_field_names (s) == field);
 }
 
-private define hold_handler__ (s)
+public variable Struct = struct {field_exists = &field_exists__};
+
+__use_namespace ("Array");
+
+private define map ()
 {
-  $__ (input__.getch ());
+  if (_NARGS < 3)
+    throw __Error, "NumArgsError::" + _function_name +
+      "::_NARGS should be at least 2 and are " + string (_NARGS), NULL;
+
+  variable arglen = _NARGS - 2;
+  variable args = __pop_list (arglen);
+  variable ref = ();
+  variable dtp = ();
+
+  if (NULL == ref || 0 == __is_callable (ref) || typeof (dtp) != DataType_Type)
+    throw __Error, "TypeMismatchError::" +  _function_name +
+      "::" + string (ref) + " should be of Ref_Type and it is " + string (typeof (ref)) , NULL;
+
+  variable i;
+  variable llen;
+  variable len = 0;
+  variable dtps = DataType_Type[arglen];
+
+  _for i (0, arglen - 1)
+    {
+    dtps[i] = typeof (args[i]);
+    if (Array_Type == dtps[i] || List_Type == dtps[i])
+      {
+      llen = length (args[i]);
+      ifnot (len)
+        len = llen;
+      else
+        ifnot (llen == len)
+          throw __Error, "ArrayMapInvalidParmError::" + _function_name +
+            "::arrays have different length", NULL;
+      }
+    }
+
+  ifnot (len)
+    throw __Error, "ArrayMapTypeMismatchError::" +  _function_name +
+      "::at least one argumrnt should be Array or List Type", NULL;
+
+  variable l;
+  variable ii;
+  variable r;
+
+  ifnot (Void_Type == dtp)
+    variable at = dtp[len];
+
+  _for i (0, len - 1)
+    {
+    l = {};
+
+    _for ii (0, arglen - 1)
+      if (Array_Type == dtps[ii] || List_Type == dtps[ii])
+        list_append (l, args[ii][i]);
+      else
+        list_append (l, args[ii]);
+
+    try
+      {
+      (@ref) (__push_list (l);;__qualifiers ());
+      }
+    catch AnyError:
+      throw __Error, "ArrayMapRunTimeError::" + _function_name + ":: error while executing "
+        + string (ref), __get_exception_info;
+
+    ifnot (Void_Type == dtp)
+      {
+      r = ();
+
+      ifnot (typeof (r) == dtp)
+        throw __Error, "ArrayMapTypeMismatchError::" + _function_name + "::" + string (ref) +
+          " returned " + string (typeof (r)) + "instead of " + string (dtp), NULL;
+
+      at[i] = r;
+      }
+   }
+
+  ifnot (Void_Type == dtp)
+    ifnot (qualifier_exists ("discard"))
+      at;
 }
 
-private define bug__ (s, msg)
+private define  __map__ ()
 {
-  ifnot (de__._["_debug"])
-    ifnot (qualifier_exists ("force"))
+  variable args = __pop_list (_NARGS - 1);
+  pop ();
+  map (__push_list (args));
+}
+
+public variable Array = struct {map = &__map__, tmp = &map};
+
+__use_namespace ("__");
+
+public define __call__ ();
+public variable __;
+
+private variable NSS  = Assoc_Type[Any_Type];
+private variable __R__ = {};
+
+private define ns_get (ns)
+{
+  ifnot (assoc_key_exists (NSS, ns))
+    {
+    NSS[ns] = Assoc_Type[Any_Type];
+    variable v = qualifier ("addVar", 1);
+    variable f = qualifier ("addFun", 1);
+    variable self = qualifier ("addSelf", 1);
+
+    if (v)
+      NSS[ns]["__V__"] = Assoc_Type[Struct_Type];
+
+    if (f)
+      NSS[ns]["__FUNC__"] = Assoc_Type[Struct_Type];
+
+    if (self)
+      {
+      self = qualifier ("methods");
+      variable methods = "err_handler" + (ns == "__" ? "" : ",vget");
+      ifnot (NULL == self)
+        if (String_Type == typeof (self))
+          methods += "," + self;
+
+      variable i;
+      methods = strchop (methods, ',', 0);
+      _for i (0, length (methods) - 1)
+        methods[i] = strtrim (strtrim (methods[i]), "_");
+
+      self = qualifier ("varself");
+      variable varmethods = "name";
+      ifnot (NULL == self)
+        if (String_Type == typeof (self))
+          varmethods += "," + self;
+
+      varmethods = strchop (varmethods, ',', 0);
+      _for i (0, length (varmethods) - 1)
+        varmethods[i] = "__" + strtrim (strtrim (varmethods[i]), "_") + "__";
+
+      methods = [methods, varmethods];
+      NSS[ns]["__SELF__"] = @Struct_Type (methods);
+      }
+    }
+
+  NSS[ns];
+}
+
+private define isnot_an_exception (e)
+{
+  NULL == e || Struct_Type != typeof (e) ||
+  NULL == Struct.field_exists (e, "object") ||
+  8 != length (get_struct_field_names (e));
+}
+
+private define err_format_exc (e)
+{
+  if (isnot_an_exception (e))
+    e = struct {Exception = "No exception in the stack", message, object,
+    function, line = 0, file, description, error = 0};
+
+  strchop (sprintf ("Exception %S\
+Message:     %s\n\
+Object:      %S\n\
+Function:    %S\n\
+Line:        %d\n\
+File:        %S\n\
+Description: %s\n\
+Error:       %d",
+    _push_struct_field_values (e)), '\n', 0);
+}
+
+private define __check_ns__ (ns, func)
+{
+  ifnot (assoc_key_exists (NSS, ns))
+    throw __Error, "UndefinedNsError::" + func + "::" + ns +
+      " is not defined", NULL;
+
+  ns_get (ns);
+}
+
+private define __check___V__ (o, func)
+{
+  ifnot (assoc_key_exists (o, "__V__"))
+    throw __Error, "Undefined__V__Error::" + func + "::" + o.__name__ +
+      ", __V__ is not defined", NULL;
+
+  o["__V__"];
+}
+
+private define var_init (ns, vname, vval)
+{
+  ns = __check_ns__ (ns, _function_name);
+  variable __v__ = __check___V__ (ns, _function_name);
+
+  if (assoc_key_exists (__v__, vname))
+    if (NULL == qualifier ("ReInitVar"))
+      throw __Error,  "VariableIsDefinedError::" + _function_name + "::" + vname +
+        ", is defined", NULL;
+
+  variable dtp = qualifier ("VarType");
+
+  ifnot (NULL == dtp)
+    ifnot (typeof (vval) == dtp)
+      throw __Error, sprintf (
+        "VariableTypeMismatchError::%s::variable %s datatype %S is not of type %S",
+          _function_name, vname, typeof (vval), dtp), NULL;
+
+  __v__[vname] = struct {val = vval, const = qualifier ("ConstVar"), dtype = dtp};
+
+  variable isself = qualifier ("varself");
+  if (NULL == isself || String_Type != typeof (isself))
+    return;
+
+  isself = strchop (isself, ',', 0);
+
+  if (any (isself == vname))
+    if (assoc_key_exists (ns, "__SELF__"))
+      if (Struct.field_exists (ns["__SELF__"], vname))
+        set_struct_field (ns["__SELF__"], vname, &__v__[vname].val);
+}
+
+private define var_put (ns, vname, vval)
+{
+  variable __ns__ = __check_ns__ (ns, _function_name);
+  variable __v__ = __check___V__ (__ns__, _function_name);
+
+  if (0 == assoc_key_exists (__v__, vname) || qualifier ("ReInitVar", 0))
+    var_init (ns, vname, vval;;__qualifiers);
+  else
+    {
+    ifnot (NULL == __v__[vname].const)
+      throw __Error, "VariableIsConstantTypeError::" + _function_name + "::" +  vname +
+       ": variable is declared as Constant", NULL;
+
+    ifnot (NULL == __v__[vname].dtype)
+      ifnot (typeof (vval) == __v__[vname].dtype)
+        throw __Error, sprintf (
+          "VariableTypeMismatchError::%s::variable %s datatype %S is not of type %S",
+            _function_name, vname, typeof (vval), __v__[vname].dtype), NULL;
+
+    __v__[vname].val = vval;
+    }
+}
+
+private define var_get (ns, vname)
+{
+  variable __ns__ = __check_ns__ (ns, _function_name);
+  variable __v__ = __check___V__ (__ns__, _function_name);
+  ifnot (assoc_key_exists (__v__, vname))
+    throw __Error,  "VariableIsNotDefinedError::" + _function_name + ":: " +
+      vname + " in " + ns + " namespace, is not defined", NULL;
+
+  __v__[vname].val;
+}
+
+private define func_init (ns, func, ref, method)
+{
+  variable __ns__ = __check_ns__ (ns, _function_name);
+  variable __f__ = __ns__["__FUNC__"];
+  variable varargs = qualifier ("varargs", func[-1] == '?'
+    ? (func = strtrim_end (func, "?"), 1) : 0);
+  variable fb = strtrim_beg (func, "_");
+  variable fe = strtrim_end (fb, "_");
+  variable trace = (0 == method || NULL == method) ? 0 : qualifier ("trace", 1);
+  variable f = "__" + fe + "__";
+  variable funcstr = qualifier ("FuncStr");
+  variable funcrefname = qualifier ("FuncRefName", ref == NULL == funcstr
+    ? fe : NULL);
+  variable funcfname = qualifier ("FuncFname", NULL != funcstr ? NULL : funcrefname);
+
+  if (NULL == ref || typeof (ref) != Ref_Type || 0 == __is_callable (ref))
+    if (NULL == funcstr || typeof (funcstr) != String_Type &&
+        (NULL == funcrefname || typeof (funcrefname) != String_Type))
+      if (NULL == funcfname || typeof (funcfname) != String_Type)
+        throw __Error, sprintf (
+         "%S: is not a RefType not callable, and declaration qualifiers are missing", func),
+           NULL;
+
+  if (assoc_key_exists (__f__, f))
+    ifnot (qualifier ("ReInitFunc", 0))
+      throw __Error,  "FunctionIsDefinedError::" + _function_name + "::" + func +
+        ", is defined", NULL;
+
+  ifnot (NULL == ref)
+    __f__[f] = struct {func = ref, self = strlen (func) != strlen (fb),
+      nargs = varargs ? 434 : strlen (fb) - strlen (fe)};
+  else
+    {
+    if (NULL == funcstr)
+      {
+      variable orig = funcfname, basedir = qualifier ("__DIRNS__", var_get ("__", "__DIRNS__"));
+      ifnot (path_is_absolute (funcfname))
+        if (-1 == access (funcfname, F_OK|R_OK))
+          if (-1 == access ((funcfname = orig + ".sl", funcfname), F_OK|R_OK))
+            if (-1 == access ((funcfname = path_concat (basedir, orig), funcfname), F_OK|R_OK))
+              if (-1 == access ((funcfname = funcfname + ".sl", funcfname), F_OK|R_OK))
+                if (-1 == access ((funcfname = path_concat (basedir, ns) + "/" + orig, funcfname), F_OK|R_OK))
+                  if (-1 == access ((funcfname = funcfname + ".sl", funcfname), F_OK|R_OK))
+                    funcfname = NULL;
+
+      if (NULL != funcfname && path_is_absolute (funcfname))
+        if (-1 == access (funcfname, F_OK|R_OK))
+          if (-1 == access ((funcfname = funcfname + ".sl", funcfname), F_OK|R_OK))
+            funcfname = NULL;
+
+      ifnot (NULL == funcfname)
+        funcstr = IO.readfd (open (funcfname, O_RDONLY));
+      else
+        throw __Error, "FuncReadError::" + _function_name + "::" + orig +
+          ":FuncFname qualifier error: " + errno_string (errno), NULL;
+      }
+
+    funcstr += "\n" + `__.fput ("` + ns + `", "` + func + `", &` +
+      funcrefname + `;` + `ismethod=` + string (method) +
+        `, debug = ` + string (qualifier ("debug")) + `, ReInitFunc = ` +
+        string (qualifier ("ReInitFunc")) + `, trace = ` +
+        string (trace) + `);`;
+
+     try
+       eval (funcstr, ns);
+     catch AnyError:
+       throw __Error, "FuncFromQualifierEvalError::" + _function_name +
+         "::EVALSTRING: " + funcstr, __get_exception_info;
+     }
+
+  if (method)
+    {
+    if (assoc_key_exists (__ns__, "__SELF__"))
+      if (Struct.field_exists (__ns__["__SELF__"], fe))
+        ifnot (trace)
+          set_struct_field (__ns__["__SELF__"], fe, __f__[f].func);
+         else
+           {
+           variable def_body, def_args;
+           if (varargs)
+             {
+             def_body = "\n" + `  variable args = __pop_list (_NARGS);` + "\n" +
+             ` list_append (args, "` + ns + `::` + f + `::` + f + `");` + "\n" +
+             `  __call__ (__push_list (args);;__qualifiers);`;
+             def_args = "";
+             }
+           else
+             {
+             variable i;
+             def_args = "self";
+             _for i (1, __f__[f].nargs)
+               def_args += ", arg" + string (i);
+
+             def_body = "\n" + `  __call__ (` + def_args + `, "` + ns + `::` +
+               f + `::@method@";;__qualifiers);`;
+             }
+
+          variable str = "\n" + `private define  ` + f + ` (` + def_args + `)` + "\n" +
+            `{` + def_body + "\n}\n" +
+            `set_struct_field (__call__ (NULL, "` + ns + `", "__self__::__get__"), "` +
+            fe + `", &` + f + `);` + "\n";
+
+          try
+            eval (str, ns);
+          catch AnyError:
+            throw __Error, "FuncMethodEvalError::" + _function_name + "::EVALSTRING: " + str,
+              __get_exception_info;
+          }
+       }
+}
+
+private define func_get (ns, func)
+{
+  variable __func__ = __check_ns__ (ns, _function_name)["__FUNC__"];
+  ifnot (assoc_key_exists (__func__, func))
+    throw __Error,  "FunctionIsNotDefinedError::" + _function_name + "::" + func +
+      ", is not defined, in " + ns, NULL;
+
+  __func__[func];
+}
+
+private define func_put (ns, func, ref)
+{
+  func_init (ns, func, ref, qualifier ("ismethod", 1);;__qualifiers);
+}
+
+private define self_get (ns)
+{
+  ns = __check_ns__ (ns, _function_name);
+  ifnot (assoc_key_exists (ns, "__SELF__"))
+    throw __Error, "SelfIsUndefinedError::" + _function_name + "::" + ns.name +
+      ", __SELF__ is not defined", NULL;
+
+  ns["__SELF__"];
+}
+
+private define self_add_method (ns, method, func, ref)
+{
+  variable __ns__ = __check_ns__ (ns, _function_name);
+  ifnot (assoc_key_exists (__ns__, "__SELF__"))
+    throw __Error, "SelfIsUndefinedError::" + _function_name + "::" + ns +
+      ", __SELF__ is not defined", NULL;
+
+  variable m = get_struct_field_names (__ns__["__SELF__"]);
+
+  if (any (m == method))
+    throw __Error, "SelfIsDefinedMethodError::" + _function_name + "::" + method +
+      " is already defined", NULL;
+
+  variable n = @Struct_Type ([m, method]);
+
+  variable i;
+  _for i (0, length (m) - 1)
+    set_struct_field (n, m[i], get_struct_field (__ns__["__SELF__"], m[i]));
+
+  NSS[ns]["__SELF__"] = n;
+
+  ifnot (NULL == func)
+    func_init (ns, func, ref, 1;;__qualifiers);
+
+  eval (`
+    public variable ` + ns + ` =
+    __call__ (NULL, "` + ns + `", "__self__::__get__");
+  `);
+}
+
+private define err_handler (e, __r__)
+{
+  if (0 == isnot_an_exception (e) ||
+     (0 == (e = __get_exception_info, isnot_an_exception (e))))
+    {
+    IO.tostderr (err_format_exc (e));
+    __r__.err = [__r__.err, err_format_exc (e)];
+    }
+
+  while (isnot_an_exception (e) == 0 == isnot_an_exception (e.object))
+    {
+    IO.tostderr (err_format_exc (e.object));
+    __r__.err = [__r__.err, err_format_exc (e.object)];
+    e = e.object;
+    }
+
+  if (NULL != __r__ &&
+    Struct_Type == typeof (__r__) &&
+    Struct.field_exists (__r__, "handler") &&
+    NULL != __r__.handler &&
+    Ref_Type == typeof (__r__.handler) &&
+    __is_callable (__r__.handler))
+    {
+    (@__r__.handler) (__r__;;__qualifiers);
+    return;
+    }
+
+  variable err;
+  if (NULL == e || 0 == Struct.field_exists (e, "message") || NULL == (err = e.message, err))
+    return;
+
+  variable err_tok = strtok (err, "::");
+  if (2 > length (err_tok))
+    return;
+
+  if ("UndefinedNsError" == err_tok[0])
+    if (NULL != __r__ && NULL != __r__.args &&
+      var_get ("__", "__AUTODECLARE__") &&
+        any (["&func_init", "&var_init"] == string (__r__.func)))
+      {
+      __.new (__r__.args[0];;__qualifiers);
+
+      if ("&func_init" == string (__r__.func))
+        func_init (__push_list (__r__.args);;__qualifiers);
+      else
+        var_init (__push_list (__r__.args);;__qualifiers);
+      }
+}
+
+private define RunTime_Type () {loop (_NARGS) pop ();}
+
+private define __call_at_exit__ (inited){}
+
+public define __call__ ()
+{
+  variable inited = NULL;
+  try
+    {
+    variable func = ();
+    variable args = __pop_list (_NARGS - 1);
+    variable self = args[0];
+    variable from, nargs, needsobj, caller = NULL;
+    variable n = sscanf (func, "%[a-zA-Z_]::%[a-zA-Z_]::%s", &from, &func, &caller);
+
+    ifnot (1 < n)
+      throw __Error, "FuncDefinitionParseError::__call__::" + func, NULL;
+
+    variable f = func_get (from, func;;__qualifiers);
+    (func, nargs, needsobj) = f.func, f.nargs, f.self;
+
+    ifnot (434 == nargs)
+      if (_NARGS - 1 < nargs)
+        throw __Error, "FuncCallNumArgsError::__call__::" + func + " is declared with " +
+          string (nargs) + " but _NARGS returns " + string (_NARGS), NULL;
+
+    ifnot (needsobj)
+      list_delete (args, 0);
+
+    RunTime_Type (from, func, caller, &inited, args;;__qualifiers);
+
+    (@func) (__push_list (args);;__qualifiers);
+    }
+  catch __Error:
+    err_handler (NULL, inited ? __R__[-1] : NULL;;__qualifiers);
+  catch AnyError:
+    err_handler (NULL, inited ? __R__[-1] : NULL;;__qualifiers);
+  finally
+    {
+    __call_at_exit__ (inited);
+    }
+}
+
+private define vget__ (self, vname)
+{
+  __call__ (self, self.__name__, vname, "__::__vget__::vget__";;__qualifiers);
+}
+
+private define vget_ (self, vname)
+{
+  var_get (self.__name__, vname;;__qualifiers);
+}
+
+private define new (self, ns)
+{
+  if (assoc_key_exists (NSS, ns) && 0 == qualifier ("ReInitNs", 0))
+    if (qualifier_exists ("throw"))
+      throw __Error, "NsIsDefined::" + _function_name + "::" + ns
+        + ", is already defined", NULL;
+    else
       return;
 
-  s.msg_handler (msg);
+  variable init = ns_get (ns;;__qualifiers);
+  variable funcs = qualifier ("funcs");
+  variable refs = qualifier ("refs");
+  variable vars = qualifier ("vars");
+  variable vals = qualifier ("values");
+  variable isself = qualifier ("addSelf", 1);
+  variable trace = qualifier ("trace", 1);
 
-  if (qualifier_exists ("hold"))
-    s.hold_handler ();
+  if (any (typeof (funcs) == [List_Type, Array_Type]))
+    if (any (typeof (refs) == [List_Type, Array_Type]))
+      if (length (funcs) == length (refs))
+        Array.map (Void_Type, &func_init, ns, funcs, refs,
+          qualifier ("ismethod", 1);;__qualifiers);
+
+  if (any (typeof (vars) == [List_Type, Array_Type]))
+    if (any (typeof (vals) == [List_Type, Array_Type]))
+      if (length (vars) == length (vals))
+        Array.map (Void_Type, &var_init, ns, vars, vals;;__qualifiers);
+
+  if (isself)
+    {
+    eval (`
+      public variable ` + ns + ` =
+      __call__ (NULL, "` + ns + `", "__self__::__get__");
+      `);
+
+    ifnot (ns == "__")
+      func_init (ns, "__vget_",  trace ? &vget__ : &vget_, 1;;__qualifiers);
+
+    Array.map (Void_Type, &set_struct_field, NSS[ns]["__SELF__"],
+      ["err_handler", "__name__"],
+      {qualifier ("err_handler"), ns});
+    }
 }
 
-array_map (____.add_fun, NULL, "de",
-  ["bug",  "msg_handler",  "hold_handler"],
-  [&bug__, &msg_handler__, &hold_handler__]);
+new (NULL, "__self__";funcs = ["get_"], refs = [&self_get], addVar = 0, addSelf = 0);
+new (NULL, "__";
+  methods = "new,vput,vget,vinit,fget,finit,fput,sget,sadd,efmt",
+  funcs = ["__new_", "vput___", "vget__", "vinit___", "fget__", "finit____", "fput___",
+    "sget_", "sadd____", "efmt_"],
+  refs = [&new, &var_put, &var_get, &var_init, &func_get, &func_init, &func_put, &self_get,
+    &self_add_method, &err_format_exc],
+  vars = ["__DEBUG__", "__PROFILE__", "__AUTODECLARE__"],
+  values = {1, 0, 0});
+
+private define RunTime_Type (ns, func, caller, inited, args)
+{
+  list_append (__R__, struct
+    {
+    ns = ns,
+    func = func,
+    caller = caller,
+    args = args,
+    handler = qualifier ("err_handler"),
+    err = String_Type[0],
+    });
+
+  @inited = 1;
+}
+
+private define __call_at_exit__ (inited)
+{
+  if (inited)
+    list_delete (__R__, -1);
+}
+
+var_init ("__", "__DIRNS__", path_dirname (__FILE__);ConstVar = 1);
+
+__.new ("Struct";methods = "field_exists",
+  funcs = ["__field_exists__"], refs = [&field_exists__]);
+__.new ("Array";methods = "map", funcs = ["map?"], refs = [Array.tmp]);
+__.new ("IO";methods = "readfd,readfile,tostderr,tostdout",
+  funcs = ["readfd_", "tostderr?"],
+  refs = [IO.readfd, IO.tmp]);
 

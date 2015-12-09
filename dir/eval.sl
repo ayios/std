@@ -1,7 +1,7 @@
-define evaldir (dir)
+private define eval (dir)
 {
   if ('~' == dir[0])
-    (dir,) = strreplace (dir, "~", getenv ("HOME"), 1);
+    (dir,) = strreplace (dir, "~", Env.vget ("HOME"), 1);
   else if (0 == path_is_absolute (dir)
           && '$' != dir[0]
           && 0 == qualifier_exists ("dont_change"))

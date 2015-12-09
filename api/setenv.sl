@@ -1,22 +1,23 @@
-private variable pw = getpwuid (getuid ());
+$1 = getpwuid (getuid ());
 
-if (NULL == pw)
+if (NULL == $1)
   exit (1);
 
-UID = pw.pw_uid;
-GID = pw.pw_gid;
-USER = pw.pw_name;
+__.vput ("Env", "UID", $1.pw_uid);
+__.vput ("Env", "GID", $1.pw_gid);
+__.vput ("Env", "USER", $1.pw_name);
+__.vput ("Env", "GROUP", setgrname (Env.vget ("GID"), &$1));
 
-GROUP = setgrname (GID, &$1);
-
-if (NULL == GROUP)
+if (NULL == Env.vget ("GROUP"))
   {
-  tostderr ($1);
+  IO.tostderr (__tmp ($1));
   exit (1);
   }
 
-putenv ("USER=" + USER);
-putenv ("LOGNAME=" + USER);
-putenv ("USERNAME=" + USER);
-putenv ("HOME=/home/" + USER);
-putenv ("GROUP=" + GROUP);
+__uninitialize (&$1);
+
+putenv ("USER=" + Env.vget ("USER"));
+putenv ("LOGNAME=" + Env.vget ("USER"));
+putenv ("USERNAME=" +  Env.vget ("USER"));
+putenv ("HOME=/home/" + Env.vget ("USER"));
+putenv ("GROUP=" + Env.vget ("GROUP"));

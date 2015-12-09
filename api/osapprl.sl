@@ -21,10 +21,10 @@ define _osapprec_ (s)
   sock->send_int (SOCKET, APP_GET_CONNECTED);
 
   variable apps = sock->get_str (SOCKET);
-  variable me = APP.appname + "::" + string (PID);
+  variable me = APP.appname + "::" + string (Env.vget ("PID"));
   apps = strchop (strtrim_end (apps), '\n', 0);
   apps = apps[wherenot (me == apps)];
- 
+
   rline->set (s);
   rline->prompt (s, s._lin, s._col);
 

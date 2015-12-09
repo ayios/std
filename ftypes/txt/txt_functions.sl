@@ -1,1 +1,1 @@
-loadfrom ("ftypes/txt", "txt_settype", NULL, &on_eval_err);
+load.from ("ftypes/txt", "txt_settype", NULL;err_handler = &__err_handler__);

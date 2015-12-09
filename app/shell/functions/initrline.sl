@@ -61,7 +61,7 @@ define rlineinit ()
   variable rl = rline->init (&my_commands;;struct
     {
     @__qualifiers (),
-    histfile = HISTDIR + "/" + string (getuid ()) + "shellhistory",
+    histfile = Dir.vget ("HISTDIR") + "/" + string (getuid ()) + "shellhistory",
     filtercommands = &filtercommands,
     filterargs = &filterargs,
     tabhook = &tabhook,

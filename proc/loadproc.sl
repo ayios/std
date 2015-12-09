@@ -9,16 +9,18 @@ define exit_me (code)
   exit (code);
 }
 
-define tostderr (str)
+define __err_handler__ (__r__)
 {
-  () = fprintf (stderr, "%s\n", str);
-}
+  variable code = 1;
+  if (Integer_Type == __r__)
+    code = __r__;
 
-define on_eval_err (err, code)
-{
-  () = array_map (Integer_Type, &fprintf, stderr, "%s\n", err);
+  variable msg = qualifier ("msg");
+  ifnot (NULL == msg)
+    IO.tostderr (msg);
+
   exit (code);
 }
 
 % for now NULL
-loadfile (file, NULL, &on_eval_err);
+load.file (file, NULL;err_handler = &__err_handler__);

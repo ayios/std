@@ -35,23 +35,23 @@ private define parse_flags (fd)
 {
   ifnot (NULL == fd.wr_flags)
     {
-    ifnot (assoc_key_exists (FILE_FLAGS, fd.wr_flags))
-      fd.wr_flags = FILE_FLAGS[">"];
+    ifnot (assoc_key_exists (File.vget ("FLAGS"), fd.wr_flags))
+      fd.wr_flags = File.vget ("FLAGS")[">"];
     else
-      fd.wr_flags = FILE_FLAGS[fd.wr_flags];
+      fd.wr_flags = File.vget ("FLAGS")[fd.wr_flags];
     }
   else
     if (-1 == access (fd.file, F_OK))
-      fd.wr_flags = FILE_FLAGS[">"];
+      fd.wr_flags = File.vget ("FLAGS")[">"];
     else
-      fd.wr_flags = FILE_FLAGS[">|"];
+      fd.wr_flags = File.vget ("FLAGS")[">|"];
 
   ifnot (NULL == fd.append_flags)
     fd.wr_flags |= fd.append_flags;
 
   if (fd.wr_flags & O_CREAT)
     if (NULL == fd.mode)
-      fd.mode = PERM["_PRIVATE"];
+      fd.mode = File.vget ("PERM")["_PRIVATE"];
 }
 
 private define open_file (fd, fp)
@@ -186,19 +186,19 @@ private define _execv (s, argv, bg)
         {
         if (-1 == initgroups (s.user, s.gid))
           {
-          tostderr ("initgroups: " + errno_string (errno));
+          IO.tostderr ("initgroups: " + errno_string (errno));
           return NULL;
           }
 
         if (-1 == setgid (s.gid))
           {
-          tostderr ("setgid: " + errno_string (errno));
+          IO.tostderr ("setgid: " + errno_string (errno));
           return NULL;
           }
 
         if (-1 == setuid (s.uid))
           {
-          tostderr ("setuid: " + errno_string (errno));
+          IO.tostderr ("setuid: " + errno_string (errno));
           return NULL;
           }
         }
@@ -230,19 +230,19 @@ private define _execve (s, argv, env, bg)
         {
         if (-1 == initgroups (s.user, s.gid))
           {
-          tostderr ("initgroups: " + errno_string (errno));
+          IO.tostderr ("initgroups: " + errno_string (errno));
           return NULL;
           }
 
         if (-1 == setgid (s.gid))
           {
-          tostderr ("setgid: " + errno_string (errno));
+          IO.tostderr ("setgid: " + errno_string (errno));
           return NULL;
           }
 
         if (-1 == setuid (s.uid))
           {
-          tostderr ("setuid: " + errno_string (errno));
+          IO.tostderr ("setuid: " + errno_string (errno));
           return NULL;
           }
         }

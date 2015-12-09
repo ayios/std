@@ -1,4 +1,4 @@
-importfrom ("std", "slsmg", NULL, &on_eval_err);
+load.module ("std", "slsmg", NULL;err_handler = &__err_handler__);
 
 public variable LINES     = SLsmg_Screen_Rows;
 public variable COLUMNS   = SLsmg_Screen_Cols;
@@ -77,7 +77,7 @@ array_map (Void_Type, &slsmg_define_color, [22:23:1],
 
 private define get_color (clr)
 {
-  return get_struct_field (COLOR, clr);
+  get_struct_field (COLOR, clr);
 }
 
 array_map (Void_Type, &set_struct_field, COLOR, get_struct_field_names (COLOR),
@@ -94,6 +94,7 @@ static define init ()
     return;
 
   slsmg_init_smg ();
+
   SMGINITED = 1;
 }
 
@@ -137,12 +138,12 @@ static define setrcdr (row, col)
 
 static define getrc (row, col)
 {
-  return [slsmg_get_row (), slsmg_get_column ()];
+  [slsmg_get_row (), slsmg_get_column ()];
 }
 
 static define char_at ()
 {
-  return slsmg_char_at ();
+  slsmg_char_at ();
 }
 
 static define hlregion (clr, r, c, dr, dc)
@@ -281,5 +282,6 @@ public define send_msg (str, clr)
 }
 
 init ();
+
 IMG = List_Type[LINES - 2];
 set_img ([0:LINES - 3], NULL, NULL, NULL);

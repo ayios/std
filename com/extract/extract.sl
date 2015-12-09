@@ -1,4 +1,4 @@
-loadfrom ("file", "extract", NULL, &on_eval_err);
+load.from ("file", "extract", NULL;err_handler = &__err_handler__);
 
 private variable VERBOSE = 0;
 
@@ -29,7 +29,7 @@ define main ()
 
   if (i == __argc)
     {
-    tostderr (sprintf ("%s: additional argument is required", __argv[0]));
+    IO.tostderr (sprintf ("%s: additional argument is required", __argv[0]));
     exit_me (1);
     }
 

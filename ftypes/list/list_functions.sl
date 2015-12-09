@@ -17,7 +17,7 @@ private define add (self, s, rows)
     w.cur_frame = 0;
     c = init_ftype (ftype);
 
-    loadfrom ("ftypes/" + ftype, ftype + "_settype", NULL, &on_eval_err);
+    load.from ("ftypes/" + ftype, ftype + "_settype", NULL;err_handler = &__err_handler__);
     variable func = __get_reference (sprintf ("%s_settype", ftype));
     (@func) (c, s.fname, rows, NULL);
  
@@ -32,7 +32,7 @@ private define add (self, s, rows)
   c = self;
  
   w.cur_frame = 1;
-  variable lines = readfile (s.fname);
+  variable lines = IO.readfile (s.fname);
   if (NULL == lines)
     lines = [sprintf ("%s\000", c._indent)];
 
@@ -67,7 +67,7 @@ private define getitem (s)
 
   if (-1 == access (fname, F_OK))
     {
-    tostderr (fname + ": No such filename");
+    IO.tostderr (fname + ": No such filename");
     return NULL;
     }
 

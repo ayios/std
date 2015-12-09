@@ -1,48 +1,49 @@
-if (NULL == TERM)
+if (NULL == Env.vget ("TERM"))
   {
-  tostderr ("TERM environment variable isn't set");
+  IO.tostderr ("TERM environment variable isn't set");
   exit (1);
   }
 
-if (NULL == LANG)
+if (NULL == Env.vget ("LANG"))
   {
-  tostderr ("LANG environment variable isn't set");
+  IO.tostderr ("LANG environment variable isn't set");
   exit (1);
   }
 
-if (5 > strlen (LANG) || "UTF-8" != substr (LANG, strlen (LANG) - 4, -1))
+if (5 > strlen (Env.vget ("LANG")) || "UTF-8" != substr (Env.vget ("LANG"),
+  strlen (Env.vget ("LANG")) - 4, -1))
   {
-  tostderr ("locale: " + LANG + " isn't UTF-8 (Unicode), or misconfigured");
+  IO.tostderr ("locale: " + Env.vget ("LANG") + " isn't UTF-8 (Unicode), or misconfigured");
   exit (1);
   }
 
-if (NULL == HOME)
+if (NULL == Env.vget ("HOME"))
   {
-  tostderr ("HOME environment variable isn't set");
+  IO.tostderr ("HOME environment variable isn't set");
   exit (1);
   }
 
-if (NULL == PATH)
+if (NULL == Env.vget ("PATH"))
   {
-  tostderr ("PATH environment variable isn't set");
+  IO.tostderr ("PATH environment variable isn't set");
   exit (1);
   }
 
-SLSH_BIN = which ("slsh");
-SUDO_BIN = which ("sudo");
+SLSH_BIN = Sys.which ("slsh");
+SUDO_BIN = Sys.which ("sudo");
 
-USER = setpwname (UID, &$1);
-if (NULL == USER)
+__.vput ("Env", "USER", setpwname (Env.vget ("UID"), &$1));
+
+if (NULL == Env.vget ("USER"))
   {
-  tostderr (__tmp ($1));
+  IO.tostderr (__tmp ($1));
   exit (1);
   }
 
-GROUP = setgrname (GID, &$1);
-if (NULL == GROUP)
+__.vput ("Env", "GROUP", setgrname (Env.vget ("GID"), &$1));
+
+if (NULL == Env.vget ("GROUP"))
   {
-  tostderr (__tmp ($1));
+  IO.tostderr (__tmp ($1));
   exit (1);
   }
-
-__uninitialize (&$1);

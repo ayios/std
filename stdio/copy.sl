@@ -1,5 +1,5 @@
-loadfrom ("file", "copyfile", NULL, &on_eval_err);
-loadfrom ("sys", "modetoint", NULL, &on_eval_err);
+load.from ("file", "copyfile", NULL;err_handler = &__err_handler__);
+load.from ("sys", "modetoint", NULL;err_handler = &__err_handler__);
 define clean (force, backup, backupfile, dest)
 {
   if (force)
@@ -31,13 +31,13 @@ define copy (source, dest, st_source, st_dest, opts)
     {
     if (opts.noclobber)
       {
-      tostderr (dest + ": Cannot overwrite existing file; noclobber option is given");
+      IO.tostderr (dest + ": Cannot overwrite existing file; noclobber option is given");
       return 0;
       }
 
     if (opts.update && st_source.st_mtime <= st_dest.st_mtime)
       {
-      tostdout ("`" + dest + "' is newer than `" + source + "', aborting ...");
+      IO.tostdout ("`" + dest + "' is newer than `" + source + "', aborting ...");
       return 0;
       }
  
@@ -50,7 +50,7 @@ define copy (source, dest, st_source, st_dest, opts)
 
       if (any (['n', 033, 'q'] == retval))
         {
-        tostdout (source + " aborting ...");
+        IO.tostdout (source + " aborting ...");
         return 0;
         }
       }
@@ -63,7 +63,7 @@ define copy (source, dest, st_source, st_dest, opts)
 
         if (-1 == copyfile (dest, backup))
           {
-          tostderr ("cannot backup, " + dest);
+          IO.tostderr ("cannot backup, " + dest);
           return -1;
           }
 
@@ -76,7 +76,7 @@ define copy (source, dest, st_source, st_dest, opts)
     ifnot (st_dest.st_mode & S_IWUSR)
       if (NULL == opts.force)
         {
-        tostderr (dest + ": is not writable, try --force");
+        IO.tostderr (dest + ": is not writable, try --force");
         return 0;
         }
       else
@@ -89,7 +89,7 @@ define copy (source, dest, st_source, st_dest, opts)
 
             if (-1 == copyfile (dest, backup))
               {
-              tostderr ("cannot backup, %s" + dest);
+              IO.tostderr ("cannot backup, %s" + dest);
               return -1;
               }
 
@@ -99,7 +99,7 @@ define copy (source, dest, st_source, st_dest, opts)
 
           if (-1 == remove (dest))
             {
-            tostderr (dest + ": couldn't be removed");
+            IO.tostderr (dest + ": couldn't be removed");
             return -1;
             }
 
@@ -112,7 +112,7 @@ define copy (source, dest, st_source, st_dest, opts)
     link = readlink (source);
     if (NULL == stat_file (source))
       {
-      tostderr ("source `" + source + "' points to the non existing file `" + link +
+      IO.tostderr ("source `" + source + "' points to the non existing file `" + link +
           "', aborting ...");
  
       clean (force, opts.backup, backup, dest);
@@ -130,7 +130,7 @@ define copy (source, dest, st_source, st_dest, opts)
   else if (any ([istype (st_source.st_mode, "fifo"), istype (st_source.st_mode, "blk"),
       istype (st_source.st_mode, "chr"), istype (st_source.st_mode, "sock")]))
     {
-    tostdout ("cannot copy special file `" + source + "': Operation not permitted");
+    IO.tostdout ("cannot copy special file `" + source + "': Operation not permitted");
 
     clean (force, opts.backup, backup, dest);
  
@@ -156,7 +156,7 @@ define copy (source, dest, st_source, st_dest, opts)
 
   () = chmod (dest, mode);
 
-  tostdout (sprintf ("`%s' -> `%s' %s", source, dest, backuptext));
+  IO.tostdout (sprintf ("`%s' -> `%s' %s", source, dest, backuptext));
 
   return 0;
 }

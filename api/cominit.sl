@@ -5,22 +5,22 @@ variable licom = 0;
 variable icom = 0;
 variable iarg;
 variable SHELLLASTEXITSTATUS = 0;
-variable RDFIFO = TEMPDIR + "/" + string (PID) +  "_SRV_FIFO.fifo";
-variable WRFIFO = TEMPDIR + "/" + string (PID) +  "_CLNT_FIFO.fifo";
+variable RDFIFO = Dir.vget ("TEMPDIR") + "/" + string (Env.vget ("PID")) +  "_SRV_FIFO.fifo";
+variable WRFIFO = Dir.vget ("TEMPDIR") + "/" + string (Env.vget ("PID")) +  "_CLNT_FIFO.fifo";
 
 ifnot (access (RDFIFO, F_OK))
   if (-1 == remove (RDFIFO))
-    on_eval_err ([RDFIFO + ": cannot remove " + errno_string (errno)], 1);
+    __err_handler__ (1;msg = RDFIFO + ": cannot remove " + errno_string (errno));
 
 ifnot (access (WRFIFO, F_OK))
   if (-1 == remove (WRFIFO))
-    on_eval_err ([WRFIFO + ": cannot remove, " + errno_string (errno)], 1);
+    __err_handler__ (1;msg = WRFIFO + ": cannot remove, " + errno_string (errno));
 
 if (-1 == mkfifo (RDFIFO, 0644))
-  on_eval_err ([RDFIFO + ": cannot create, " + errno_string (errno)], 1);
+  __err_handler__ (1;msg = RDFIFO + ": cannot create, " + errno_string (errno));
 
 if (-1 == mkfifo (WRFIFO, 0644))
-  on_eval_err ([WRFIFO + ": cannot create, " + errno_string (errno)], 1);
+  __err_handler__ (1;msg = WRFIFO + ": cannot create, " + errno_string (errno));
 
 define precom ()
 {
@@ -32,7 +32,7 @@ define shell_pre_header (argv)
 {
   iarg++;
   if (APP.realshell)
-    tostdout (strjoin (argv, " ") + "\n");
+    IO.tostdout (strjoin (argv, " "));
   else
     toscratch (strjoin (argv, " ") + "\n");
 }
@@ -40,28 +40,16 @@ define shell_pre_header (argv)
 define shell_post_header ()
 {
   if (APP.realshell)
-    tostdout ("[" + string (iarg) + "](" + getcwd + ")[" + string (SHELLLASTEXITSTATUS) + "]$ ");
+    IO.tostdout ("[" + string (iarg) + "](" + getcwd + ")[" + string (SHELLLASTEXITSTATUS) + "]$";n);
   else
     toscratch ("[" + string (iarg) + "](" + getcwd + ")[" + string (SHELLLASTEXITSTATUS) + "]$ ");
 }
 
-ifnot (NULL == APP.excom)
-  {
-  if (APP.excom.scratch)
-    loadfrom ("api", "exscratch", NULL, &on_eval_err);
-
-  if (APP.excom.edit)
-    loadfrom ("api", "exedit", NULL, &on_eval_err);
-
-  if (APP.excom.messages)
-    loadfrom ("api", "exmessages", NULL, &on_eval_err);
-
-  if (APP.excom.ved)
-    loadfrom ("api", "exved", NULL, &on_eval_err);
-
-  if (APP.excom.eval)
-    loadfrom ("api", "eval", NULL, &on_eval_err);
-  }
+load.from ("api", "exscratch", NULL;err_handler = &__err_handler__);
+load.from ("api", "exedit", NULL;err_handler = &__err_handler__);
+load.from ("api", "exmessages", NULL;err_handler = &__err_handler__);
+load.from ("api", "exved", NULL;err_handler = &__err_handler__);
+load.from ("api", "eval", NULL;err_handler = &__err_handler__);
 
 private define _write_ (argv)
 {
@@ -246,7 +234,8 @@ private define _preexec_ (argv, header, issudo, env)
 
   @header = strlen (argv[0]) > 1 && 0 == qualifier_exists ("no_header");
   @issudo = qualifier ("issudo");
-  @env = [proc->defenv (), "PPID=" + string (PID)];
+  @env = [proc->defenv (), "PPID=" + string (Env.vget ("PID"))];
+
 
   variable p = proc->init (@issudo, 0, 1);
 
@@ -330,7 +319,7 @@ private define _parse_redir_ (lastarg, file, flags)
           {
           licom = icom;
           redirexists = 1;
-          tostderr (lfile + ": file exists, use >|");
+          IO.tostderr (lfile + ": file exists, use >|");
           return -1;
           }
         }
@@ -344,13 +333,13 @@ private define _parse_redir_ (lastarg, file, flags)
 
     if (-1 == access (lfile, W_OK))
       {
-      tostderr (lfile + ": is not writable");
+      IO.tostderr (lfile + ": is not writable");
       return -1;
       }
 
     ifnot (isreg (lfile))
       {
-      tostderr (lfile + ": is not a regular file");
+      IO.tostderr (lfile + ": is not a regular file");
       return -1;
       }
     }
@@ -389,7 +378,7 @@ private define _getpasswd_ ()
     {
     passwd = getpasswd ();
 
-    if (-1 == os->authenticate (USER, passwd))
+    if (-1 == os->authenticate (Env.vget ("USER"), passwd))
       passwd = NULL;
 
     ifnot (NULL == passwd)
@@ -399,7 +388,7 @@ private define _getpasswd_ ()
       }
     }
 
-  return passwd;
+  passwd;
 }
 
 private define _sendsig_ (sig, pid, passwd)
@@ -407,8 +396,8 @@ private define _sendsig_ (sig, pid, passwd)
   variable p = proc->init (1, 0, 0);
   p.stdin.in = passwd;
 
-  variable status = p.execv ([SUDO_BIN, "-S", "-E", "-p", "", SLSH_BIN,
-    STDDIR + "/proc/sendsignalassu.sl", sig, pid], NULL);
+  () = p.execv ([SUDO_BIN, "-S", "-E", "-p", "", SLSH_BIN,
+    Dir.vget ("STDDIR") + "/proc/sendsignalassu.sl", sig, pid], NULL);
 }
 
 private define _getbgstatus_ (pid)
@@ -423,7 +412,7 @@ private define _getbgstatus_ (pid)
     else
       pidfile = BGDIR + "/" + pid + ".RUNNING";
 
-  if (0 == isnotsudo && UID)
+  if (0 == isnotsudo && Env.vget ("UID"))
     {
     variable passwd = _getpasswd_ ();
     if (NULL == passwd)
@@ -434,11 +423,11 @@ private define _getbgstatus_ (pid)
   else
     if (-1 == kill (atoi (pid), SIGALRM))
       {
-      tostderr (pid + ": " + errno_string (errno) + "\n");
+      IO.tostderr (pid + ": " + errno_string (errno) + "\n");
       return;
       }
 
-  if (isnotsudo || (isnotsudo == 0 == UID))
+  if (isnotsudo || (isnotsudo == 0 == Env.vget ("UID")))
     {
     variable rdfd = open (RDFIFO, O_RDONLY);
     variable buf = sock->get_str (rdfd);
@@ -455,14 +444,14 @@ private define _getbgstatus_ (pid)
 
   ifnot (NULL == out)
     if (APP.realshell)
-      tostdout ("\n" + pid + ": " + strjoin (BGPIDS[pid].argv, " ") + "\n" +  out);
+      IO.tostdout ("\n" + pid + ": " + strjoin (BGPIDS[pid].argv, " ") + "\n" +  out);
     else
       toscratch ("\n" + pid + ": " + strjoin (BGPIDS[pid].argv, " ") + "\n" +  out);
 
 
   ifnot (force)
     if (APP.realshell)
-      tostdout (pid + ": exit status " + string (status.exit_status) + "\n");
+      IO.tostdout (pid + ": exit status " + string (status.exit_status));
     else
       toscratch (pid + ": exit status " + string (status.exit_status) + "\n");
 
@@ -503,7 +492,7 @@ private define _forkbg_ (p, argv, env)
   BGPIDS[string (pid)] = p;
 
   if (APP.realshell)
-    tostdout ("forked " + string (pid) + " &\n");
+    IO.tostdout ("forked " + string (pid) + " &");
   else
     send_msg_dr ("forked " + string (pid) + " &", 0, PROMPTROW, 1);
 }
@@ -520,7 +509,7 @@ private define _fork_ (p, argv, env)
 
   ifnot (NULL == err)
     if (APP.realshell)
-      tostdout (err);
+      IO.tostdout (err);
     else
       toscratch (err);
 }
@@ -569,7 +558,7 @@ private define _execute_ (argv)
       variable err = read_fd (STDERRFD;pos = ERR_VED.st_.st_size);
 
       if (APP.realshell)
-        tostdout (err + "\n");
+        IO.tostdout (err);
       else
         toscratch (err + "\n");
 
@@ -631,7 +620,7 @@ private define _builtinpost_ ()
 
   ifnot (NULL == err)
     if (APP.realshell)
-      tostdout (err + "\n");
+      IO.tostdout (err);
     else
       toscratch (err + "\n");
 
@@ -669,7 +658,7 @@ private define _kill_bg_job (argv)
   _getbgstatus_ (pid;force);
 
   if (APP.realshell)
-    tostdout (pid + ": killed\n");
+    IO.tostdout (pid + ": killed");
   else
     send_msg_dr (pid + ": killed", 0, PROMPTROW, 1);
 
@@ -695,7 +684,7 @@ private define _list_bg_jobs_ (argv)
   _for i (0, length (pids) - 1)
     ar = [ar, pids[i] + ": " + strjoin (BGPIDS[pids[i]].argv, " ") + "\n"];
 
-  array_map (&tostdout, ar);
+  IO.tostdout (ar);
 
   shell_post_header ();
 
@@ -724,7 +713,7 @@ private define _echo_ (argv)
   ifnot (len)
     return;
 
-  variable tostd = APP.realshell ? &tostdout : &toscratch;
+  variable tostd = APP.realshell ? __.fget ("IO", "__tostdout__").func : &toscratch;
 
   if (1 == len)
     {
@@ -768,15 +757,15 @@ private define _echo_ (argv)
       }
     else
       {
-      variable fd = open (file, O_CREAT|O_WRONLY, PERM["__PUBLIC"]);
+      variable fd = open (file, O_CREAT|O_WRONLY, File.vget ("PERM")["__PUBLIC"]);
       if (NULL == fd)
-        tostderr (file + ":" + errno_string (errno));
+        IO.tostderr (file + ":" + errno_string (errno));
       else
         if (-1 == write (fd, strjoin (argv, " ") + hasnewline))
-          tostderr (file + ":" + errno_string (errno));
+          IO.tostderr (file + ":" + errno_string (errno));
         else
           if (-1 == close (fd))
-            tostderr (file + ":" + errno_string (errno));
+            IO.tostderr (file + ":" + errno_string (errno));
       }
     }
 
@@ -794,11 +783,11 @@ private define _cd_ (argv)
     }
   else
     {
-    variable dir = evaldir (argv[1]);
+    variable dir = Dir.eval (argv[1]);
     ifnot (are_same_files (getcwd (), dir))
       if (-1 == chdir (dir))
         {
-        tostderr (errno_string (errno) + "\n");
+        IO.tostderr (errno_string (errno));
         SHELLLASTEXITSTATUS = 1;
         }
     }
@@ -841,19 +830,19 @@ private define _which_ (argv)
 
   if (1 == length (argv))
     {
-    tostderr ("argument is required\n");
+    IO.tostderr ("argument is required");
     _builtinpost_ ();
     return;
     }
 
   variable com = argv[1];
 
-  variable path = which (com);
+  variable path = Sys.which (com);
 
-  variable msg = NULL == path ? path + "\n" : com + " hasn't been found in PATH\n";
+  variable msg = NULL != path ? path : com + " hasn't been found in PATH";
 
   if (APP.realshell)
-    tostdout (msg);
+    IO.tostdout (msg);
   else
     toscratch (msg);
 
@@ -866,7 +855,7 @@ define runapp (argv, env)
 {
   smg->suspend ();
 
-  argv[0] = ROOTDIR + "/bin/" + argv[0];
+  argv[0] = Dir.vget ("ROOTDIR") + "/bin/" + argv[0];
 
   variable issudo = qualifier ("issudo");
 
@@ -894,7 +883,7 @@ private define _build_comlist_ (a)
     c,
     ii,
     ex = qualifier_exists ("ex"),
-    d = [USRDIR, STDDIR, LCLDIR];
+    d = [Dir.vget ("USRDIR"), Dir.vget ("STDDIR"), Dir.vget ("LCLDIR")];
 
   _for i (0, length (d) - 1)
     {
@@ -917,6 +906,7 @@ private define _lock_ (argv)
     COLUMNS);
 
   while (NULL == __getpasswd);
+
   __vdraw_wind ();
 }
 
@@ -926,7 +916,7 @@ define runcom (argv, issudo)
 
   ifnot (any (assoc_get_keys (rl.argvlist) == argv[0]))
     {
-    tostderr (argv[0] + ": no such command");
+    IO.tostderr (argv[0] + ": no such command");
     return;
     }
 
@@ -945,36 +935,21 @@ define init_commands ()
 
   ifnot (NULL == APP.excom)
     {
-    if (APP.excom.scratch)
-      {
-      a["@"] = @Argvlist_Type;
-      a["@"].func = __get_reference ("__scratch");
-      }
+    a["@"] = @Argvlist_Type;
+    a["@"].func = __get_reference ("__scratch");
 
-    if (APP.excom.edit)
-      {
-      a["edit"] = @Argvlist_Type;
-      a["edit"].func = __get_reference ("__edit");
-      }
+    a["edit"] = @Argvlist_Type;
+    a["edit"].func = __get_reference ("__edit");
 
-    if (APP.excom.messages)
-      {
-      a["messages"] = @Argvlist_Type;
-      a["messages"].func = __get_reference ("__messages");
-      }
+    a["messages"] = @Argvlist_Type;
+    a["messages"].func = __get_reference ("__messages");
 
-    if (APP.excom.ved)
-      {
-      a["ved"] = @Argvlist_Type;
-      a["ved"].func = __get_reference ("__ved");
-      }
+    a["ved"] = @Argvlist_Type;
+    a["ved"].func = __get_reference ("__ved");
 
-    if (APP.excom.eval)
-      {
-      a["eval"] = @Argvlist_Type;
-      a["eval"].func = __get_reference ("my_eval");
-      a["eval"].type = "Func_Type";
-      }
+    a["eval"] = @Argvlist_Type;
+    a["eval"].func = __get_reference ("my_eval");
+    a["eval"].type = "Func_Type";
     }
 
   a["rehash"] = @Argvlist_Type;
@@ -1013,7 +988,7 @@ define init_commands ()
 
   a["search"] = @Argvlist_Type;
   a["search"].func = &_search_;
-  a["search"].dir = STDDIR + "/com/search";
+  a["search"].dir = Dir.vget ("STDDIR") + "/com/search";
 
-  return a;
+  a;
 }

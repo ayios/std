@@ -1,12 +1,38 @@
-variable STDERR = TEMPDIR + "/" + string (PID) + "_" + APP.appname + "_stderr.txt";
+variable STDERR = Dir.vget ("TEMPDIR") + "/" + string (Env.vget ("PID")) + "_" + APP.appname + "_stderr.txt";
 variable STDERRFD = initstream (STDERR);
 variable ERR_VED;
 
-define tostderr (str)
+define tostderr__ ()
 {
+  variable fmt = "%S";
+  loop (_NARGS) fmt += " %S";
+  variable args = __pop_list (_NARGS);
+
   () = lseek (STDERRFD, 0, SEEK_END);
-  () = write (STDERRFD, str);
+
+  if (1 == length (args) && typeof (args[0]) == Array_Type &&
+    String_Type == _typeof (args[0]))
+    {
+    args = args[0];
+
+    ifnot (qualifier_exists ("n"))
+      args += "\n";
+
+    try
+      {
+      () = array_map (Integer_Type, &write, STDERRFD, args);
+      }
+    catch AnyError:
+      throw __Error, "IOWriteError::" + _function_name + "::" + errno_string (errno), NULL;
+    }
+  else
+    {
+    variable str = sprintf (fmt, __push_list (args), qualifier_exists ("n") ? "" : "\n");
+    () = write (STDERRFD, str);
+    }
 }
+
+__.fput ("IO", "tostderr?", &tostderr__;ReInitFunc=1);
 
 if (is_defined ("init_ftype"))
   {

@@ -1,4 +1,4 @@
-loadfrom ("api", "apiInit", 1, &on_eval_err);
+load.from ("api", "apiInit", 1;err_handler = &__err_handler__);
 
 APP = api->init (__FILE__;
   vedrline = 1,
@@ -8,39 +8,7 @@ APP = api->init (__FILE__;
   os = 1,
   );
 
-define tostdout ();
-
-loadfrom ("api", "clientapi", NULL, &on_eval_err);
-
-define tostdout (str)
-{
-  tostderr (str);
-}
-
-define on_eval_err (err, code)
-{
-  variable msg;
-
-  if (Array_Type == typeof (err))
-    {
-    msg = substr (err[0], 1, COLUMNS);
-    err = strjoin (err, "\n");
-    }
-  else
-    msg = substr (err, 1, COLUMNS);
-
-  tostderr (err);
-
-  variable b = get_cur_buf ();
-
-  ifnot (NULL == b)
-    {
-    send_msg_dr (msg, 1, NULL, NULL);
-    b.vedloop ();
-    }
-  else
-    exit_me (code);
-}
+load.from ("api", "clientapi", NULL;err_handler = &__err_handler__);
 
 private variable __stdin = any (__argv == "-");
 private variable fn;

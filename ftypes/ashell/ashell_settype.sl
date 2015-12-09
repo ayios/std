@@ -1,6 +1,6 @@
 define ashell_lexicalhl ();
 
-loadfrom ("ftypes/ashell", "ashell_syntax", NULL, &on_eval_err);
+load.from ("ftypes/ashell", "ashell_syntax", NULL;err_handler = &__err_handler__);
 
 define ashell_settype (s, fname, rows, lines)
 {

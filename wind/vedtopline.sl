@@ -1,4 +1,4 @@
-loadfrom ("wind", "topline", NULL, &on_eval_err);
+load.from ("wind", "topline", NULL;err_handler = &__err_handler__);
 
 private variable clr = getuid () ? 16 : 1;
 

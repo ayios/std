@@ -9,22 +9,22 @@ define _usage ()
 
   if (NULL == helpfile)
     {
-    tostderr ("No Help file available for " + com);
+    IO.tostderr ("No Help file available for " + com);
 
     ifnot (length (ar))
       exit_me (1);
     }
 
   ifnot (access (helpfile, F_OK))
-    ar = [ar, readfile (helpfile)];
+    ar = [ar, IO.readfile (helpfile)];
 
   ifnot (length (ar))
     {
-    tostdout ("No Help file available for " + com);
+    IO.tostdout ("No Help file available for " + com);
     exit_me (1);
     }
 
-  array_map (&tostdout, ar);
+  IO.tostdout (ar);
 
   exit_me (_NARGS);
 }
@@ -40,13 +40,13 @@ define info ()
 
   if (NULL == infofile || -1 == access (infofile, F_OK))
     {
-    tostdout ("No Info file available for " + com);
+    IO.tostdout ("No Info file available for " + com);
     exit_me (0);
     }
 
-  ar = readfile (infofile);
+  ar = IO.readfile (infofile);
 
-  array_map (&tostdout, ar);
- 
+  IO.tostdout (ar);
+
   exit_me (0);
 }

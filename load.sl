@@ -1,93 +1,78 @@
-private variable LOADED = Assoc_Type[Integer_Type, 0];
+() = evalfile (path_dirname (__FILE__) + "/__/__");
 
-public variable ROOTDIR = path_concat (getcwd (), path_dirname (__FILE__));
+$1 = path_concat (getcwd (), path_dirname (__FILE__));
 
-if (ROOTDIR[[-2:]] == "/.")
-  ROOTDIR = substr (ROOTDIR, 1, strlen (ROOTDIR) - 2);
+if ($1[[-2:]] == "/.")
+  $1 = substr ($1, 1, strlen ($1) - 2);
 
-ROOTDIR += "/..";
-
-public variable MACHINE = uname ().machine;
-public variable OS = uname ().sysname;
+$1 += "/..";
 
 try
-  import (ROOTDIR + "/modules/" + MACHINE + "/std/ayios");
+  import ($1 + "/modules/" + uname.machine + "/std/ayios");
 catch ImportError:
   {
-  () = fprintf (stderr, "%s\n", __get_exception_info.message);
+  IO.tostderr (__get_exception_info.message);
   exit (1);
   }
 
-ROOTDIR = realpath (ROOTDIR);
-
-() = evalfile (ROOTDIR + "/std/__/__");
-
-public variable PID = getpid ();
-public variable UID = getuid ();
-public variable GID = getgid ();
-public variable ISSUPROC = UID ? 0 : 1;
-
-public variable ADIR = ROOTDIR;
-public variable STDDIR = ROOTDIR + "/std";
-public variable USRDIR = ROOTDIR + "/usr";
-public variable LCLDIR = ROOTDIR + "/local";
-public variable MDLDIR = ROOTDIR + "/modules/" + MACHINE;
-
-public variable STDDATADIR = STDDIR + "/share/data";
-public variable USRDATADIR = USRDIR + "/share/data";
-public variable LCLDATADIR = LCLDIR + "/share/data";
-public variable HISTDIR    = LCLDIR + "/share/history";
-
-public variable FILE_FLAGS = Assoc_Type[Integer_Type];
-
-FILE_FLAGS["<"]    =                   O_RDONLY;
-FILE_FLAGS[">>"]   =          O_WRONLY|O_APPEND;
-FILE_FLAGS[">"]    =           O_WRONLY|O_CREAT;
-FILE_FLAGS[">|"]   =   O_WRONLY|O_CREAT|O_TRUNC;
-FILE_FLAGS[">>|"]  =  O_WRONLY|O_CREAT|O_APPEND;
-FILE_FLAGS["<>>"]  =            O_RDWR|O_APPEND;
-FILE_FLAGS["<>"]   =             O_RDWR|O_CREAT;
-FILE_FLAGS["<>>|"] =    O_RDWR|O_CREAT|O_APPEND;
-FILE_FLAGS["<>|"]  =     O_RDWR|O_CREAT|O_TRUNC;
-
-public variable PERM = Assoc_Type[Integer_Type];
-
-PERM["PRIVATE"]  =                          S_IRWXU; % 0700
-PERM["_PRIVATE"] =                  S_IRUSR|S_IWUSR; % 0600
-PERM["STATIC"]   = PERM["PRIVATE"] |        S_IRWXG; % 0770
-PERM["_STATIC"]  = PERM["PRIVATE"] |S_IRGRP|S_IXGRP; % 0750
-PERM["__STATIC"] = PERM["_PRIVATE"]|        S_IRGRP; % 0640
-PERM["PUBLIC"]   = PERM["STATIC"]  |        S_IRWXO; % 0777
-PERM["_PUBLIC"]  = PERM["_STATIC"] |S_IROTH|S_IXOTH; % 0755
-PERM["__PUBLIC"] = PERM["__STATIC"]|        S_IROTH; % 0644
-PERM["___PUBLIC"]= PERM["_PRIVATE"]|S_IWGRP|S_IWOTH; % 0622
-
-public variable PATH        = getenv ("PATH");
-public variable TERM        = getenv ("TERM");
-public variable LANG        = getenv ("LANG");
-public variable HOME        = getenv ("HOME");
-public variable DISPLAY     = getenv ("DISPLAY");
-public variable XAUTHORITY  = getenv ("XAUTHORITY");
-public variable LINES;
-public variable COLUMNS;
-public variable SLSH_LIB_DIR;
-public variable SLANG_MODULE_PATH;
-public variable SLSH_BIN;
-public variable SUDO_BIN;
-public variable GROUP;
-public variable USER;
-
-% for now
-public variable SOURCEDIR = ROOTDIR;
-public variable TEMPDIR = ROOTDIR + "/tmp";
+$1 = realpath ($1);
 
 set_slang_load_path ("");
 set_import_module_path ("");
 
+__.new ("Env";
+  vars = ["MACHINE", "OS", "PID", "GID", "UID", "HOME", "PATH",
+    "TERM", "LANG", "DISPLAY", "XAUTHORITY", "GROUP",
+    "USER", "SLSH_LIB_DIR", "SLANG_MODULE_PATH", "ISSUPROC"],
+  values = {uname.machine, uname.sysname, getpid, getgid, getuid,
+    getenv ("HOME"), getenv ("PATH"), getenv ("TERM"), getenv ("LANG"),
+    getenv ("DISPLAY"), getenv ("XAUTHORITY"), NULL, NULL, get_slang_load_path (),
+    get_import_module_path (), getuid ? 0 : 1});
 
-use_namespace ("Global");
+__.new ("Dir";
+  vars = ["ROOTDIR", "ADIR", "STDDIR", "USRDIR", "LCLDIR", "MDLDIR", "STDDATADIR",
+    "USRDATADIR", "LCLDATADIR", "HISTDIR", "SOURCEDIR", "TEMPDIR"],
+  values = {$1, $1, $1 + "/std", $1 + "/usr", $1 + "/local",
+    $1 + "/modules/" + Env.vget ("MACHINE"), $1 + "/std/share/data",
+    $1 + "/usr/share/data", $1 + "/local/share/data",
+    $1 + "/local/share/history", $1, $1 + "/tmp"});
 
-private define _load_ ()
+$1 = Assoc_Type[Integer_Type];
+$1["<"]    =                   O_RDONLY;
+$1[">>"]   =          O_WRONLY|O_APPEND;
+$1[">"]    =           O_WRONLY|O_CREAT;
+$1[">|"]   =   O_WRONLY|O_CREAT|O_TRUNC;
+$1[">>|"]  =  O_WRONLY|O_CREAT|O_APPEND;
+$1["<>>"]  =            O_RDWR|O_APPEND;
+$1["<>"]   =             O_RDWR|O_CREAT;
+$1["<>>|"] =    O_RDWR|O_CREAT|O_APPEND;
+$1["<>|"]  =     O_RDWR|O_CREAT|O_TRUNC;
+
+$2 = Assoc_Type[Integer_Type];
+$2["PRIVATE"]  =                        S_IRWXU; % 0700
+$2["_PRIVATE"] =                S_IRUSR|S_IWUSR; % 0600
+$2["STATIC"]   = $2["PRIVATE"] |        S_IRWXG; % 0770
+$2["_STATIC"]  = $2["PRIVATE"] |S_IRGRP|S_IXGRP; % 0750
+$2["__STATIC"] = $2["_PRIVATE"]|        S_IRGRP; % 0640
+$2["PUBLIC"]   = $2["STATIC"]  |        S_IRWXO; % 0777
+$2["_PUBLIC"]  = $2["_STATIC"] |S_IROTH|S_IXOTH; % 0755
+$2["__PUBLIC"] = $2["__STATIC"]|        S_IROTH; % 0644
+$2["___PUBLIC"]= $2["_PRIVATE"]|S_IWGRP|S_IWOTH; % 0622
+
+__.new ("File"; vars = ["FLAGS", "PERM"], values = [$1, $2]);
+
+array_map (&__uninitialize, [&$1, &$2]);
+
+public variable LINES;
+public variable COLUMNS;
+public variable SLSH_BIN;
+public variable SUDO_BIN;
+
+__use_namespace ("load");
+
+private variable __LOADED__ = Assoc_Type[Integer_Type, 0];
+
+private define __load__ ()
 {
   variable
     file,
@@ -105,7 +90,7 @@ private define _load_ ()
 
   variable lib = ns + "->" + file;
 
-  if (LOADED[lib] && 0 == qualifier_exists ("force"))
+  if (__LOADED__[lib] && 0 == qualifier_exists ("force"))
     return __get_reference (ns + "->" + fun);
 
   try
@@ -113,27 +98,24 @@ private define _load_ ()
     () = evalfile (file, ns);
     }
   catch OpenError:
-    throw OpenError, __get_exception_info ().message, 2;
+    throw __Error, "LoadOpenError::" + _function_name, __get_exception_info;
   catch ParseError:
-    throw ParseError, sprintf ("file %s: %s func: %s lnr: %d", path_basename (file),
-      __get_exception_info ().message, __get_exception_info ().function,
-      __get_exception_info ().line), __get_exception_info ().error;
+    throw __Error, "LoadParseError::" + _function_name, __get_exception_info;
   catch RunTimeError:
-    throw RunTimeError, sprintf ("file %s: %s func: %s lnr: %d", path_basename (file),
-      __get_exception_info ().message, __get_exception_info ().function,
-      __get_exception_info ().line), __get_exception_info ().error;
+    throw __Error, "LoadRunTimeError::" + _function_name, __get_exception_info;
 
-  LOADED[lib] = 1;
+  __LOADED__[lib] = 1;
 
-  return __get_reference (ns + "->" + fun);
+  __get_reference (ns + "->" + fun);
 }
 
-private define _findns_ (ns, lns, lib)
+private define __findns__ (ns, lns, lib)
 {
   variable foundlib = NULL;
   variable foundns = NULL;
   variable i;
-  variable nss = [ADIR, LCLDIR, STDDIR, USRDIR];
+  variable nss = [Dir.vget ("ADIR"), Dir.vget ("LCLDIR"),
+    Dir.vget ("STDDIR"), Dir.vget ("USRDIR")];
 
   _for i (0, length (nss) - 1)
     {
@@ -152,18 +134,19 @@ private define _findns_ (ns, lns, lib)
     }
 
   if (NULL == foundns)
-    throw OpenError,  "(load error) " + ns + ": no such namespace", 2;
+    throw __Error, "LoadOpenError::" + _function_name + ":: (load error) " +
+       ns + ", no such namespace", NULL;
 
   if (NULL == foundlib)
-    throw OpenError,  "(load error) " + lib + ": no such library", 2;
-
+    throw __Error, "LoadOpenError::" + _function_name + ":: (load error) " +
+      lib + ", no such library", NULL;
 }
 
-private define _loadfrom_ (ns, lib, dons)
+private define __loadfrom__ (ns, lib, dons)
 {
   variable lns;
 
-  _findns_ (ns, &lns, lib);
+  __findns__ (ns, &lns, lib);
 
   ns = NULL == dons
     ? NULL
@@ -175,81 +158,29 @@ private define _loadfrom_ (ns, lib, dons)
         ? dons
         : NULL;
 
-  try
-    {
-    () = _load_ (lns + "/" + lib, ns;;struct {fun = "", @__qualifiers ()});
-    }
-  catch AnyError:
-    throw AnyError, " ", __get_exception_info ();
+  () = __load__ (lns + "/" + lib, ns;;struct {fun = "", @__qualifiers});
 }
 
-public define loadfrom (ns, lib, dons, errfunc)
+private define __importfrom__ (ns, module, dons)
 {
-  variable exception;
-  variable excar;
-  variable err;
-
-  try
-    _loadfrom_ (ns, lib, dons;;__qualifiers ());
-  catch AnyError:
-    {
-    exception = __get_exception_info ().object;
-
-    if (typeof (exception) == Struct_Type)
-      {
-      excar = err__.exc_to_array (exception);
-      err = exception.error;
-      }
-    else
-      {
-      excar = [__get_exception_info ().message];
-      err = exception;
-      }
-
-    ifnot (NULL == errfunc)
-      (@errfunc) (excar, err);
-    else
-      () = array_map (Integer_Type, &fprintf, stderr, "%s\n", excar ());
-    }
-}
-
-public define importfrom (ns, module, dons, errfunc)
-{
-  variable exception;
-  variable excar;
-  variable lns = MDLDIR + "/" + ns;
+  variable lns = Dir.vget ("MDLDIR") + "/" + ns;
 
   if (-1 == access (lns, F_OK))
-    throw OpenError, "(import) " + ns + " :no such namespace", 2;
+    throw __Error, "LoadImportOpenError::" + _function_name + ":: (import) " + ns +
+      " :no such namespace", NULL;
 
-  try
-    {
-    ifnot (NULL == dons)
-      import (lns + "/" + module, dons);
-    else
-      import (lns + "/" + module);
-    }
-  catch ImportError:
-    {
-    exception = __get_exception_info ();
-    excar = err__.exc_to_array (exception);
-
-    ifnot (NULL == errfunc)
-      (@errfunc) (excar, exception.error);
-    else
-      () = array_map (Integer_Type, &fprintf, stderr, "%s\n", excar ());
-    }
+  ifnot (NULL == dons)
+    import (lns + "/" + module, dons);
+  else
+    import (lns + "/" + module);
 }
 
-public define getreffrom (ns, lib, dons, errfunc)
+private define __getref__ (ns, lib, dons)
 {
   variable fun = qualifier ("fun", "main");
   variable lns;
-  variable exception;
-  variable excar;
-  variable err;
 
-  _findns_ (ns, &lns, lib);
+  __findns__ (ns, &lns, lib);
 
   ns = NULL == dons
     ? NULL
@@ -260,60 +191,26 @@ public define getreffrom (ns, lib, dons, errfunc)
       : String_Type == typeof (dons) || BString_Type == typeof (dons)
         ? dons
         : NULL;
-  try
-    {
-    return _load_ (lns + "/" + lib, ns;;struct {fun = fun, @__qualifiers ()});
-    }
-  catch AnyError:
-    {
-    exception = __get_exception_info ().object;
-    if (typeof (exception) == Struct_Type)
-      {
-      excar = err__.exc_to_array (exception);
-      err = exception.error;
-      }
-    else
-      {
-      excar = [__get_exception_info ().message];
-      err = exception;
-      }
 
-    ifnot (NULL == errfunc)
-      (@errfunc) (excar, err);
-    else
-      () = array_map (Integer_Type, &fprintf, stderr, "%s\n", excar ());
-
-    return NULL;
-    }
+  __load__ (lns + "/" + lib, ns;;struct {fun = fun, @__qualifiers});
 }
 
-public define loadfile (file, ns, errfunc)
+private define __loadfile__ (file, ns)
 {
-  variable exception;
-  variable excar;
-
-  try
-    {
-    () = _load_ (file, ns;;struct {fun = "", @__qualifiers ()});
-    }
-  catch AnyError:
-    {
-    exception = __get_exception_info ();
-    excar = err__.exc_to_array (exception);
-
-    ifnot (NULL == errfunc)
-      (@errfunc) (excar, exception.error);
-    else
-      () = array_map (Integer_Type, &fprintf, stderr, "%s\n", excar ());
-    }
+  () = __load__ (file, ns;;struct {fun = "", @__qualifiers});
 }
 
-define which (executable)
+__.new ("load";
+  funcs = ["from___", "module___", "file__", "getref___"],
+  refs =  [&__loadfrom__, &__importfrom__, &__loadfile__, &__getref__],
+  methods = "from,module,file,getref");
+
+private define which (executable)
 {
   variable
     ar,
     st,
-    path = PATH;
+    path = Env.vget ("PATH");
 
   if (NULL == path)
     return NULL;
@@ -330,7 +227,9 @@ define which (executable)
     return NULL;
 }
 
-define readfile (file)
+__.new ("Sys";methods = "which", funcs = ["which_"], refs = [&which]);
+
+private define readfile (file)
 {
   variable
     end = qualifier ("end", NULL),
@@ -345,14 +244,18 @@ define readfile (file)
   return array_map (String_Type, &strtrim_end, fgetslines (fp), "\n");
 }
 
+__.fput ("IO", "readfile_", &readfile);
+
+__use_namespace ("Global");
+
 define clear_stack ()
 {
-  variable d = _stkdepth () + 1;
+  variable d = _stkdepth + 1;
   while (d--, d > 1)
     pop ();
 }
 
-define istype (m, t)
+define istype (mode, type)
 {
-  NULL == m ? 0 : stat_is (t, m);
+  NULL == mode ? 0 : stat_is (type, mode);
 }

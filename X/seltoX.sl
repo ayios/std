@@ -11,7 +11,7 @@ define seltoX (sel)
 
   ifnot (isnotlentoobigforfd)
     {
-    file = sprintf ("%s/%d_%d_clipboard", VED_DIR, PID, UID);
+    file = sprintf ("%s/%d_%d_clipboard", VED_DIR, Env.vget ("PID"), Env.vget ("UID"));
     if (-1 == writestring (file, sel))
       return;
     com = [com, "-i", file];
@@ -19,7 +19,8 @@ define seltoX (sel)
   else
     p.stdin.in = sel;
 
-  () = p.execve (com, ["DISPLAY=" + DISPLAY, "XAUTHORITY=" + XAUTHORITY], NULL);
+  () = p.execve (com, ["DISPLAY=" + Env.vget ("DISPLAY"), "XAUTHORITY=" +
+    Env.vget ("XAUTHORITY")], NULL);
 
   ifnot (NULL == file)
     () = remove (file);
@@ -27,15 +28,16 @@ define seltoX (sel)
 
 define getXsel ()
 {
-  variable file = sprintf ("%s/%d_%d_clipboard", VED_DIR, PID, UID);
+  variable file = sprintf ("%s/%d_%d_clipboard", VED_DIR, Env.vget ("PID"), Env.vget ("UID"));
   variable com = [XCLIP_BIN, "-o"];
   variable p = proc->init (0, 1, 0);
 
   p.stdout.file = file;
 
-  () = p.execve (com, ["DISPLAY=" + DISPLAY, "XAUTHORITY=" + XAUTHORITY], NULL);
+  () = p.execve (com, ["DISPLAY=" + Env.vget ("DISPLAY"), "XAUTHORITY=" +
+    Env.vget ("XAUTHORITY")], NULL);
 
-  variable sel = strjoin (readfile (file), "\n");
+  variable sel = strjoin (IO.readfile (file), "\n");
 
   () = remove (file);
 

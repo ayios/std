@@ -1,4 +1,4 @@
-importfrom ("std", "crypto", "crypt", &on_eval_err);
+load.module ("std", "crypto", "crypt";err_handler = &__err_handler__);
 
-loadfrom ("rand", "randInit", "rand", &on_eval_err);
-loadfrom ("crypt", "cryptinit", 1, &on_eval_err);
+load.from ("rand", "randInit", "rand";err_handler = &__err_handler__);
+load.from ("crypt", "cryptinit", 1;err_handler = &__err_handler__);

@@ -1,6 +1,6 @@
-loadfrom ("file", "ln", NULL, &on_eval_err);
-loadfrom ("dir", "evaldir", NULL, &on_eval_err);
- 
+load.from ("file", "ln", NULL;err_handler = &__err_handler__);
+__.sadd ("Dir", "eval", "eval_", NULL;__DIRNS__ = Dir.vget ("STDDIR") + "/dir");
+
 define main ()
 {
   variable
@@ -32,12 +32,12 @@ define main ()
 
   if (i + 2 > __argc)
     {
-    tostderr (sprintf ("%s: argument is required", __argv[0]));
+    IO.tostderr (sprintf ("%s: argument is required", __argv[0]));
     exit_me (1);
     }
 
-  source = evaldir (__argv[i];dont_change);
-  dest = evaldir (__argv[i+1];dont_change);
- 
+  source = Dir.eval (__argv[i];dont_change);
+  dest = Dir.eval (__argv[i+1];dont_change);
+
   exit_me (ln (source, dest, opts));
 }

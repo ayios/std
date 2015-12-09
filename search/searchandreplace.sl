@@ -55,29 +55,35 @@ private define assign_substitute (substitution)
         {
         case "\\" :
           list_append (list, "\\");
-        continue;
+          continue;
         }
 
         {
         case "n" :
           list_append (list, "\n");
-        continue;
+          continue;
         }
 
         {
         case "t" :
           list_append (list, "\t");
-        continue;
-        }
- 
-        {
-        case "s" :
-          list_append (list, " ");
-        continue;
+          continue;
         }
 
         {
-        throw ParseError, "Waiting one of \"t,n,s,\\,integer\" after the backslash";
+        case "s" :
+          list_append (list, " ");
+          continue;
+        }
+
+        {
+        case "&" :
+          list_append (list, NULL);
+          continue;
+        }
+
+        {
+        throw ParseError, "Waiting one of \"t,n,s,&,\\,integer\" after the backslash";
         }
       }
 
@@ -118,11 +124,11 @@ static define search_and_replace (s, ar)
     {
     if (i + s.newlines > length (ar) - 1)
       break;
- 
+
     s.lnronfile = lnronfile + i;
- 
+
     str = strjoin (ar[[i:i+s.newlines]], s.newlines ? "\n" : "");
- 
+
     found = pcre_exec (s.pat, str, 0);
 
     if (found)
@@ -136,7 +142,7 @@ static define search_and_replace (s, ar)
         fpart = substr (str, 1, match[0]);
         context = substr (str, match[0] + 1, match[1] - match[0]);
         lpart = substr (str, match[1] + 1, -1);
- 
+
         replace = "";
 
         _for ia (0, length (s.substlist) - 1)
@@ -160,6 +166,12 @@ static define search_and_replace (s, ar)
               else
                 replace += chr;
             }
+
+            {
+            case Null_Type :
+              replace += "&";
+            }
+
           }
 
         if (s.askwhensubst)
@@ -169,7 +181,7 @@ static define search_and_replace (s, ar)
             lcontext = strreplace (context, "\n", "\\n"),
             llpart = strreplace (lpart, "\n", "\\n"),
             lreplace = strreplace (replace, "\n", "\\n");
- 
+
           retval = s.ask (fname, s.lnronfile, lfpart, lcontext, llpart, lreplace);
 
            switch (retval)
@@ -228,7 +240,7 @@ static define search_and_replace (s, ar)
 static define init (pat, sub)
 {
   variable s = @Search_Type;
- 
+
   try
     {
     s.pat = pcre_compile (pat, qualifier ("pcreopts", 0));

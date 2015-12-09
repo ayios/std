@@ -26,7 +26,7 @@ private variable regexps = [
 |(?<=\s|\[)([P|U|G]+ID\s*(?=\s))\
 |(?<=&|\s|\[|\()(repeat(?=\s|,))\
 |(?<=&|\s|\[|\()(readfile(?=\s|,))\
-|(?<=&|\s|\[|\(|^)(on_eval_err)(?=\s|,|\))\
+|(?<=&|\s|\[|\(|^)(__err_handler__)(?=\s|,|\))\
 |(?<=&|\s|\[|\(|^)(send_msg(_dr)?(?=\s|,))\
 |(?<=&|\s|\[|\(|^)(tostd[out|err]+(?=\s|,))\
 |(?<=&|\s|\[|\()(exception_to_array(?=\s|,))\
@@ -66,7 +66,6 @@ private variable regexps = [
 |(?<=&|\s|\[|\()(strlen(?=\s|,))\
 |(?<=&|\s|\[|\()(f?read(?=\s|,))\
 |(?<=&|\s|\[|\()(access(?=\s|,))\
-|(?<=&|\s|\[|\()(typeof(?=\s|,))\
 |(?<=&|\s|\[|\()(getcwd(?=\s|,))\
 |(?<=&|\s|\[|\()(cumsum(?=\s|,))\
 |(?<=&|\s|\[|\()(rename(?=\s|,))\
@@ -89,6 +88,7 @@ private variable regexps = [
 |(?<=&|\s|\[|\()(connect(?=\s|,))\
 |(?<=&|\s|\[|\()(strchop(?=\s|,))\
 |(?<=&|\s|\[|\()(sprintf(?=\s|,))\
+|(?<=&|\s|\[|\()(_?typeof(?=\s|,))\
 |(?<=&|\s|\[|\()(_?fileno(?=\s|,))\
 |(?<=&|\s|\[|\()(dup2?_fd(?=\s|,))\
 |(?<=&|\s|\[|\(|:)(length(?=\s|,))\
@@ -105,8 +105,6 @@ private variable regexps = [
 |(?<=&|\s|\[|\()(strbytelen(?=\s|,))\
 |(?<=&|\s|\[|\()((f|_)?close(?=\s|,))\
 |(?<=&|\s|\[|\()(__p\w*_list(?=\s|,))\
-|(?<=&|\s|\[|\()(strtrim_\w*(?=\s|,))\
-|(?<=&|\s|\[|\()(list_insert(?=\s|,))\
 |(?<=&|\s|\[|\()(substrbytes(?=\s|,))\
 |(?<=&|\s|\[|\()(list_append(?=\s|,))\
 |(?<=&|\s|\[|\()(errno_string(?=\s|,))\
@@ -114,18 +112,21 @@ private variable regexps = [
 |(?<=&|\s|\[|\()(__is_callable(?=\s|,))\
 |(?<=&|\s|\[|\(|^)(sigprocmask(?=\s|,))\
 |(?<=&|\s|\[|\()(list_to_array(?=\s|,))\
-|(?<=&|\s|\[|\()(_function_name(?=\s|,))\
+|(?<=&|\s|\[|\()(strtrim(_\w*)?(?=\s|,))\
+|(?<=&|\s|\[|\(|^)(new_exception)(?=\s|,)\
 |(?<=&|\s|\[|\(|^)(__set_argc_argv(?=\s))\
 |(?<=&|\s|\[|\()(l?stat_\w*[e|s](?=\s|,))\
 |(?<=&|\s|\[|\()(qualifier_exists(?=\s|,))\
-|(?<=&|\s|\[|\(|^)(new_exception)(?=\s|,)\
+|(?<=&|\s|\[|\()(_function_name(?=\s|,|\)))\
 |(?<=&|\s|\[|\(|@)(__get_reference(?=\s|,))\
 |(?<=&|\s|\[|\()(assoc_\w*_\w*[s,y](?=\s|,))\
 |(?<=&|\s|\[|\(|;|@)(__qualifiers(?=\s|,|\)))\
 |(?<=&|\s|\[|\()(f(get|put)s[lines]*(?=\s|,))\
 |(?<=&|\s|\[|\()(__get_exception_info(?=\s|,|\.))\
-|(?<=&|\s|\[|\()(get_struct_field(_names)?(?=\s|,))\
+|(?<=&|\s|\[|\()(__(is_|un)initialize(d)?(?=\s|,|\.))\
 |(?<=^|&|\s|\[|\()((use|current)+_namespace(?=\s|,|\.))\
+|(?<=&|\s|\[|\()((g|s)et_struct_field(s|_names)?(?=\s|,))\
+|(?<=&|\s|\[|\()(list_(insert|delete|append|to_array)(?=\s|,))\
 |(?<=&|\s|\[|\()(where(first|last|not)?(max|min)?(_[engl][qet])?(?=\s|,))\
 |(?<=&|\s|\[|\()(path_\w*(nam|(i.*t)|conca)[e|t](?=\s|,)))+"R, 0),
 %conditional

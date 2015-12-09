@@ -1,4 +1,4 @@
-importfrom ("std", "curl", NULL, &on_eval_err);
+load.module ("std", "curl", NULL;err_handler = &__err_handler__);
 
 private define write_to_var_callback (out, str)
 {
@@ -28,7 +28,7 @@ private define fetch (s, url)
 
     if (NULL == fp)
       {
-      tostderr (sprintf ("%s: can't open, ERRNO: %s", file, errno_string (errno)));
+      IO.tostderr (sprintf ("%s: can't open, ERRNO: %s", file, errno_string (errno)));
       return -1;
       }
     }
@@ -37,22 +37,22 @@ private define fetch (s, url)
     s.write_callback = &write_to_var_callback;
     s.output =  "";
     }
- 
+
   try
     {
     variable c = curl_new (url);
 
     if (s.followlocation)
       curl_setopt (c, CURLOPT_FOLLOWLOCATION, 1);
- 
+
     ifnot (write_to_var)
       curl_setopt (c, CURLOPT_WRITEFUNCTION, s.write_callback, fp);
     else
       curl_setopt (c, CURLOPT_WRITEFUNCTION, s.write_callback, &s.output);
- 
+
     ifnot (NULL == s.progress_callback)
       curl_setopt (c, CURLOPT_PROGRESSFUNCTION, s.progress_callback, s);
- 
+
     curl_setopt (c, CURLOPT_HTTPHEADER, [s.useragent]);
 
     if (s.connectiontimeout)
@@ -68,7 +68,7 @@ private define fetch (s, url)
   catch CurlError:
     {
     ifnot (qualifier_exists ("dont_print"))
-      array_map (Void_Type, &tostderr, err__.exc_to_array (NULL));
+      IO.tostderr (__.efmt (NULL));
 
     ifnot (write_to_var)
       {
@@ -85,9 +85,9 @@ private define fetch (s, url)
     {
     if (-1 == fclose (fp))
       {
-      tostderr (sprintf ("Unable to close file `%s'", file));
+      IO.tostderr (sprintf ("Unable to close file `%s'", file));
       if (-1 == remove (file))
-        tostderr (sprintf ("Unable to remove file `%s', ERRNO: %s", file,
+        IO.tostderr (sprintf ("Unable to remove file `%s', ERRNO: %s", file,
           errno_string (errno)));
 
       return -1;
@@ -96,15 +96,15 @@ private define fetch (s, url)
     fp = fopen (file, "rb");
     if (-1 == fread (&buf, String_Type, 100, fp))
       {
-      tostderr (sprintf ("Unable to read file `%s'", file));
+      IO.tostderr (sprintf ("Unable to read file `%s'", file));
       return -1;
       }
 
     if (-1 == fclose (fp))
       {
-      tostderr (sprintf ("Unable to close file `%s'", file));
+      IO.tostderr (sprintf ("Unable to close file `%s'", file));
       if (-1 == remove (file))
-        tostderr (sprintf ("Unable to remove file `%s', ERRNO: %s", file,
+        IO.tostderr (sprintf ("Unable to remove file `%s', ERRNO: %s", file,
           errno_string (errno)));
 
       return -1;
@@ -115,7 +115,7 @@ private define fetch (s, url)
 
   if (string_match (buf, "404 Not Found", 1))
     {
-    tostderr (sprintf ("remote file `%s' didn't retrieved (404 Not Found)",
+    IO.tostderr (sprintf ("remote file `%s' didn't retrieved (404 Not Found)",
        path_basename (url)));
       return -1;
     }

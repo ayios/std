@@ -11,30 +11,28 @@ private define mainloop ()
 define shell ()
 {
   __vsetbuf (OUT_VED._abspath);
- 
-  ifnot (fileexists (TEMPDIR + "/" + strftime ("%m_%d-intro")))
+
+  ifnot (fileexists (Dir.vget ("TEMPDIR") + "/" + strftime ("%m_%d-intro")))
     {
     runcom (["intro"], NULL);
-    () = writestring (TEMPDIR + "/" + strftime ("%m_%d-intro"), "ok");
+    () = writestring (Dir.vget ("TEMPDIR") + "/" + strftime ("%m_%d-intro"), "ok");
     }
 
   topline (" -- shell --");
 
   shell_post_header ();
- 
+
   draw (OUT_VED);
- 
+
   mainloop ();
 }
 
-define on_eval_err (err, code)
+define __err_handler__ (__r__)
 {
-  err = strjoin (err, "\n");
+  IO.tostderr (__r__.err);
+  IO.tostdout (__r__.err);
 
-  tostderr (err);
-  tostdout (err);
-
-  SHELLLASTEXITSTATUS = code;
+  SHELLLASTEXITSTATUS = 1;
 
   shell_post_header ();
 

@@ -1,1 +1,1 @@
-loadfrom ("sock", "sockinit", 1, &on_eval_err);
+load.from ("sock", "sockinit", 1;err_handler = &__err_handler__);

@@ -1,11 +1,11 @@
 public variable APP;
 
-loadfrom ("api", "apptype", NULL, &on_eval_err);
+load.from ("api", "apptype", NULL;err_handler = &__err_handler__);
 
 static define init (dir)
 {
   variable s = @Api_Type;
- 
+
   dir = path_dirname (dir);
 
   s.appname    = path_basename (dir);
@@ -17,8 +17,8 @@ static define init (dir)
   s.excom      = qualifier ("excom", NULL);
   s.loaddir    = "app/" + s.appname + "/functions";
   s.os         = qualifier ("os", 0);
-  s.tmpdir     = qualifier ("tmpdir", TEMPDIR + "/" + s.appname + "_" +
-    string (PID) + "_" + string (_time)[[5:]]);
+  s.tmpdir     = qualifier ("tmpdir", Dir.vget ("TEMPDIR") + "/" + s.appname + "_" +
+    string (Env.vget ("PID")) + "_" + string (_time)[[5:]]);
 
   if (NULL != s.excom && 1 == s.excom)
     {

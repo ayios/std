@@ -1,6 +1,6 @@
 define diff_lexicalhl ();
 
-loadfrom ("ftypes/diff", "diff_syntax", NULL, &on_eval_err);
+load.from ("ftypes/diff", "diff_syntax", NULL;err_handler = &__err_handler__);
 
 define diff_settype (s, fname, rows, lines)
 {

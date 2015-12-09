@@ -1,6 +1,6 @@
-loadfrom ("string", "modeconversion", NULL, &on_eval_err);
-loadfrom ("sys", "modetoint", NULL, &on_eval_err);
-loadfrom ("dir", "fswalk", NULL, &on_eval_err);
+load.from ("string", "modeconversion", NULL;err_handler = &__err_handler__);
+load.from ("sys", "modetoint", NULL;err_handler = &__err_handler__);
+load.from ("dir", "fswalk", NULL;err_handler = &__err_handler__);
 
 private variable EXIT_CODE = 0;
 
@@ -14,7 +14,7 @@ private define chmod_it (file, mode)
 
   if (-1 == chmod (file, mode))
     {
-    tostderr (sprintf (
+    IO.tostderr (sprintf (
       "%s: could not change mode bits, ERRNO: %s", file, errno_string (errno)));
     EXIT_CODE = 1;
     }
@@ -22,10 +22,10 @@ private define chmod_it (file, mode)
     {
     strmode = stat_mode_to_string (stat_file (file).st_mode);
     if (cur_mode == mode)
-      tostdout (sprintf ("mode of `%s' retained as 0%o (%s)",
+      IO.tostdout (sprintf ("mode of `%s' retained as 0%o (%s)",
          file, mode, strmode));
     else
-      tostdout (sprintf ("mode of `%s' changed from 0%o (%s) to 0%o (%s)",
+      IO.tostdout (sprintf ("mode of `%s' changed from 0%o (%s) to 0%o (%s)",
          file, cur_mode, strcurmode, mode, strmode));
     }
 }
@@ -74,13 +74,13 @@ define main ()
 
   if (i == __argc)
     {
-    tostderr (sprintf ("%s: it requires a filename", __argv[0]));
+    IO.tostderr (sprintf ("%s: it requires a filename", __argv[0]));
     exit_me (1);
     }
  
   if (NULL == mode)
     {
-    tostderr (sprintf ("%s: --mode was not given", __argv[0]));
+    IO.tostderr (sprintf ("%s: --mode was not given", __argv[0]));
     exit_me (1);
     }
 
@@ -89,7 +89,7 @@ define main ()
   if (NULL == mode)
     {
     variable err = ();
-    tostderr (err);
+    IO.tostderr (err);
     exit_me (1);
     }
  
@@ -100,7 +100,7 @@ define main ()
     {
     if (-1 == access (files[i], F_OK))
       {
-      tostderr (sprintf ("%s: No such file", files[i]));
+      IO.tostderr (sprintf ("%s: No such file", files[i]));
       continue;
       }
 

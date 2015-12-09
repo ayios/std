@@ -1,1 +1,1 @@
-loadfrom ("app/shell", "shellinit", current_namespace (), &on_eval_err);
+load.from ("app/shell", "shellinit", current_namespace ();err_handler = &__err_handler__);

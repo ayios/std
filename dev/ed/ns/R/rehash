@@ -1,4 +1,0 @@
-private define rehash (s, fun)
-{
-  de->__.bug ("should rehash `" + fun + " 'function OR register it to ___";;__qualifiers ());
-}

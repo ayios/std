@@ -1,1 +1,1 @@
-loadfrom ("api", "comhelp", NULL, &on_eval_err);
+load.from ("api", "comhelp", NULL;err_handler = &__err_handler__);

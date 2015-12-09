@@ -1,4 +1,4 @@
-loadfrom ("proc", "procInit", NULL, &on_eval_err);
+load.from ("proc", "procInit", NULL;err_handler = &__err_handler__);
 
 variable VERBOSE = 0;
 
@@ -16,12 +16,12 @@ define main ()
     argv,
     status,
     mountpoint = NULL,
-    umount = which ("umount"),
+    umount = Sys.which ("umount"),
     c = cmdopt_new (&_usage);
 
   if (NULL == umount)
     {
-    tostderr ("umount couldn't be found in path");
+    IO.tostderr ("umount couldn't be found in path");
     exit_me (1);
     }
  
@@ -34,13 +34,13 @@ define main ()
  
   if (mountpoint == NULL)
     {
-    tostderr ("--mountpoint= arg is required");
+    IO.tostderr ("--mountpoint= arg is required");
     exit_me (1);
     }
  
   if (-1 == access (mountpoint, F_OK))
     {
-    tostderr (sprintf ("%s mountpoint doesn't exists", mountpoint));
+    IO.tostderr (sprintf ("%s mountpoint doesn't exists", mountpoint));
     exit_me (1);
     }
 

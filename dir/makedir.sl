@@ -1,5 +1,5 @@
-loadfrom ("sys", "checkpermissions", NULL, &on_eval_err);
-loadfrom ("sys", "setpermissions", NULL, &on_eval_err);
+load.from ("sys", "checkpermissions", NULL;err_handler = &__err_handler__);
+load.from ("sys", "setpermissions", NULL;err_handler = &__err_handler__);
  
 private define _isdirectory_ (dir, st)
 {
@@ -20,7 +20,7 @@ define makedir (dir, perm)
 
   if (-1 == retval)
     {
-    tostderr (dir + " is not a directory");
+    IO.tostderr (dir + " is not a directory");
     return -1;
     }
  
@@ -28,11 +28,11 @@ define makedir (dir, perm)
     {
     if (-1 == mkdir (dir))
       {
-      tostderr (dir + " cannot create directory, " + errno_string (errno));
+      IO.tostderr (dir + " cannot create directory, " + errno_string (errno));
       return -1;
       }
     else
-      tostdout ("created directory `" + dir + "'");
+      IO.tostdout ("created directory `" + dir + "'");
  
     st = lstat_file (dir);
  
@@ -58,17 +58,17 @@ define _makedir (dir, perm)
 
   if (-1 == retval)
     {
-    tostderr (dir + " is not a directory");
+    IO.tostderr (dir + " is not a directory");
     return -1;
     }
  
   if (-1 == mkdir (dir))
     {
-    tostderr (dir + " cannot create directory, " + errno_string (errno));
+    IO.tostderr (dir + " cannot create directory, " + errno_string (errno));
     return -1;
     }
   else
-    tostdout ("created directory `" + dir + "'");
+    IO.tostdout ("created directory `" + dir + "'");
  
   st = lstat_file (dir);
  

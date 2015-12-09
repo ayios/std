@@ -2,7 +2,7 @@
   umount  [options]
 
  USAGE
-  usage mount --mountpoint [options]
+  usage umount --mountpoint [options]
 
  DESCRIPTION
   umount filesystems
@@ -14,4 +14,4 @@
 
   NOTES
 
-This is a simple umount command wrapper, because there are no specific S-Lang libs.
+This is a simple umount command wrapper.

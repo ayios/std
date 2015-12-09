@@ -1,4 +1,4 @@
-loadfrom ("string", "modeconversion", NULL, &on_eval_err);
+load.from ("string", "modeconversion", NULL;err_handler = &__err_handler__);
 
 define main ()
 {
@@ -19,7 +19,7 @@ define main ()
 
   if (__argc == i)
     {
-    tostderr (sprintf ("%s: a fifo name is required as argument", __argv[0]));
+    IO.tostderr (sprintf ("%s: a fifo name is required as argument", __argv[0]));
     exit_me (1);
     }
 
@@ -32,7 +32,7 @@ define main ()
     if (NULL == mode)
       {
       variable err = ();
-      tostderr (err);
+      IO.tostderr (err);
       exit_me (1);
       }
     }
@@ -45,11 +45,11 @@ define main ()
 
     if (-1 == retval)
       {
-      tostderr (sprintf ("Couldn't create fifo: %s", errno_string (errno)));
+      IO.tostderr (sprintf ("Couldn't create fifo: %s", errno_string (errno)));
       exit_code = -1;
       }
     else
-      tostdout (sprintf ("%s: fifo created, with access %s", files[i],
+      IO.tostdout (sprintf ("%s: fifo created, with access %s", files[i],
       stat_mode_to_string (stat_file (files[i]).st_mode)));
     }
 

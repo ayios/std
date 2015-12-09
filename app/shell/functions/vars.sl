@@ -1,2 +1,2 @@
 variable STACK;
-variable STACKFILE = HISTDIR + "/" + string (UID) + "stack";
+variable STACKFILE = Dir.vget ("HISTDIR") + "/" + string (Env.vget ("UID")) + "stack";

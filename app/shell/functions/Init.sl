@@ -1,11 +1,11 @@
-loadfrom (APP.loaddir, "vars", NULL, &on_eval_err);
+load.from (APP.loaddir, "vars", NULL;err_handler = &__err_handler__);
 
-loadfrom ("crypt", "cryptInit", NULL, &on_eval_err);
+load.from ("crypt", "cryptInit", NULL;err_handler = &__err_handler__);
 
 define __on_err (err, code)
 {
   % A TABLE ERR
-  array_map (&tostderr, err);
+  IO.tostderr (err);
 }
 
 define on_wind_change (w)
@@ -17,9 +17,9 @@ define on_wind_change (w)
 
 define on_wind_new (w)
 {
-  variable o = TEMPDIR + "/" + string (PID) + "_" + APP.appname +
+  variable o = Dir.vget ("TEMPDIR") + "/" + string (Env.vget ("PID")) + "_" + APP.appname +
     string (_time)[[5:]] + "_stdout.shell";
- 
+
   variable oved =init_ftype (APP.stdouttype);
 
   oved._fd = initstream (o);
@@ -27,13 +27,13 @@ define on_wind_new (w)
   (@__get_reference (APP.stdouttype + "_settype")) (oved, o, VED_ROWS, NULL);
 
   __vsetbuf (o);
- 
+
   STDOUTFD = oved._fd;
 
   topline (" -- shell --");
 
   shell_post_header ();
- 
+
   (@__get_reference ("__initrline"));
 
   draw (oved);
@@ -55,9 +55,9 @@ define _del_frame_ (s)
 
 define _new_frame_ (s)
 {
-  new_frame (TEMPDIR + "/" + string (PID) + "_" + APP.appname +
+  new_frame (Dir.vget ("TEMPDIR") + "/" + string (Env.vget ("PID")) + "_" + APP.appname +
     string (_time)[[5:]] + "_stdout.shell");
- 
+
   variable b = get_cur_buf ();
   b._fd = initstream (b._abspath;err_func = &__on_err);
 
@@ -66,9 +66,9 @@ define _new_frame_ (s)
 
 define intro ();
 
-loadfrom (APP.loaddir, "initrline", NULL, &on_eval_err);
+load.from (APP.loaddir, "initrline", NULL;err_handler = &__err_handler__);
 
-loadfrom ("com/intro", "intro", NULL, &on_eval_err);
+load.from ("com/intro", "intro", NULL;err_handler = &__err_handler__);
 
 define shell ();
 
@@ -77,7 +77,7 @@ define init_shell ()
   if (-1 == access (STACKFILE, F_OK))
     writestring (STACKFILE, "STACK = {}");
 
-  loadfrom (APP.loaddir, "shell", NULL, &on_eval_err);
+  load.from (APP.loaddir, "shell", NULL;err_handler = &__err_handler__);
 
   shell ();
 }

@@ -183,7 +183,7 @@ private define tabhook (s)
 define rlineinit ()
 {
   variable rl = rline->init (&my_commands;;struct {
-    histfile = HISTDIR + "/" + string (getuid ()) + "vedhistory",
+    histfile = Dir.vget ("HISTDIR") + "/" + string (getuid ()) + "vedhistory",
     historyaddforce = 1,
     tabhook = &tabhook,
     %totype = "Func_Type",
@@ -218,7 +218,7 @@ define __write_buffers ()
       else
         if (-1 == access (fn, W_OK))
           {
-          tostderr (fn + " is not writable by you " + USER);
+          IO.tostderr (fn + " is not writable by you " + Env.vget ("USER"));
           hasnewmsg = 1;
           continue;
           }
@@ -238,7 +238,7 @@ define __write_buffers ()
 
       if ('c' == chr)
         {
-        tostderr ("writting " + fn + " aborted\n");
+        IO.tostderr ("writting " + fn + " aborted");
         hasnewmsg = 1;
         abort = -1;
         continue;
@@ -257,13 +257,13 @@ define __write_buffers ()
         continue;
       else
         {
-        tostderr (sprintf ("%s: %s", s._abspath, errno_string (retval)));
+        IO.tostderr (sprintf ("%s: %s", s._abspath, errno_string (retval)));
         hasnewmsg = 1;
         abort = -1;
         }
       }
     else
-      tostderr (s._abspath + ": " + string (bts) + " bytes written");
+      IO.tostderr (s._abspath + ": " + string (bts) + " bytes written");
     }
 
   if (hasnewmsg)
@@ -296,17 +296,6 @@ private define cl_quit ()
   ifnot (retval)
     exit_me (0);
 }
-
-%private define write_file ()
-%{
-%  variable
-%    s = qualifier ("ved"),
-%    overwrite = "w!" == qualifier ("argv0"),
-%    args = __pop_list (_NARGS),
-%    ptr = s.ptr;
-%
-%  __vwritefile (s, overwrite, ptr, args);
-%}
 
 private define _read_ ()
 {
@@ -397,11 +386,25 @@ define _exit_ ()
   cl_quit (;;__qualifiers  ());
 }
 
+private define shortcuts (s)
+{
+  variable chr = getch ();
+
+  ifnot (any (['m', 'n'] == chr))
+    return;
+
+  if ('m' == chr)
+    _buffer_other_ (;argv0 = "bp");
+  else if ('n' == chr)
+    _buffer_other_ (;argv0 = "bn");
+
+  smg->refresh;
+}
+
+VED_PAGER[string (',')] = &shortcuts;
+
 VED_CLINE["bp"] =       &_buffer_other_;
 VED_CLINE["bn"] =       &_buffer_other_;
-%VED_CLINE["w!"] =       &write_file;
-%VED_CLINE["w"]  =       &write_file;
-%VED_CLINE["W"]  =       &write_file;
 VED_CLINE["r"]  =       &_read_;
 VED_CLINE["q"]  =       &cl_quit;
 VED_CLINE["Q"]  =       &cl_quit;
@@ -412,7 +415,7 @@ VED_CLINE["messages"] = &__vmessages;
 
 private define _ved_ (t)
 {
-  return getreffrom ("ftypes/" + t, "ved", NULL, &on_eval_err;fun = t + "_ved");
+  return load.getref ("ftypes/" + t, "ved", NULL;err_handler = &__err_handler__, fun = t + "_ved");
 }
 
 define init_ftype (ftype)
@@ -422,7 +425,7 @@ define init_ftype (ftype)
 
   variable type = @Ftype_Type;
 
-  loadfrom ("ftypes/" + ftype, ftype + "_functions", NULL, &on_eval_err);
+  load.from ("ftypes/" + ftype, ftype + "_functions", NULL;err_handler = &__err_handler__);
 
   type._type = ftype;
   type.ved = _ved_ (ftype);

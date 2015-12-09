@@ -10,7 +10,7 @@ static define _pop_up_ (ar, row, col, ifocus)
   variable fgclr = qualifier ("fgclr", 5);
   variable bgclr = qualifier ("bgclr", 11);
   variable maxlen = max (strlen (lar)) + 1;
- 
+
 %  if (maxlen > COLUMNS)
 %    _for i (0, len - 1)
 %      if (strlen (lar[i]) > COLUMNS)
@@ -26,13 +26,14 @@ static define _pop_up_ (ar, row, col, ifocus)
   variable clrs = Integer_Type[len];
   variable cols = Integer_Type[len];
 
+  ifocus = ifocus > length (clrs) ? length (clrs) : ifocus;
+
   clrs[*] = bgclr;
   clrs[ifocus - 1] = fgclr;
   cols[*] = col;
 
   smg->aratrcaddnstr (lar, clrs, rows, cols, maxlen);
-
-  return rows;
+  rows;
 }
 
 static define pop_up (ar, row, col, ifocus)
@@ -52,7 +53,7 @@ static define pop_up (ar, row, col, ifocus)
   while (lrow--, lrow - 1 + length (lar) >= avail_lines);
   lrow++;
 
-  return _pop_up_ (lar, lrow, col, ifocus;;__qualifiers ());
+  _pop_up_ (lar, lrow, col, ifocus;;__qualifiers ());
 }
 
 static define write_completion_routine (ar, startrow)
@@ -70,7 +71,7 @@ static define write_completion_routine (ar, startrow)
   cols[*] = qualifier ("startcol", 0);
 
   smg->aratrcaddnstr (ar, clrs, cmpl_lnrs, cols, columns);
-  return cmpl_lnrs;
+  cmpl_lnrs;
 }
 
 static define printtoscreen (ar, lastrow, len, cmpl_lnrs)
@@ -101,7 +102,7 @@ static define printtoscreen (ar, lastrow, len, cmpl_lnrs)
   if (qualifier_exists ("refresh"))
     smg->setrcdr (lastrow - 1, strlen (lar)[-1] + 1);
 
-  return ar[[origlen >= lines ? lines - 1 : origlen:]];
+  ar[[origlen >= lines ? lines - 1 : origlen:]];
 }
 
 static define printstrar (ar, lastrow, len, cmpl_lnrs)
@@ -119,11 +120,11 @@ static define printstrar (ar, lastrow, len, cmpl_lnrs)
       2, NULL, NULL);
 
     chr = getch (;disable_langchange);
- 
+
     while ('\t' == chr)
       {
       smg->restore (@cmpl_lnrs, NULL, NULL);
- 
+
       @len = length (ar);
 
       ar = printtoscreen (ar, lastrow, len, cmpl_lnrs;;
@@ -135,8 +136,8 @@ static define printstrar (ar, lastrow, len, cmpl_lnrs)
       chr = getch (;disable_langchange);
       }
     }
- 
-  return ar;
+
+  ar;
 }
 
 static define askprintstr (str, charar, cmp_lnrs)
@@ -155,16 +156,16 @@ static define askprintstr (str, charar, cmp_lnrs)
     len--;
     headclr = qualifier ("headerclr", headerclr);
     }
- 
+
   ar = printstrar (ar,  PROMPTROW - 1, &len, cmp_lnrs;
     header = header, headerclr = headclr);
 
   ifnot (NULL == charar)
     {
     while (chr = getch (), 0 == any (chr == charar));
- 
+
     smg->restore (@cmp_lnrs, NULL, 1);
     }
 
-  return chr;
+  chr;
 }

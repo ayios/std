@@ -1,4 +1,4 @@
-loadfrom ("time", "week_day", NULL, &on_eval_err);
+load.from ("time", "week_day", NULL;err_handler = &__err_handler__);
  
 define julian_day_to_cal (tim, jdn)
 {

@@ -44,10 +44,11 @@ typedef struct
   type,
   } Argvlist_Type;
 
-importfrom ("std", "pcre", NULL, &on_eval_err);
+load.module ("std", "pcre", NULL;err_handler = &__err_handler__);
 
-loadfrom ("dir", "evaldir", NULL, &on_eval_err);
-loadfrom ("input", "inputInit", 1, &on_eval_err);
-loadfrom ("smg", "widg", "widg", &on_eval_err);
-loadfrom ("rline", "exec", "exec", &on_eval_err);
-loadfrom ("rline", "rlineinit", 1, &on_eval_err);
+__.sadd ("Dir", "eval", "eval_", NULL;__DIRNS__ = Dir.vget ("STDDIR") + "/dir");
+
+load.from ("input", "inputInit", 1;err_handler = &__err_handler__);
+load.from ("smg", "widg", "widg";err_handler = &__err_handler__);
+load.from ("rline", "exec", "exec";err_handler = &__err_handler__);
+load.from ("rline", "rlineinit", 1;err_handler = &__err_handler__);

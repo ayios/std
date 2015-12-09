@@ -19,5 +19,5 @@ static define find_unique_words_in_lines (ar, str, end)
       words[pcre_nth_substr (pat, ar[i], 0)] = NULL;
 
   words = assoc_get_keys (words);
-  return words[array_sort (words)];
+  words[array_sort (words)];
 }

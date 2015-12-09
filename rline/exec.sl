@@ -17,7 +17,7 @@ public define __getpasswd ()
     {
     passwd = getpasswd ();
 
-    if (-1 == os->authenticate (USER, passwd))
+    if (-1 == os->authenticate (Env.vget ("USER"), passwd))
       {
       send_msg_dr ("Authentication error", 1, NULL, NULL);
       passwd = NULL;
@@ -58,7 +58,7 @@ private define _glob_ (argv)
       {
       glob = 1;
       basename = path_basename (args[i]);
-      dirname = evaldir (path_dirname (args[i]));
+      dirname = Dir.eval (path_dirname (args[i]));
       ar = listdir (dirname);
 
       if ("*" != basename)
@@ -75,7 +75,7 @@ private define _glob_ (argv)
       {
       glob = 1;
       basename = path_basename (args[i])[[1:]];
-      dirname = evaldir (path_dirname (args[i]));
+      dirname = Dir.eval (path_dirname (args[i]));
       ar = listdir (dirname);
 
       ar = ar[where (array_map (Integer_Type, &string_match, ar,
@@ -105,7 +105,7 @@ private define _execProc_Type_ (func, argv)
     argv[index] = NULL;
     argv = argv[wherenot (_isnull (argv))];
 
-    ifnot (UID)
+    ifnot (Env.vget ("UID"))
       issudo = 0;
     else
       passwd = __getpasswd ();

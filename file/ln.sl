@@ -1,4 +1,4 @@
-loadfrom ("file", "copyfile", NULL, &on_eval_err);
+load.from ("file", "copyfile", NULL;err_handler = &__err_handler__);
 
 define ln (source, dest, opts)
 {
@@ -14,7 +14,7 @@ define ln (source, dest, opts)
     st_source = stat_file (path_concat (path_dirname (dest), source));
     if (NULL == st_source)
       {
-      tostderr (sprintf ("accessing `%s': No such file or directory", source));
+      IO.tostderr (sprintf ("accessing `%s': No such file or directory", source));
       return -1;
       }
     }
@@ -26,13 +26,13 @@ define ln (source, dest, opts)
      && (st_source.st_dev == st_dest.st_dev &&
        NULL == opts.nodereference && NULL == opts.force)))
     {
-    tostderr (sprintf ("`%s' and `%s' are the same file", source, dest));
+    IO.tostderr (sprintf ("`%s' and `%s' are the same file", source, dest));
     return -1;
     }
 
   if (NULL == opts.symbolic && stat_is ("dir", st_source.st_mode))
     {
-    tostderr (sprintf ("`%s': hard link not allowed for directory", dest));
+    IO.tostderr (sprintf ("`%s': hard link not allowed for directory", dest));
     return -1;
     }
 
@@ -45,7 +45,7 @@ define ln (source, dest, opts)
 
   if (NULL != st_dest && stat_is ("dir", st_dest.st_mode) && NULL == opts.nodereference)
     {
-    tostderr (sprintf ("`%s': cannot overwrite directory", source));
+    IO.tostderr (sprintf ("`%s': cannot overwrite directory", source));
     return -1;
     }
 
@@ -59,7 +59,7 @@ define ln (source, dest, opts)
 
       if ('n' == retval)
         {
-        tostdout (sprintf ("Not confirmed, to remove %s, aborting ...", dest));
+        IO.tostdout (sprintf ("Not confirmed, to remove %s, aborting ...", dest));
         return 0;
         }
 
@@ -78,14 +78,14 @@ define ln (source, dest, opts)
         if (NULL != st_backup)
           if (-1 == remove (backupdest))
             {
-            tostderr (sprintf
+            IO.tostderr (sprintf
               ("%s: backup file exists, and can not be removed", backupdest));
             return -1;
             }
 
         if (-1 == symlink (value, backupdest))
           {
-          tostderr (sprintf ("creating backup symbolic link failed `%s', ERRNO: %s",
+          IO.tostderr (sprintf ("creating backup symbolic link failed `%s', ERRNO: %s",
              dest, errno_string (errno)));
           return -1;
           }
@@ -102,7 +102,7 @@ define ln (source, dest, opts)
         }
       else
         {
-        tostderr ("Operation is not permitted, dest is not neither a link or a regular file");
+        IO.tostderr ("Operation is not permitted, dest is not neither a link or a regular file");
         return -1;
         }
 
@@ -115,7 +115,7 @@ define ln (source, dest, opts)
       retval = remove (dest);
       if (-1 == retval)
         {
-        tostderr (sprintf ("%s: destination cannot be removed", dest));
+        IO.tostderr (sprintf ("%s: destination cannot be removed", dest));
         return -1;
         }
       }
@@ -132,7 +132,7 @@ define ln (source, dest, opts)
             if (__is_initialized (&backupdest))
               () = remove (backupdest);
 
-            tostderr (sprintf ("%s: cannot be removed", dest));
+            IO.tostderr (sprintf ("%s: cannot be removed", dest));
             return -1;
             }
     }
@@ -143,10 +143,10 @@ define ln (source, dest, opts)
     retval = hardlink (source, dest);
  
   if (-1 == retval)
-    tostderr (sprintf ("creating %s failed `%s', ERRNO: %s", opts.symbolic
+    IO.tostderr (sprintf ("creating %s failed `%s', ERRNO: %s", opts.symbolic
         ? "symbolic link" : "hardlink", dest, errno_string (errno)));
   else
-    tostdout (sprintf ("`%s' %s `%s'%s", dest, opts.symbolic ? "->" : "=>",
+    IO.tostdout (sprintf ("`%s' %s `%s'%s", dest, opts.symbolic ? "->" : "=>",
         source, opts.backup  ? sprintf (" (backup: `%s')", backupdest) : ""));
 
   if (-1 == retval)

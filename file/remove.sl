@@ -20,19 +20,19 @@ define __remove (file, interactive, isdir)
       case 'y':
         if (-1 == (@f) (file))
           {
-          tostderr (file + ": " + errno_string (errno));
+          IO.tostderr (file + ": " + errno_string (errno));
           return -1;
           }
         else
           {
-          tostdout (file + ": removed " + type);
+          IO.tostdout (file + ": removed " + type);
           return 0;
           }
       }
 
       {
       case 'q':
-        tostdout ("removing " + type + " `" + file + "' aborting ...");
+        IO.tostdout ("removing " + type + " `" + file + "' aborting ...");
         @interactive = "exit";
         return 0;
       }
@@ -42,19 +42,19 @@ define __remove (file, interactive, isdir)
         @interactive = NULL;
         if (-1 == (@f) (file))
           {
-          tostderr (file + ": " + errno_string (errno));
+          IO.tostderr (file + ": " + errno_string (errno));
           return -1;
           }
         else
           {
-          tostdout (file + ": removed " + type);
+          IO.tostdout (file + ": removed " + type);
           return 0;
           }
       }
 
       {
       case 'n':
-        tostdout (file + ": Not confirming to remove " + type);
+        IO.tostdout (file + ": Not confirming to remove " + type);
         return 0;
       }
 
@@ -62,12 +62,12 @@ define __remove (file, interactive, isdir)
 
   if (-1 == (@f) (file))
     {
-    tostderr (file + ": " + errno_string (errno));
+    IO.tostderr (file + ": " + errno_string (errno));
     return -1;
     }
   else
     {
-    tostdout (file + ": removed " + type);
+    IO.tostdout (file + ": removed " + type);
     return 0;
     }
 }

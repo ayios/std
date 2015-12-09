@@ -1,12 +1,12 @@
-importfrom ("std", "pcre", NULL, &on_eval_err);
+load.module ("std", "pcre", NULL;err_handler = &__err_handler__);
 
-loadfrom ("dir", "makedir", NULL, &on_eval_err);
-loadfrom ("dir", "parents", NULL, &on_eval_err);
-loadfrom ("stdio", "copy", NULL, &on_eval_err);
-loadfrom ("dir", "cprecursive", NULL, &on_eval_err);
-loadfrom ("dir", "cprecursive_opts", NULL, &on_eval_err);
-loadfrom ("dir", "evaldir", NULL, &on_eval_err);
-loadfrom ("dir", "are_same_files", NULL, &on_eval_err);
+load.from ("dir", "makedir", NULL;err_handler = &__err_handler__);
+load.from ("dir", "parents", NULL;err_handler = &__err_handler__);
+load.from ("stdio", "copy", NULL;err_handler = &__err_handler__);
+load.from ("dir", "cprecursive", NULL;err_handler = &__err_handler__);
+load.from ("dir", "cprecursive_opts", NULL;err_handler = &__err_handler__);
+__.sadd ("Dir", "eval", "eval_", NULL;   __DIRNS__ = Dir.vget ("STDDIR") + "/dir");
+load.from ("dir", "are_same_files", NULL;err_handler = &__err_handler__);
 
 define assign_interactive_noclobber (interactive, noclobber, code)
 {
@@ -71,13 +71,13 @@ define main ()
 
   ifnot (i + 2  <= __argc)
     {
-    tostderr (sprintf ("%s: additional argument is required", __argv[0]));
+    IO.tostderr (sprintf ("%s: additional argument is required", __argv[0]));
     exit_me (1);
     }
 
   if (opts.noclobber && opts.backup)
     {
-    tostderr ("Options: `--backup' and `--no-clobber' are mutually exclusive");
+    IO.tostderr ("Options: `--backup' and `--no-clobber' are mutually exclusive");
     exit_me (1);
     }
 
@@ -95,7 +95,7 @@ define main ()
   else
     opts.ignoredir = NULL;
 
-  dest = evaldir (__argv[-1]);
+  dest = Dir.eval (__argv[-1]);
   stat_dest = stat_file (dest);
 
   files = __argv[[i:__argc - 2]];
@@ -103,7 +103,7 @@ define main ()
   if ((NULL == stat_dest || 0 == stat_is ("dir", stat_dest.st_mode))
     && 1 < length (files))
     {
-    tostderr (sprintf ("target %s is not a directory", dest));
+    IO.tostderr (sprintf ("target %s is not a directory", dest));
     exit_me (1);
     }
 
@@ -114,7 +114,7 @@ define main ()
 
     if (NULL == st_source)
       {
-      tostderr (sprintf ("cannot stat `%s': No such file or directory", source));
+      IO.tostderr (sprintf ("cannot stat `%s': No such file or directory", source));
       exit_code = 1;
       continue;
       }
@@ -171,14 +171,14 @@ define main ()
         1 == are_same_files (source, destname;
           fnamea_st = st_source, fnameb_st = st_destname))
       {
-      tostdout (sprintf ("`%s' and `%s' are the same file", source, destname));
+      IO.tostdout (sprintf ("`%s' and `%s' are the same file", source, destname));
       exit_code = 1;
       continue;
       }
 
     if ((NULL != st_destname && 0 == stat_is ("dir", st_destname.st_mode)) && isdir_source)
       {
-      tostderr (sprintf (
+      IO.tostderr (sprintf (
         "cannot overwrite non directory `%s' with directory `%s'", destname, source));
       exit_code = 1;
       continue;
@@ -187,7 +187,7 @@ define main ()
     if (isdir_source)
       if (NULL == recursive)
         {
-        tostdout (sprintf ("omitting directory `%s'", source));
+        IO.tostdout (sprintf ("omitting directory `%s'", source));
         exit_code = 1;
         continue;
         }
@@ -201,21 +201,21 @@ define main ()
     if (NULL == opts.copy_hidden)
       if ('.' == path_basename (source)[0])
         {
-        tostdout (sprintf ("omitting hidden file `%s'", source));
+        IO.tostdout (sprintf ("omitting hidden file `%s'", source));
         continue;
         }
 
     ifnot (NULL == opts.matchpat)
       ifnot (pcre_exec (opts.matchpat, source))
         {
-        tostdout (sprintf ("ignore file: %s", source));
+        IO.tostdout (sprintf ("ignore file: %s", source));
         continue;
         }
 
     ifnot (NULL == opts.ignorepat)
       if (pcre_exec (opts.ignorepat, source))
         {
-        tostdout (sprintf ("ignore file: %s", source));
+        IO.tostdout (sprintf ("ignore file: %s", source));
         continue;
         }
  
