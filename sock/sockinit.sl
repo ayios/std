@@ -60,20 +60,20 @@ static define send_str_ar (fd, str_ar)
 }
 
 %% get_int_ar Integer_Type [] (fd)
-static define get_int_ar (fd)
+static define get_int_ar (rdfd, wrfd)
 {
-  gbt = get_int (fd);
-  send_bit (fd, 0);
-  return (read (fd, &gbt, gbt), pop (), eval (gbt));
+  gbt = get_int (rdfd);
+  send_bit (wrfd, 1);
+  return (read (rdfd, &gbt, gbt), pop (), eval (gbt));
 }
 
 %% send_int_ar Void_Type (fd, Integer_Type[])
-static define send_int_ar (fd, int_ar)
+static define send_int_ar (rdfd, wrfd, int_ar)
 {
   int_ar = "[" + strjoin (array_map (String_Type, &string, int_ar), ",") + "];";
-  send_int (fd, int (sum (strbytelen (int_ar))));
-  () = get_bit (fd);
-  () = write (fd, int_ar);
+  send_int (wrfd, int (sum (strbytelen (int_ar))));
+  () = get_bit (rdfd);
+  () = write (wrfd, int_ar);
 }
 
 %% get_bit_send_bit Integer_Type [0-9] (fd, Integer_Type [0-9])

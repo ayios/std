@@ -191,6 +191,24 @@ define ask (questar, charar)
     sigprocmask (SIG_BLOCK, [SIGINT]);
     }
 
+  variable i = 0;
+  variable hl_reg = qualifier ("hl_region");
+
+  ifnot (NULL == hl_reg)
+    if (Array_Type == typeof (hl_reg))
+      if (Integer_Type == _typeof (hl_reg))
+        {
+        variable tmp = @hl_reg;
+        hl_reg = Array_Type[1];
+        hl_reg[0] = tmp;
+        i = 1;
+        }
+      else
+        if (Array_Type == _typeof (hl_reg))
+          if (length (hl_reg))
+            if (Integer_Type == _typeof (hl_reg[0]))
+              i = length (hl_reg);
+
   sock->send_str (WRFD, "ask");
 
   () = sock->get_bit (RDFD);
@@ -198,6 +216,21 @@ define ask (questar, charar)
   sock->send_str (WRFD, strjoin (questar, "\n"));
 
   () = sock->get_bit (RDFD);
+
+  sock->send_int (WRFD, i);
+
+  if (i)
+    {
+    () = sock->get_bit (RDFD);
+
+    _for i (0, i - 1)
+      {
+      sock->send_int_ar (RDFD, WRFD, hl_reg[i]);
+      () = sock->get_bit (RDFD);
+      }
+    }
+  else
+    () = sock->get_bit (RDFD);
 
   variable chr;
 
@@ -245,10 +278,11 @@ define ask (questar, charar)
 
   send_msg_dr (" ");
 
-  return chr;
+  chr;
 }
 
 try
   load.from ("com/" + com, "comInit", NULL;err_handler = &__err_handler__);
 catch AnyError:
   (@_exit_me_) (1;msg = __.efmt (NULL));
+

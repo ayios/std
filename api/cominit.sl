@@ -115,8 +115,19 @@ private define _ask_ (cmp_lnrs, wrfd, rdfd)
   sock->send_bit (wrfd, 1);
 
   variable str = sock->get_str (rdfd);
+  sock->send_bit (wrfd, 1);
+  i = sock->get_int (rdfd);
 
-  () = widg->askprintstr (str, NULL, &cmp_lnrs);
+  variable hl_reg = i ? Array_Type[i] : NULL;
+
+  if (i)
+    _for i (0, i - 1)
+      {
+      sock->send_bit (wrfd, 1);
+      hl_reg[i] = sock->get_int_ar (rdfd, wrfd);
+      }
+
+  () = widg->askprintstr (str, NULL, &cmp_lnrs;hl_region = hl_reg);
 
   sock->send_bit (wrfd, 1);
 
@@ -130,7 +141,7 @@ private define _ask_ (cmp_lnrs, wrfd, rdfd)
     smg->restore (ocmp_lnrs, NULL, 1);
     }
 
-  return cmp_lnrs;
+  cmp_lnrs;
 }
 
 private define _sendmsgdr_ (wrfd, rdfd)
