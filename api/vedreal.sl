@@ -386,22 +386,29 @@ define _exit_ ()
   cl_quit (;;__qualifiers  ());
 }
 
-private define shortcuts (s)
+private define handle_comma (s)
 {
   variable chr = getch ();
+  variable refresh = 1;
 
-  ifnot (any (['m', 'n'] == chr))
+  ifnot (any (['m', 'n', 'p'] == chr))
     return;
 
   if ('m' == chr)
     _buffer_other_ (;argv0 = "bp");
   else if ('n' == chr)
     _buffer_other_ (;argv0 = "bn");
+  else if ('p' == chr)
+    {
+    refresh = 0;
+    seltoX (get_cur_buf._abspath);
+    }
 
-  smg->refresh;
+  if (refresh)
+    smg->refresh;
 }
 
-VED_PAGER[string (',')] = &shortcuts;
+VED_PAGER[string (',')] = &handle_comma;
 
 VED_CLINE["bp"] =       &_buffer_other_;
 VED_CLINE["bn"] =       &_buffer_other_;

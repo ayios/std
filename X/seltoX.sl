@@ -41,5 +41,5 @@ define getXsel ()
 
   () = remove (file);
 
-  return sel;
+  sel;
 }

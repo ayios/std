@@ -107,7 +107,7 @@ private variable vis = struct
   bw_up,
   bw_left,
   bw_right,
-  bw_keys = ['x', 'I', 'i', 'd', 'y', keys->DOWN, keys->UP, keys->RIGHT, keys->LEFT],
+  bw_keys = ['x', 'I', 'i', 'd', 'y', 'r', 'c', keys->DOWN, keys->UP, keys->RIGHT, keys->LEFT],
   bw_maxlen,
   needsdraw,
   startrow,
@@ -159,7 +159,8 @@ public variable
 public variable UNDELETABLE = String_Type[0];
 public variable SPECIAL = String_Type[0];
 public variable XCLIP_BIN = Sys.which ("xclip");
-public variable VED_DIR = Dir.vget ("TEMPDIR") + "/ved_" + string (Env.vget ("PID")) + "_" + string (_time)[[5:]];
+public variable VED_DIR = Dir.vget ("TEMPDIR") + "/ved_" + string (Env.vget ("PID")) + "_" +
+  string (_time)[[5:]];
 
 public variable
   s_histfile = Dir.vget ("HISTDIR") + "/" + string (getuid ()) + "ved_search_history",
@@ -202,7 +203,8 @@ private define build_ftype_table ()
 
 build_ftype_table ();
 
-() = mkdir (VED_DIR, File.vget ("PERM")["PRIVATE"]);
+if (-1 == mkdir (VED_DIR, File.vget ("PERM")["PRIVATE"]))
+  __err_handler__ (1;msg = VED_DIR + ": cannot make directory, " + errno_string (errno)); 
 
 load.from ("search", "searchandreplace", "search";err_handler = &__err_handler__);
 load.from ("string", "decode", NULL;err_handler = &__err_handler__);
@@ -1381,7 +1383,7 @@ private define _loop_ (s)
       ismsg = 0;
       }
 
-    if (':' == s._chr && 0 == VED_ISONLYPAGER && VED_RLINE)
+    if (':' == s._chr && (VED_RLINE || 0 == VED_ISONLYPAGER))
       {
       topline (" -- command line --");
       rl = get_cur_rline ();
@@ -1402,15 +1404,18 @@ private define _loop_ (s)
       }
 
     if ('q' == s._chr && VED_ISONLYPAGER)
-      break;
+      return 1;
     }
+
+  return 0;
 }
 
 private define _vedloop_ (s)
 {
   forever
     try
-      _loop_ (s);
+      if (_loop_ (s))
+        break;
     catch AnyError:
       (@__get_reference ("__vmessages"));
 }
@@ -1985,6 +1990,7 @@ private define pg_Yank (s)
 
   _set_reg_ (reg, line + "\n");
   seltoX (line + "\n");
+  send_msg_dr ("yanked", 1, s.ptr[0], s.ptr[1]);
 }
 
 define __vreread (s)
@@ -2234,13 +2240,16 @@ private define _decr_nr_ (s)
 
 %%% FIXME DIFF UNDO
 
+private variable DIFF_BIN = Sys.which ("diff");
+private variable PATCH_BIN = Sys.which ("patch");
+
 define diff (lines, fname, retval)
 {
   variable
     status,
     isbigin = strbytelen (lines) >= 256 * 256,
     p = proc->init (isbigin ? 0 : 1, 1, 1),
-    com = [Sys.which ("diff"), "-u", fname, "-"];
+    com = [DIFF_BIN, "-u", fname, "-"];
 
   if (isbigin)
     {
@@ -2280,7 +2289,7 @@ define patch (in, dir, retval)
 {
   variable isbigin = 256 * 256 >= strbytelen (in);
   variable isbigout = qualifier ("isbig", 0);
-  variable com = [Sys.which ("patch"), "-d", dir, "-r", VED_DIR + "/patchrej.diff"];
+  variable com = [PATCH_BIN, "-d", dir, "-r", VED_DIR + "/patchrej.diff"];
   variable out = "-";
 
   if (isbigin)
@@ -2321,7 +2330,7 @@ define patch (in, dir, retval)
 
   @retval = 0;
 
-  return isbigout ? strjoin (IO.readfile (out), "\n") : p.stdout.out;
+  isbigout ? strjoin (IO.readfile (out), "\n") : p.stdout.out;
 }
 
 define set_modified (s)
@@ -3821,6 +3830,39 @@ private define v_bw_mode (vs, s)
         else
           line = sprintf ("%s", vs.index[i] == strlen (line)
             ? "" : substr (line, strlen (vs.sel[1]) + 1, -1));
+
+        s.lines[lnr] = line;
+        }
+
+      set_modified (s);
+      break;
+      }
+
+    if (any (['r', 'c'] == chr))
+      {
+      sel = strjoin (vs.sel, "\n");
+      _set_reg_ ("\"", sel);
+      seltoX (sel);
+      variable txt = rline->__gettxt ("", vs.vlins[0] - 1, vs.startcol)._lin;
+
+      _for i (0, length (vs.lnrs) - 1)
+        {
+        lnr = vs.lnrs[i];
+        line = s.lines[lnr];
+        len = strlen (line);
+
+        if (0 == len && vs.startcol)
+          continue;
+
+        if (vs.startcol)
+          line = sprintf ("%s%s%s%s",
+            substr (line, 1, vs.startcol),
+            len < vs.startcol ? repeat (" ", vs.startcol - len) : "",
+            txt,
+            substr (line, vs.startcol + 1 + strlen (vs.sel[i]), -1));
+        else
+         line = sprintf ("%s%s", txt, vs.index[i] == strlen (line)
+           ? "" : substr (line, strlen (vs.sel[1]) + 1, -1));
 
         s.lines[lnr] = line;
         }
@@ -5544,17 +5586,17 @@ define ins_ctrl_x_completion (is, s, line)
   switch (chr)
 
     {
-    case keys->CTRL_l:
+    case keys->CTRL_l || case 'l':
       ins_linecompletion (s, line);
     }
 
     {
-    case 'b':
+    case keys->CTRL_b || case 'b':
       blockcompletion (is.lnr, s, line);
     }
 
     {
-    case 'f':
+    case keys->CTRL_f || case 'f':
       ins_fnamecompletion (is.lnr, s, line);
     }
 
@@ -5566,6 +5608,11 @@ define ins_ctrl_x_completion (is, s, line)
 define ins_wordcompletion (s, line)
 {
   ctrl_completion_rout (s, line, _function_name ());
+}
+
+private define paste_xsel (s)
+{
+  ed_Put (s;reg = "*");
 }
 
 private define ins_getline (is, s, line)
@@ -5671,6 +5718,12 @@ private define ins_getline (is, s, line)
       continue;
       }
 
+    if (keys->F12 == is.chr)
+      {
+      paste_xsel (s);
+      continue;
+      }
+
     if (any (keys->rmap.home == is.chr))
       {
       ins_bol (is, s, line);
@@ -5746,8 +5799,13 @@ private define _askonsubst_ (s, fn, lnr, fpart, context, lpart, replace)
      sprintf ("%s%s%s", fpart, replace, lpart),
      repeat ("_", COLUMNS),
      "y[es]/n[o]/q[uit]/a[ll]/c[ansel]"];
-   variable char_ar =  ['y', 'n', 'q', 'a', 'c'];
-   return widg->askprintstr (ar, char_ar, &cmp_lnrs);
+
+  variable hl_reg = Array_Type[2];
+  hl_reg[0] = [5, PROMPTROW - 8, strlen (fpart), 1, strlen (context)];
+  hl_reg[1] = [2, PROMPTROW - 4, strlen (fpart), 1, strlen (replace)];
+
+  variable char_ar =  ['y', 'n', 'q', 'a', 'c'];
+  widg->askprintstr (ar, char_ar, &cmp_lnrs;hl_region = hl_reg);
 }
 
 define __substitute ()
@@ -5768,6 +5826,12 @@ define __substitute ()
     sub = substr (args[ind], strlen ("--sub=") + 1, -1);
 
   if (NULL == pat || NULL == sub)
+    {
+    send_msg_dr ("--pat= and --sub= are required", 1, buf.ptr[0], buf.ptr[1]);
+    return;
+    }
+
+  if (0 == strlen (pat) || 0 == strlen (sub))
     {
     send_msg_dr ("--pat= and --sub= are required", 1, buf.ptr[0], buf.ptr[1]);
     return;
@@ -5858,7 +5922,20 @@ private define _register_ (s)
     ed_put (s;reg = reg);
 }
 
-VED_PAGER[string ('"')] = &_register_;
+private define buffer_other (s) {}
+private define handle_comma (s)
+{
+  variable chr = getch ();
+
+  ifnot (any (['p'] == chr))
+    return;
+
+  if ('p' == chr)
+    seltoX (get_cur_buf._abspath);
+}
+
+VED_PAGER[string (',')]           = &handle_comma;
+VED_PAGER[string ('"')]           = &_register_;
 VED_PAGER[string (keys->CTRL_a)]  = &_incr_nr_;
 VED_PAGER[string (keys->CTRL_x)]  = &_decr_nr_;
 VED_PAGER[string (keys->CTRL_l)]  = &__vreread;
@@ -5919,6 +5996,7 @@ VED_PAGER[string ('>')]           = &ed_indent_out;
 VED_PAGER[string ('<')]           = &ed_indent_in;
 VED_PAGER[string ('x')]           = &ed_del_chr;
 VED_PAGER[string ('X')]           = &ed_del_chr;
+VED_PAGER[string (keys->F12)]     = &paste_xsel;
 VED_PAGER[string (keys->rmap.delete[0])]    = &ed_del_chr;
 VED_PAGER[string (keys->rmap.backspace[0])] = &ed_del_trailws;
 VED_PAGER[string (keys->rmap.backspace[1])] = &ed_del_trailws;
@@ -5936,113 +6014,3 @@ private define msg_handler (s, msg)
 }
 
 new_wind ();
-
-  %    (early) development of the DEV tracking system
-  %A   attachment
-  %T   time
-  %S   status
-  %?   type
-  %P   priority
-  %@   summary
-  %O   author, original poster, reporter
-  %U   user
-  %I   id
-  %#   comment
-  %#nr comment number (id)
-  %nr  comment line number
-  %    new line (ignored)
-  %=>  assigned to
-  %=<  get assignment (%U)
-
-  % on close (fixed), (add a new line with the id in []?)? (before or after)
-  % delete the text. commit it to git as standalone
-  % then link to commit
-
-%%% DEV %%%
-
-  %I    0001
-  %@    Add a check syntax command
-  %T    02/09/2015 10:20
-  %?    enchanchment
-  %P    ..high
-  %S    open
-  %O    ayios
-  %
-  %#1
-  %T    02/09/2015 10:20
-  %U    ayios
-  %1  | for sl_type use bytecompile for a start
-  %2  | maybe a load(*) SLang C function
-  %3  | if such file can be evalfil'ing (if standalone)
-  %=> ayios
-
-  %I             0002
-  %@    Add header in sl_type files
-  %T    02/09/2015 10:30
-  %?    enchanchment
-  %P    ...high
-  %S    open
-  %O    ayios
-  %
-  %#1
-  %T    02/09/2015 10:30
-  %U    ayios
-  %1  | (for instance) see *001:@*
-  %2  | see *001:3*, we might want to know specific details
-  %
-  %=> ayios
-
-  %I            0003
-  %@    Highlight api functions
-  %T    02/09/2015 10:33
-  %?    enchanchment
-  %P    ...norm
-  %S    open
-  %O    lak
-  %
-  %#1
-  %T    02/09/2015 10:33
-  %U    lak
-  %1  | maybe yellow
-  %
-  %#2
-  %T    02/09/2015 10:47
-  %U    ayios
-  %=<
-
-%%% ELOPMENT %%%
-
-%%% THOUGHTS
-% VED_ISONLYPAGER should be local to buffer
-% ADD EXEC dir
-%%% i-> ineed Assoc_Type[EXEC_TYPE] HASH_TABLE? i->need[func] (args)
-%%% i-
-% Assoc_Type (REF_TYPE, &assign);
-% try - catch vedloop - protect the doc - use a bytecompiled function -
-% esc cycle: narrow linewise mode -> pager mode -> insert mode
-
-% ed->L["ins"].m (R, "func"). (args);
-
-% (a,b,c) = ( __push_list ({0, 1, 2}), _stk_roll (3));
-
-% stack (vals) (NULL|SUCCESS|IDLE)
-
-
-%%genereal :)
-%% api for patterns (standard lexar)
- % roughly
-
-% match $word not follow [pat] . . . \
-% atleast 1 ws or char[[;|}]] and eol \
-% but not eof || atleast newline which != NULL
-% $word = start[a'z'] ends[...]
-
-% and translates that to pattern (by default choose the accepted
-% library by projects which (either adopted its syntax, or use
-% its machine, or have bindings) that is for today; PCRE)
-
-%%% DO
-% backspace on pager, deletes ws in front of cursor [DONE]
-% real time code evaluation
-% insert menu for C-X top
-  % math symbols

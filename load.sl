@@ -222,9 +222,9 @@ private define which (executable)
   ar = wherenot (array_map (Integer_Type, &access, path, X_OK));
 
   if (length (ar))
-    return path[ar][0];
+    path[ar][0];
   else
-    return NULL;
+    NULL;
 }
 
 __.new ("Sys";methods = "which", funcs = ["which_"], refs = [&which]);
@@ -239,9 +239,9 @@ private define readfile (file)
     return NULL;
 
   ifnot (NULL == end)
-    return array_map (String_Type, &strtrim_end, fgetslines (fp, end), "\n");
-
-  return array_map (String_Type, &strtrim_end, fgetslines (fp), "\n");
+    array_map (String_Type, &strtrim_end, fgetslines (fp, end), "\n");
+  else
+    array_map (String_Type, &strtrim_end, fgetslines (fp), "\n");
 }
 
 __.fput ("IO", "readfile_", &readfile);

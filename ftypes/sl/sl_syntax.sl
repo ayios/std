@@ -103,6 +103,7 @@ private variable regexps = [
 |(?<=&|\s|\[|\()(get[gpu]id(?=\s|,))\
 |(?<=&|\s|\[|\()(array_sort(?=\s|,))\
 |(?<=&|\s|\[|\()(strbytelen(?=\s|,))\
+|(?<=&|\s|\[|\()(is_defined(?=\s|,))\
 |(?<=&|\s|\[|\()((f|_)?close(?=\s|,))\
 |(?<=&|\s|\[|\()(__p\w*_list(?=\s|,))\
 |(?<=&|\s|\[|\()(substrbytes(?=\s|,))\

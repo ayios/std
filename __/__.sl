@@ -28,7 +28,7 @@ private define readFD__ (fd)
   while (read (fd, &buf, 1024) > 0)
     str += buf;
 
-  return str;
+  str;
 }
 
 private define tostderr ()
@@ -494,8 +494,18 @@ private define self_add_method (ns, method, func, ref)
   `);
 }
 
-private define err_handler (e, __r__)
+private define __print_exc__ (e, __r__)
 {
+  try
+    {
+    variable header = sprintf (
+      "ERROR HEADER\nnamespace: %S\ncaller: %S\nFailed func: %S\nargs: %S\n",
+       __r__.ns, __r__.caller, __r__.func, __r__.args);
+    IO.tostderr (header);
+    __r__.err = [__r__.err, header];
+    }
+  finally {}
+
   if (0 == isnot_an_exception (e) ||
      (0 == (e = __get_exception_info, isnot_an_exception (e))))
     {
@@ -509,38 +519,68 @@ private define err_handler (e, __r__)
     __r__.err = [__r__.err, err_format_exc (e.object)];
     e = e.object;
     }
+}
+
+private define err_handler (e, __r__)
+{
+  __print_exc__ (e, __r__);
+
+  variable err;
+  while (NULL != e && Struct.field_exists (e, "message") && NULL != (err = e.message, err))
+    {
+    variable err_tok = strtok (err, "::");
+    if (2 > length (err_tok))
+      break;
+
+    if ("UndefinedNsError" == err_tok[0])
+      if (NULL != __r__ && NULL != __r__.args &&
+        var_get ("__", "__AUTODECLARE__") &&
+          any (["&func_init", "&var_init"] == string (__r__.func)))
+        {
+        __.new (__r__.args[0];;__qualifiers);
+
+        try
+          {
+          if ("&func_init" == string (__r__.func))
+            func_init (__push_list (__r__.args);;__qualifiers);
+          else
+            var_init (__push_list (__r__.args);;__qualifiers);
+          }
+        catch __Error:
+          __print_exc__ (__get_exception_info, __r__);
+        }
+
+     break;
+     }
 
   if (NULL != __r__ &&
-    Struct_Type == typeof (__r__) &&
-    Struct.field_exists (__r__, "handler") &&
-    NULL != __r__.handler &&
-    Ref_Type == typeof (__r__.handler) &&
-    __is_callable (__r__.handler))
+      Struct_Type == typeof (__r__) &&
+      Struct.field_exists (__r__, "handler") &&
+      NULL != __r__.handler &&
+      Ref_Type == typeof (__r__.handler) &&
+      __is_callable (__r__.handler))
     {
     (@__r__.handler) (__r__;;__qualifiers);
     return;
     }
 
-  variable err;
-  if (NULL == e || 0 == Struct.field_exists (e, "message") || NULL == (err = e.message, err))
-    return;
+  try
+    {
+    if (NULL != __r__ &&
+        Struct_Type == typeof (__r__) &&
+        Struct.field_exists (__r__, "ns") &&
+        NULL != __r__.ns)
+      variable handler = self_get (__r__.ns).err_handler;
 
-  variable err_tok = strtok (err, "::");
-  if (2 > length (err_tok))
-    return;
-
-  if ("UndefinedNsError" == err_tok[0])
-    if (NULL != __r__ && NULL != __r__.args &&
-      var_get ("__", "__AUTODECLARE__") &&
-        any (["&func_init", "&var_init"] == string (__r__.func)))
+    if (NULL != handler &&
+        Ref_Type == typeof (handler) &&
+        __is_callable (handler))
       {
-      __.new (__r__.args[0];;__qualifiers);
-
-      if ("&func_init" == string (__r__.func))
-        func_init (__push_list (__r__.args);;__qualifiers);
-      else
-        var_init (__push_list (__r__.args);;__qualifiers);
+      (@handler) (__r__;;__qualifiers);
+      return;
       }
+    }
+  finally {}
 }
 
 private define RunTime_Type () {loop (_NARGS) pop ();}
@@ -648,7 +688,7 @@ new (NULL, "__";
   refs = [&new, &var_put, &var_get, &var_init, &func_get, &func_init, &func_put, &self_get,
     &self_add_method, &err_format_exc],
   vars = ["__DEBUG__", "__PROFILE__", "__AUTODECLARE__"],
-  values = {1, 0, 0});
+  values = {1, 0, 1});
 
 private define RunTime_Type (ns, func, caller, inited, args)
 {
@@ -679,4 +719,3 @@ __.new ("Array";methods = "map", funcs = ["map?"], refs = [Array.tmp]);
 __.new ("IO";methods = "readfd,readfile,tostderr,tostdout",
   funcs = ["readfd_", "tostderr?"],
   refs = [IO.readfd, IO.tmp]);
-

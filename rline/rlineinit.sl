@@ -57,7 +57,7 @@ static define readhistory (histfile)
   if (-1 == access (histfile, F_OK|R_OK))
     return String_Type[0];
 
-  return IO.readfile (histfile);
+  IO.readfile (histfile);
 }
 
 private define _execFunc_Type_ (func, argv)
@@ -83,6 +83,7 @@ private define _execline_ (s)
 
   ifnot (any (assoc_get_keys (s.argvlist) == s.argv[0]))
     return;
+
   variable _addhistory = 1;
 
   if (1 < length (s.argv))
@@ -170,7 +171,7 @@ static define init (getcommands)
 
   rl._row = rl._prow;
 
-  return rl;
+  rl;
 }
 
 private define find_col (col, columns)
@@ -525,12 +526,12 @@ private define append_dir_indicator (base, files)
   ar[where (array_map (Char_Type, &_isdirectory,
     array_map (String_Type, &path_concat, base, files)))] += "/";
 
-  return ar;
+  ar;
 }
 
 private define _sort_by_mtime_ (dir, ar)
 {
-  return array_sort (array_map (ULong_Type, &get_struct_field,
+  array_sort (array_map (ULong_Type, &get_struct_field,
     array_map (Struct_Type, &stat_file,
     array_map (String_Type, &path_concat, dir, ar)),
     "st_mtime"); dir = -1);
@@ -565,9 +566,9 @@ private define listdirectory (retval, dir, pat, pos)
   variable sort = qualifier ("sort");
 
   if (NULL != sort && sort == "mtime")
-    return ar[_sort_by_mtime_ (dir, ar)];
+    ar[_sort_by_mtime_ (dir, ar)];
   else
-    return ar[array_sort (ar)];
+    ar[array_sort (ar)];
 }
 
 private define formar (items, fmt, ar, bar)

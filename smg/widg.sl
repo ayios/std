@@ -82,6 +82,7 @@ static define printtoscreen (ar, lastrow, len, cmpl_lnrs)
     return @Array_Type[0];
     }
 
+  variable i;
   variable lines = qualifier ("lines", lastrow - 2);
   variable origlen = @len;
   variable hlreg = qualifier ("hl_region");
@@ -95,7 +96,13 @@ static define printtoscreen (ar, lastrow, len, cmpl_lnrs)
     ;;__qualifiers ());
 
   ifnot (NULL == hlreg)
-    smg->hlregion (hlreg[0], hlreg[1], hlreg[2], hlreg[3], hlreg[4]);
+    if (Array_Type == typeof (hlreg))
+      if (Integer_Type == _typeof (hlreg))
+          smg->hlregion (hlreg[0], hlreg[1], hlreg[2], hlreg[3], hlreg[4]);
+      else if (Array_Type == _typeof (hlreg))
+        _for i (0, length (hlreg) - 1)
+          if (Integer_Type == _typeof (hlreg[i]))
+            smg->hlregion (hlreg[i][0], hlreg[i][1], hlreg[i][2], hlreg[i][3], hlreg[i][4]);
 
   @len = @len >= lines;
 
@@ -146,7 +153,8 @@ static define askprintstr (str, charar, cmp_lnrs)
   variable headclr = headerclr;
   variable chr = NULL;
   variable type = typeof (str);
-  variable ar = (String_Type == type || BString_Type == type) ? strchop (strtrim_end (str), '\n', 0) : str;
+  variable ar = (any ([String_Type, BString_Type] == type))
+    ? strchop (strtrim_end (str), '\n', 0) : str;
   variable len = length (ar);
 
   if ('@' == ar[0][0])
@@ -157,8 +165,8 @@ static define askprintstr (str, charar, cmp_lnrs)
     headclr = qualifier ("headerclr", headerclr);
     }
 
-  ar = printstrar (ar,  PROMPTROW - 1, &len, cmp_lnrs;
-    header = header, headerclr = headclr);
+  ar = printstrar (ar,  PROMPTROW - 1, &len, cmp_lnrs;;
+    struct {@__qualifiers, header = header, headerclr = headclr});
 
   ifnot (NULL == charar)
     {
