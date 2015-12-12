@@ -115,7 +115,7 @@ if (NULL == stdoutfd)
   (@_exit_me_) (1;msg = errno_string (errno));
 
 load.from ("proc", "getdefenv", 1;err_handler = &__err_handler__);
-load.from ("sock", "sockInit", NULL;err_handler = &__err_handler__);
+load.from ("sock", "sock", 0;err_handler = &__err_handler__);
 load.from ("input", "inputInit", NULL;err_handler = &__err_handler__);
 load.from ("parse", "cmdopt", NULL;err_handler = &__err_handler__);
 
@@ -159,27 +159,27 @@ define sigint_handler_null (sig)
 
 define close_smg ()
 {
-  sock->send_str (WRFD, "close_smg");
+  Sock.send_str (WRFD, "close_smg");
 
-  () = sock->get_bit (RDFD);
+  () = Sock.get_int (RDFD);
 }
 
 define restore_smg ()
 {
-  sock->send_str (WRFD, "restore_smg");
+  Sock.send_str (WRFD, "restore_smg");
 
-  () = sock->get_bit (RDFD);
+  () = Sock.get_int (RDFD);
 }
 
 define send_msg_dr (msg)
 {
-  sock->send_str (WRFD, "send_msg_dr");
+  Sock.send_str (WRFD, "send_msg_dr");
 
-  () = sock->get_bit (RDFD);
+  () = Sock.get_int (RDFD);
 
-  sock->send_str (WRFD, msg);
+  Sock.send_str (WRFD, msg);
 
-  () = sock->get_bit (RDFD);
+  () = Sock.get_int (RDFD);
 }
 
 define ask (questar, charar)
@@ -209,28 +209,28 @@ define ask (questar, charar)
             if (Integer_Type == _typeof (hl_reg[0]))
               i = length (hl_reg);
 
-  sock->send_str (WRFD, "ask");
+  Sock.send_str (WRFD, "ask");
 
-  () = sock->get_bit (RDFD);
+  () = Sock.get_int (RDFD);
 
-  sock->send_str (WRFD, strjoin (questar, "\n"));
+  Sock.send_str (WRFD, strjoin (questar, "\n"));
 
-  () = sock->get_bit (RDFD);
+  () = Sock.get_int (RDFD);
 
-  sock->send_int (WRFD, i);
+  Sock.send_int (WRFD, i);
 
   if (i)
     {
-    () = sock->get_bit (RDFD);
+    () = Sock.get_int (RDFD);
 
     _for i (0, i - 1)
       {
-      sock->send_int_ar (RDFD, WRFD, hl_reg[i]);
-      () = sock->get_bit (RDFD);
+      Sock.send_int_ar (RDFD, WRFD, hl_reg[i]);
+      () = Sock.get_int (RDFD);
       }
     }
   else
-    () = sock->get_bit (RDFD);
+    () = Sock.get_int (RDFD);
 
   variable chr;
 
@@ -265,9 +265,9 @@ define ask (questar, charar)
     while (chr = getch (), 0 == any (chr == charar));
     }
 
-  sock->send_str (WRFD, "restorestate");
+  Sock.send_str (WRFD, "restorestate");
 
-  () = sock->get_bit (RDFD);
+  () = Sock.get_int (RDFD);
 
   if (NULL == BG)
     {
@@ -285,4 +285,3 @@ try
   load.from ("com/" + com, "comInit", NULL;err_handler = &__err_handler__);
 catch AnyError:
   (@_exit_me_) (1;msg = __.efmt (NULL));
-

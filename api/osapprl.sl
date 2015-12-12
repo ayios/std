@@ -1,9 +1,9 @@
 define _osappnew_ (s)
 {
-  sock->send_int (SOCKET, APP_GET_ALL);
-  variable apps = sock->get_str (SOCKET);
+  Sock.send_int (SOCKET, APP_GET_ALL);
+  variable apps = Sock.get_str (SOCKET);
   apps = strchop (apps, '\n', 0);
- 
+
   rline->set (s);
   rline->prompt (s, s._lin, s._col);
 
@@ -18,9 +18,9 @@ define _osappnew_ (s)
 
 define _osapprec_ (s)
 {
-  sock->send_int (SOCKET, APP_GET_CONNECTED);
+  Sock.send_int (SOCKET, APP_GET_CONNECTED);
 
-  variable apps = sock->get_str (SOCKET);
+  variable apps = Sock.get_str (SOCKET);
   variable me = APP.appname + "::" + string (Env.vget ("PID"));
   apps = strchop (strtrim_end (apps), '\n', 0);
   apps = apps[wherenot (me == apps)];

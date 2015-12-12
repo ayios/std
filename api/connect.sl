@@ -2,11 +2,11 @@ define con_to_oth (app, what)
 {
   smg->suspend ();
   input->at_exit ();
-  sock->send_int (SOCKET, what);
-  () = sock->get_int (SOCKET);
-  sock->send_str (SOCKET, app);
+  Sock.send_int (SOCKET, what);
+  () = Sock.get_int (SOCKET);
+  Sock.send_str (SOCKET, app);
 
-  variable retval = sock->get_int (SOCKET);
+  variable retval = Sock.get_int (SOCKET);
   if (RECONNECT == retval)
     smg->resume ();
   else
@@ -15,9 +15,9 @@ define con_to_oth (app, what)
 
 define go_idled ()
 {
-  sock->send_int (SOCKET, GO_IDLED);
+  Sock.send_int (SOCKET, GO_IDLED);
 
-  variable retval = sock->get_int (SOCKET);
+  variable retval = Sock.get_int (SOCKET);
 
   if (RECONNECT == retval)
     return 0;

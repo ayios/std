@@ -16,7 +16,7 @@ load.from ("os", "passwd", 1;err_handler = &__err_handler__);
 load.from ("parse", "is_arg", NULL;err_handler = &__err_handler__);
 load.from ("rline", "rlineInit", NULL;err_handler = &__err_handler__);
 load.from ("proc", "procInit", NULL;err_handler = &__err_handler__);
-load.from ("sock", "sockInit", 1;err_handler = &__err_handler__);
+load.from ("sock", "sock", 0;err_handler = &__err_handler__);
 load.from ("api", "vedlib", NULL;err_handler = &__err_handler__);
 load.from ("wind", APP.appname + "topline", NULL;err_handler = &__err_handler__);
 

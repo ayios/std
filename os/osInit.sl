@@ -29,7 +29,7 @@ variable Setid_Type = struct
   };
 
 load.from ("proc", "envs", 1;err_handler = &__err_handler__);
-load.from ("sock", "sockInit", NULL;err_handler = &__err_handler__);
+load.from ("sock", "sock", 0;err_handler = &__err_handler__);
 load.from ("wind", "ostopline", NULL;err_handler = &__err_handler__);
 load.from ("stdio", "appendstr", NULL;err_handler = &__err_handler__);
 load.from ("api", "eval", NULL;err_handler = &__err_handler__);
@@ -113,7 +113,7 @@ define __send_reconnect (s)
 {
   s._state &= ~IDLED;
 
-  sock->send_int (s._fd, RECONNECT);
+  Sock.send_int (s._fd, RECONNECT);
 
   _log_ (s._appname + ": with pid :" + string (s.p_.pid) + " reconnected", LOGNORM);
 }
@@ -155,7 +155,6 @@ define __get_con_apps ()
 define __connect_to_app (s)
 {
   while (-1 == access (Dir.vget ("TEMPDIR") + "/_" + s._appname + "_.init", F_OK))
-    {
     ifnot (access (Dir.vget ("TEMPDIR") + "/_" + s._appname + "_.initerr", F_OK))
       {
       () = remove (Dir.vget ("TEMPDIR") + "/_" + s._appname + "_.initerr");
@@ -170,7 +169,6 @@ define __connect_to_app (s)
 
       return -1;
       }
-    }
 
   s._fd = s.p_.connect (s._sockaddr);
 
@@ -195,7 +193,7 @@ define __connect_to_app (s)
   CONNECTED_APPS = [CONNECTED_APPS, s._appname];
   CONNECTED_PIDS = [CONNECTED_PIDS, s.p_.pid];
 
-  return 0;
+  0;
 }
 
 define __new_app (app)
@@ -248,7 +246,7 @@ private define _exit_me_ (argv)
       pid = pids[ii];
       s = APPS[app][pid];
 
-      sock->send_int (s._fd, 0);
+      Sock.send_int (s._fd, 0);
       s._state &= ~IDLED;
       os->app_atexit (s);
       }

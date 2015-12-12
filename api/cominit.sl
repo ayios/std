@@ -112,24 +112,24 @@ private define _ask_ (cmp_lnrs, wrfd, rdfd)
   variable i;
   variable ocmp_lnrs = @cmp_lnrs;
 
-  sock->send_bit (wrfd, 1);
+  Sock.send_int (wrfd, 1);
 
-  variable str = sock->get_str (rdfd);
-  sock->send_bit (wrfd, 1);
-  i = sock->get_int (rdfd);
+  variable str = Sock.get_str (rdfd);
+  Sock.send_int (wrfd, 1);
+  i = Sock.get_int (rdfd);
 
   variable hl_reg = i ? Array_Type[i] : NULL;
 
   if (i)
     _for i (0, i - 1)
       {
-      sock->send_bit (wrfd, 1);
-      hl_reg[i] = sock->get_int_ar (rdfd, wrfd);
+      Sock.send_int (wrfd, 1);
+      hl_reg[i] = Sock.get_int_ar (rdfd, wrfd);
       }
 
   () = widg->askprintstr (str, NULL, &cmp_lnrs;hl_region = hl_reg);
 
-  sock->send_bit (wrfd, 1);
+  Sock.send_int (wrfd, 1);
 
   if (length (cmp_lnrs) < length (ocmp_lnrs))
     {
@@ -146,13 +146,13 @@ private define _ask_ (cmp_lnrs, wrfd, rdfd)
 
 private define _sendmsgdr_ (wrfd, rdfd)
 {
-  sock->send_bit (wrfd, 1);
+  Sock.send_int (wrfd, 1);
 
-  variable str = sock->get_str (rdfd);
+  variable str = Sock.get_str (rdfd);
 
   send_msg_dr (str, 0, NULL, NULL);
 
-  sock->send_bit (wrfd, 1);
+  Sock.send_int (wrfd, 1);
 }
 
 private define _restorestate_ (cmp_lnrs, wrfd)
@@ -160,7 +160,7 @@ private define _restorestate_ (cmp_lnrs, wrfd)
   if (length (cmp_lnrs))
     smg->restore (cmp_lnrs, NULL, 1);
 
-  sock->send_bit (wrfd, 1);
+  Sock.send_int (wrfd, 1);
 }
 
 private define _waitfunc_ (wrfd, rdfd)
@@ -172,7 +172,7 @@ private define _waitfunc_ (wrfd, rdfd)
 
   forever
     {
-    buf = sock->get_str (rdfd);
+    buf = Sock.get_str (rdfd);
     buf = strtrim_end (buf);
 
     if ("exit" == buf)
@@ -205,7 +205,7 @@ private define _waitfunc_ (wrfd, rdfd)
         issmg = 1;
         }
 
-      sock->send_bit (wrfd, 1);
+      Sock.send_int (wrfd, 1);
       continue;
       }
 
@@ -217,7 +217,7 @@ private define _waitfunc_ (wrfd, rdfd)
         issmg = 0;
         }
 
-      sock->send_bit (wrfd, 1);
+      Sock.send_int (wrfd, 1);
       continue;
       }
     }
@@ -230,7 +230,7 @@ private define _waitpid_ (p)
 
   _waitfunc_ (wrfd, rdfd);
 
-  sock->send_bit (wrfd, 1);
+  Sock.send_int (wrfd, 1);
 
   variable status = waitpid (p.pid, 0);
 
@@ -441,7 +441,7 @@ private define _getbgstatus_ (pid)
   if (isnotsudo || (isnotsudo == 0 == Env.vget ("UID")))
     {
     variable rdfd = open (RDFIFO, O_RDONLY);
-    variable buf = sock->get_str (rdfd);
+    variable buf = Sock.get_str (rdfd);
 
     buf = strtrim_end (buf);
 

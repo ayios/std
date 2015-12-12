@@ -92,7 +92,7 @@ static define apploop (s)
 
   forever
     {
-    retval = sock->get_int (s._fd);
+    retval = Sock.get_int (s._fd);
 
     ifnot (Integer_Type == typeof (retval))
       {
@@ -102,13 +102,13 @@ static define apploop (s)
 
     if (retval == APP_GET_ALL)
       {
-      sock->send_str (s._fd, strjoin (_APPS_, "\n"));
+      Sock.send_str (s._fd, strjoin (_APPS_, "\n"));
       continue;
       }
 
     if (retval == APP_GET_CONNECTED)
       {
-      sock->send_str (s._fd, __get_con_apps ());
+      Sock.send_str (s._fd, __get_con_apps ());
       continue;
       }
 
@@ -138,7 +138,8 @@ static define apploop (s)
 
     if (retval == APP_CON_NEW)
       {
-      app = sock->send_bit_get_str (s._fd, 1);
+      Sock.send_int (s._fd, 1);
+      app = Sock.get_str (s._fd);
 
       __set_idled (s);
 
@@ -155,7 +156,8 @@ static define apploop (s)
 
     if (retval == APP_RECON_OTH)
       {
-      app = sock->send_bit_get_str (s._fd, 1);
+      Sock.send_int (s._fd, 1);
+      app = Sock.get_str (s._fd);
 
       __set_idled (s);
 
@@ -177,7 +179,8 @@ static define apploop (s)
 
 private define _addflags_ (p, s)
 {
-  p.stderr.file = Dir.vget ("TEMPDIR") + "/" + string (Env.vget ("PID")) + "Srv" + s._appname + "err";
+  p.stderr.file = Dir.vget ("TEMPDIR") + "/" + string (Env.vget ("PID")) +
+    "Srv" + s._appname + "err";
   p.stderr.wr_flags = ">|";
 }
 
@@ -194,7 +197,7 @@ static define init_app (name, dir, argv)
 
   _log_ ("initing " + s._appname + ", sockaddress: " + s._sockaddr, LOGALL);
 
-  return s;
+  s;
 }
 
 private define _getargvenv_ (p, s, argv)

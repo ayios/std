@@ -30,5 +30,5 @@ static define init (dir)
     s.excom.eval     = qualifier ("exeval", 1);
     }
 
-  return s;
+  s;
 }
