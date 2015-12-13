@@ -17,7 +17,7 @@ public define __getpasswd ()
     {
     passwd = getpasswd ();
 
-    if (-1 == os->authenticate (Env.vget ("USER"), passwd))
+    if (-1 == os->authenticate (Env.vget ("user"), passwd))
       {
       send_msg_dr ("Authentication error", 1, NULL, NULL);
       passwd = NULL;
@@ -105,7 +105,7 @@ private define _execProc_Type_ (func, argv)
     argv[index] = NULL;
     argv = argv[wherenot (_isnull (argv))];
 
-    ifnot (Env.vget ("UID"))
+    ifnot (Env.vget ("uid"))
       issudo = 0;
     else
       passwd = __getpasswd ();

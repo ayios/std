@@ -218,7 +218,7 @@ define __write_buffers ()
       else
         if (-1 == access (fn, W_OK))
           {
-          IO.tostderr (fn + " is not writable by you " + Env.vget ("USER"));
+          IO.tostderr (fn + " is not writable by you " + Env.vget ("user"));
           hasnewmsg = 1;
           continue;
           }

@@ -17,7 +17,7 @@ if (5 > strlen (Env.vget ("LANG")) || "UTF-8" != substr (Env.vget ("LANG"),
   exit (1);
   }
 
-if (NULL == Env.vget ("HOME"))
+if (NULL == Env.vget ("home"))
   {
   IO.tostderr ("HOME environment variable isn't set");
   exit (1);
@@ -32,17 +32,17 @@ if (NULL == Env.vget ("PATH"))
 SLSH_BIN = Sys.which ("slsh");
 SUDO_BIN = Sys.which ("sudo");
 
-__.vput ("Env", "USER", setpwname (Env.vget ("UID"), &$1));
+__.vput ("Env", "user", setpwname (Env.vget ("uid"), &$1));
 
-if (NULL == Env.vget ("USER"))
+if (NULL == Env.vget ("user"))
   {
   IO.tostderr (__tmp ($1));
   exit (1);
   }
 
-__.vput ("Env", "GROUP", setgrname (Env.vget ("GID"), &$1));
+__.vput ("Env", "group", setgrname (Env.vget ("gid"), &$1));
 
-if (NULL == Env.vget ("GROUP"))
+if (NULL == Env.vget ("group"))
   {
   IO.tostderr (__tmp ($1));
   exit (1);

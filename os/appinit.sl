@@ -206,11 +206,11 @@ private define _getargvenv_ (p, s, argv)
 
   variable env = [proc->defenv (), sprintf ("SOCKADDR=%s", s._sockaddr)];
 
-  ifnot (NULL == Env.vget ("DISPLAY"))
-    env = [env, "DISPLAY=" + Env.vget ("DISPLAY")];
+  ifnot (NULL == Env.vget ("display"))
+    env = [env, "DISPLAY=" + Env.vget ("display")];
 
-  ifnot (NULL == Env.vget ("XAUTHORITY"))
-    env = [env, "XAUTHORITY=" + Env.vget ("XAUTHORITY")];
+  ifnot (NULL == Env.vget ("xauthority"))
+    env = [env, "XAUTHORITY=" + Env.vget ("xauthority")];
 
   return argv, env;
 }

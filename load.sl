@@ -21,9 +21,9 @@ set_slang_load_path ("");
 set_import_module_path ("");
 
 __.new ("Env";
-  vars = ["MACHINE", "OS", "PID", "GID", "UID", "HOME", "PATH",
-    "TERM", "LANG", "DISPLAY", "XAUTHORITY", "GROUP",
-    "USER", "SLSH_LIB_DIR", "SLANG_MODULE_PATH", "ISSUPROC"],
+  vars = ["MACHINE", "OS", "PID", "gid", "uid", "home", "PATH",
+    "TERM", "LANG", "display", "xauthority", "group",
+    "user", "SLSH_LIB_DIR", "SLANG_MODULE_PATH", "ISSUPROC"],
   values = {uname.machine, uname.sysname, getpid, getgid, getuid,
     getenv ("HOME"), getenv ("PATH"), getenv ("TERM"), getenv ("LANG"),
     getenv ("DISPLAY"), getenv ("XAUTHORITY"), NULL, NULL, get_slang_load_path (),

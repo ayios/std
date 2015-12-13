@@ -210,7 +210,7 @@ private define ns_get (ns)
 
       varmethods = strchop (varmethods, ',', 0);
       _for i (0, length (varmethods) - 1)
-        varmethods[i] = "__" + strtrim (strtrim (varmethods[i]), "_") + "__";
+        varmethods[i] = "__" + strtrim (strtrim (varmethods[i]), "_");
 
       methods = [methods, varmethods];
       NSS[ns]["__SELF__"] = @Struct_Type (methods);
@@ -256,7 +256,7 @@ private define __check_ns__ (ns, func)
 private define __check___V__ (o, func)
 {
   ifnot (assoc_key_exists (o, "__V__"))
-    throw __Error, "Undefined__V__Error::" + func + "::" + o.__name__ +
+    throw __Error, "Undefined__V__Error::" + func + "::" + o.__name +
       ", __V__ is not defined", NULL;
 
   o["__V__"];
@@ -267,31 +267,35 @@ private define var_init (ns, vname, vval)
   ns = __check_ns__ (ns, _function_name);
   variable __v__ = __check___V__ (ns, _function_name);
 
+  vname = strtrim (vname, "__");
+
   if (assoc_key_exists (__v__, vname))
     if (NULL == qualifier ("ReInitVar"))
       throw __Error,  "VariableIsDefinedError::" + _function_name + "::" + vname +
         ", is defined", NULL;
 
   variable dtp = qualifier ("VarType");
+  variable const = qualifier ("ConstVar", strup (vname) == vname);
 
   ifnot (NULL == dtp)
     ifnot (typeof (vval) == dtp)
-      throw __Error, sprintf (
-        "VariableTypeMismatchError::%s::variable %s datatype %S is not of type %S",
-          _function_name, vname, typeof (vval), dtp), NULL;
+      ifnot (qualifier_exists ("justinit"))
+        throw __Error, sprintf (
+          "VariableTypeMismatchError::%s::variable %s datatype %S is not of type %S",
+            _function_name, vname, typeof (vval), dtp), NULL;
 
-  __v__[vname] = struct {val = vval, const = qualifier ("ConstVar"), dtype = dtp};
+  __v__[vname] = struct {val = vval, const = const, dtype = dtp};
 
   variable isself = qualifier ("varself");
-  if (NULL == isself || String_Type != typeof (isself))
+  if (NULL == isself || String_Type != typeof (isself) || const)
     return;
 
   isself = strchop (isself, ',', 0);
 
   if (any (isself == vname))
     if (assoc_key_exists (ns, "__SELF__"))
-      if (Struct.field_exists (ns["__SELF__"], vname))
-        set_struct_field (ns["__SELF__"], vname, &__v__[vname].val);
+      if (Struct.field_exists (ns["__SELF__"], "__" + vname))
+        set_struct_field (ns["__SELF__"], "__" + vname, __v__[vname].val);
 }
 
 private define var_put (ns, vname, vval)
@@ -303,7 +307,7 @@ private define var_put (ns, vname, vval)
     var_init (ns, vname, vval;;__qualifiers);
   else
     {
-    ifnot (NULL == __v__[vname].const)
+    if (__v__[vname].const)
       throw __Error, "VariableIsConstantTypeError::" + _function_name + "::" +  vname +
        ": variable is declared as Constant", NULL;
 
@@ -363,7 +367,7 @@ private define func_init (ns, func, ref, method)
     {
     if (NULL == funcstr)
       {
-      variable orig = funcfname, basedir = qualifier ("__DIRNS__", var_get ("__", "__DIRNS__"));
+      variable orig = funcfname, basedir = qualifier ("__DIRNS__", var_get ("__", "DIRNS"));
       ifnot (path_is_absolute (funcfname))
         if (-1 == access (funcfname, F_OK|R_OK))
           if (-1 == access ((funcfname = orig + ".sl", funcfname), F_OK|R_OK))
@@ -474,24 +478,30 @@ private define self_add_method (ns, method, func, ref)
   variable m = get_struct_field_names (__ns__["__SELF__"]);
 
   if (any (m == method))
-    throw __Error, "SelfIsDefinedMethodError::" + _function_name + "::" + method +
-      " is already defined", NULL;
+    {
+    if (qualifier_exists ("strict_on_err"))
+      throw __Error, "SelfIsDefinedMethodError::" + _function_name + "::" + method +
+        " is already defined", NULL;
+    }
+  else
+    {
+    variable n = @Struct_Type ([m, method]);
 
-  variable n = @Struct_Type ([m, method]);
+    variable i;
+    _for i (0, length (m) - 1)
+      set_struct_field (n, m[i], get_struct_field (__ns__["__SELF__"], m[i]));
 
-  variable i;
-  _for i (0, length (m) - 1)
-    set_struct_field (n, m[i], get_struct_field (__ns__["__SELF__"], m[i]));
-
-  NSS[ns]["__SELF__"] = n;
+    NSS[ns]["__SELF__"] = n;
+    }
 
   ifnot (NULL == func)
     func_init (ns, func, ref, 1;;__qualifiers);
 
-  eval (`
-    public variable ` + ns + ` =
-    __call__ (NULL, "` + ns + `", "__self__::__get__");
-  `);
+  ifnot (any (m == method))
+    eval (`
+      public variable ` + ns + ` =
+      __call__ (NULL, "` + ns + `", "__self__::__get__");
+      `);
 }
 
 private define __print_exc__ (e, __r__)
@@ -534,7 +544,7 @@ private define err_handler (e, __r__)
 
     if ("UndefinedNsError" == err_tok[0])
       if (NULL != __r__ && NULL != __r__.args &&
-        var_get ("__", "__AUTODECLARE__") &&
+        var_get ("__", "autodeclare") &&
           any (["&func_init", "&var_init"] == string (__r__.func)))
         {
         __.new (__r__.args[0];;__qualifiers);
@@ -628,12 +638,12 @@ public define __call__ ()
 
 private define vget__ (self, vname)
 {
-  __call__ (self, self.__name__, vname, "__::__vget__::vget__";;__qualifiers);
+  __call__ (self, self.__name, vname, "__::__vget__::vget__";;__qualifiers);
 }
 
 private define vget_ (self, vname)
 {
-  var_get (self.__name__, vname;;__qualifiers);
+  var_get (self.__name, vname;;__qualifiers);
 }
 
 private define new (self, ns)
@@ -675,7 +685,7 @@ private define new (self, ns)
       func_init (ns, "__vget_",  trace ? &vget__ : &vget_, 1;;__qualifiers);
 
     Array.map (Void_Type, &set_struct_field, NSS[ns]["__SELF__"],
-      ["err_handler", "__name__"],
+      ["err_handler", "__name"],
       {qualifier ("err_handler"), ns});
     }
 }
@@ -687,7 +697,7 @@ new (NULL, "__";
     "sget_", "sadd____", "efmt_"],
   refs = [&new, &var_put, &var_get, &var_init, &func_get, &func_init, &func_put, &self_get,
     &self_add_method, &err_format_exc],
-  vars = ["__DEBUG__", "__PROFILE__", "__AUTODECLARE__"],
+  vars = ["debug", "profile", "autodeclare"],
   values = {1, 0, 1});
 
 private define RunTime_Type (ns, func, caller, inited, args)
@@ -711,7 +721,7 @@ private define __call_at_exit__ (inited)
     list_delete (__R__, -1);
 }
 
-var_init ("__", "__DIRNS__", path_dirname (__FILE__);ConstVar = 1);
+var_init ("__", "DIRNS", path_dirname (__FILE__));
 
 __.new ("Struct";methods = "field_exists",
   funcs = ["__field_exists__"], refs = [&field_exists__]);

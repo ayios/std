@@ -23,9 +23,9 @@ typedef struct
 variable Setid_Type = struct
   {
   setid = 1,
-  uid = Env.vget ("UID"),
-  gid = Env.vget ("GID"),
-  user = Env.vget ("USER")
+  uid = Env.vget ("uid"),
+  gid = Env.vget ("gid"),
+  user = Env.vget ("user")
   };
 
 load.from ("proc", "envs", 1;err_handler = &__err_handler__);

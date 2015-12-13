@@ -389,7 +389,7 @@ private define _getpasswd_ ()
     {
     passwd = getpasswd ();
 
-    if (-1 == os->authenticate (Env.vget ("USER"), passwd))
+    if (-1 == os->authenticate (Env.vget ("user"), passwd))
       passwd = NULL;
 
     ifnot (NULL == passwd)
@@ -423,7 +423,7 @@ private define _getbgstatus_ (pid)
     else
       pidfile = BGDIR + "/" + pid + ".RUNNING";
 
-  if (0 == isnotsudo && Env.vget ("UID"))
+  if (0 == isnotsudo && Env.vget ("uid"))
     {
     variable passwd = _getpasswd_ ();
     if (NULL == passwd)
@@ -438,7 +438,7 @@ private define _getbgstatus_ (pid)
       return;
       }
 
-  if (isnotsudo || (isnotsudo == 0 == Env.vget ("UID")))
+  if (isnotsudo || (isnotsudo == 0 == Env.vget ("uid")))
     {
     variable rdfd = open (RDFIFO, O_RDONLY);
     variable buf = Sock.get_str (rdfd);

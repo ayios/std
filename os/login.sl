@@ -36,11 +36,11 @@ static define login ()
   else
     exit_me (1;msg = home + " is not a directory");
 
-  __.vput ("Env", "USER", user);
-  __.vput ("Env", "UID", uid);
-  __.vput ("Env", "GID", gid);
-  __.vput ("Env", "GROUP", group);
-  __.vput ("Env", "HOME", home);
+  __.vput ("Env", "user", user);
+  __.vput ("Env", "uid", uid);
+  __.vput ("Env", "gid", gid);
+  __.vput ("Env", "group", group);
+  __.vput ("Env", "home", home);
 
   return encryptpasswd (passwd);
 }

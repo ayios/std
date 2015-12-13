@@ -212,6 +212,9 @@ load.from ("stdio", "appendstr", NULL;err_handler = &__err_handler__);
 load.from ("array", "getsize", NULL;err_handler = &__err_handler__);
 load.from ("pcre", "find_unique_words_in_lines", 1;err_handler = &__err_handler__);
 load.from ("pcre", "find_unique_lines_in_lines", 1;err_handler = &__err_handler__);
+load.from ("api", "vundo", 0;err_handler = &__err_handler__);
+
+vundo.new ();
 
 define getXsel (){return "";}
 define seltoX (sel){}
@@ -2337,39 +2340,41 @@ define set_modified (s)
 {
   s._flags |= VED_MODIFIED;
 
-  variable
-    retval,
-    d = diff (strjoin (s.lines, "\n") + "\n", s._abspath, &retval);
-
-  if (NULL == retval)
-    {
-    send_msg_dr (d, 1, s.ptr[0], s.ptr[1]);
-    return;
-    }
-
-  if (-1 == retval)
-    {
-    % change
-    send_msg_dr (d, 1, s.ptr[0], s.ptr[1]);
-    return;
-    }
-
-  ifnot (retval)
-    return;
-
-  s.undo = [s.undo, d];
-
-  variable pos = @Pos_Type;
-
-  _store_pos_ (pos, s;;__qualifiers ());
-
-  list_append (s.undoset, pos);
-
-  s._undolevel++;
+%  variable
+%    retval,
+%    d = diff (strjoin (s.lines, "\n") + "\n", s._abspath, &retval);
+%
+%  if (NULL == retval)
+%    {
+%    send_msg_dr (d, 1, s.ptr[0], s.ptr[1]);
+%    return;
+%    }
+%
+%  if (-1 == retval)
+%    {
+%    % change
+%    send_msg_dr (d, 1, s.ptr[0], s.ptr[1]);
+%    return;
+%    }
+%
+%  ifnot (retval)
+%    return;
+%
+%  s.undo = [s.undo, d];
+%
+%  variable pos = @Pos_Type;
+%
+%  _store_pos_ (pos, s;;__qualifiers ());
+%
+%  list_append (s.undoset, pos);
+%
+%  s._undolevel++;
 }
 
 private define undo (s)
 {
+  vundo.undo (s);
+  return;
   ifnot (length (s.undo))
     return;
 
@@ -2419,6 +2424,8 @@ private define undo (s)
 
 private define redo (s)
 {
+  vundo.redo (s);
+  return;
   if (s._undolevel == length (s.undo))
     return;
 
@@ -4163,6 +4170,8 @@ private define ed_del_line (s)
 
   if (s._i > s._len)
     s._i = s._len;
+
+  vundo.set (s, strtrim_end (_get_reg_ (reg)), i;_i = s._i);
 
   set_modified (s;_i = s._i);
 
@@ -6002,8 +6011,8 @@ VED_PAGER[string (keys->rmap.backspace[0])] = &ed_del_trailws;
 VED_PAGER[string (keys->rmap.backspace[1])] = &ed_del_trailws;
 VED_PAGER[string (keys->rmap.backspace[2])] = &ed_del_trailws;
 
-ifnot (NULL == Env.vget ("DISPLAY"))
-  ifnot (NULL == Env.vget ("XAUTHORITY"))
+ifnot (NULL == Env.vget ("display"))
+  ifnot (NULL == Env.vget ("xauthority"))
     ifnot (NULL == XCLIP_BIN)
       load.from ("X", "seltoX", NULL;err_handler = &__err_handler__);
 
