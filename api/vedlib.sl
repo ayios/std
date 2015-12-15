@@ -132,7 +132,9 @@ public variable
   EL_MAP = [902, [904:906], 908, [910:929], [931:937], [945:974]],
   EN_MAP = [['a':'z'], ['A':'Z']],
   MAPS = [EL_MAP, EN_MAP],
-  WCHARS = array_map (String_Type, &char, [['0':'9'], EN_MAP, EL_MAP, '_']);
+  WCHARS = array_map (String_Type, &char, [['0':'9'], EN_MAP, EL_MAP, '_']),
+  DEFINED_UPPER_CASE = ['+', ',', '}', ')', ':'],
+  DEFINED_LOWER_CASE = ['-', '.', '{', '(', ';'];
 
 public variable
   VED_ROWS = [1:LINES - 3],
@@ -365,7 +367,8 @@ define __vfpart_of_word (s, line, col, start)
 
 define __vfind_word (s, line, col, start, end)
 {
-  if (' ' == line[col])
+  if (0 == strlen (line) || ' ' == line[col] ||
+      0 == any (WCHARS == char (line[col])))
     return "";
 
   ifnot (col - s._indent)
@@ -1593,29 +1596,54 @@ private define _adjust_col_ (s, linlen, plinlen)
       }
 }
 
+private define __define_case (chr)
+{
+  ifnot (any (@chr == [DEFINED_LOWER_CASE, DEFINED_UPPER_CASE]))
+    return 0;
+
+  variable low = 1;
+  variable ind = wherefirst_eq (DEFINED_LOWER_CASE, @chr);
+  if (NULL == ind)
+    {
+    ind = wherefirst_eq (DEFINED_UPPER_CASE, @chr);
+    low = 0;
+    }
+
+  @chr = low ? DEFINED_UPPER_CASE[ind] : DEFINED_LOWER_CASE[ind];
+
+  1;
+}
+
 private define _word_change_case_ (s, what)
 {
   variable
     ii,
     end,
     start,
-    word,
+    word = "",
     func_cond = what == "toupper" ? &islower : &isupper,
     func = what == "toupper" ? &toupper : &tolower,
     col = s._index,
     i = __vlnr (s, '.'),
-    line = __vline (s, '.');
+    line = __vline (s, '.'),
+    orig = __vfind_word (s, line, col, &start, &end);
 
-  word = __vfind_word (s, line, col, &start, &end);
+  ifnot (strlen (orig))
+    return;
 
-  variable ar = decode (word);
-  word = "";
+  variable ar = decode (orig);
 
   _for ii (0, length (ar) - 1)
-    if ((@func_cond) (ar[ii]))
-      word += char ((@func) (ar[ii]));
+    ifnot (__define_case (&ar[ii]))
+      if ((@func_cond) (ar[ii]))
+        word += char ((@func) (ar[ii]));
+      else
+        word += char (ar[ii]);
     else
       word += char (ar[ii]);
+
+  ifnot (orig == word)
+    vundo.set (s, line, i);
 
   line = sprintf ("%s%s%s", substr (line, 1, start), word, substr (line, end + 2, -1));
   s.lins[s.ptr[0] - s.rows[0]] = line;
@@ -2241,225 +2269,19 @@ private define _decr_nr_ (s)
   _set_nr_ (s, "-";count = VEDCOUNT == -1 ? 1 : VEDCOUNT);
 }
 
-%%% FIXME DIFF UNDO
-
-private variable DIFF_BIN = Sys.which ("diff");
-private variable PATCH_BIN = Sys.which ("patch");
-
-define diff (lines, fname, retval)
-{
-  variable
-    status,
-    isbigin = strbytelen (lines) >= 256 * 256,
-    p = proc->init (isbigin ? 0 : 1, 1, 1),
-    com = [DIFF_BIN, "-u", fname, "-"];
-
-  if (isbigin)
-    {
-    variable fn = VED_DIR + "/" + path_basename (fname) + "_" + string (Env.vget ("PID"));
-    () = writestring (fn, lines);
-    com[-1] = fn;
-    }
-  else
-    p.stdin.in = lines;
-
-  status = p.execv (com, NULL);
-
-  if (NULL == status)
-    {
-    @retval = NULL;
-    return "couldn't invoke diff process";
-    }
-
-  ifnot (2 > status.exit_status)
-    {
-    @retval = -1;
-    return p.stderr.out;
-    }
-
-  ifnot (status.exit_status)
-    {
-    @retval = 0;
-    return String_Type[0];
-    }
-
-  @retval = 1;
-
-  return p.stdout.out;
-}
-
-define patch (in, dir, retval)
-{
-  variable isbigin = 256 * 256 >= strbytelen (in);
-  variable isbigout = qualifier ("isbig", 0);
-  variable com = [PATCH_BIN, "-d", dir, "-r", VED_DIR + "/patchrej.diff"];
-  variable out = "-";
-
-  if (isbigin)
-    {
-    variable fin = VED_DIR + "/pathchin.diff";
-    () = writestring (fin, in);
-    com = [com, "-i", fin];
-    }
-
-  if (isbigout)
-    out = VED_DIR + "/patchout.diff";
-
-  com = [com, "-o", out];
-
-  variable p = proc->init (isbigin ? 0 : 1, 1, 1);
-  ifnot (isbigin)
-    p.stdin.in = in;
-
-  variable status = p.execv (com, NULL);
-
-  if (NULL == status)
-    {
-    @retval = NULL;
-    return "couldn't invoke patch process";
-    }
-
-  ifnot (2 > status.exit_status)
-    {
-    @retval = -1;
-    return p.stderr.out;
-    }
-
-  if (1 == status.exit_status)
-    {
-    @retval = 1;
-    return p.stderr.out;
-    }
-
-  @retval = 0;
-
-  isbigout ? strjoin (IO.readfile (out), "\n") : p.stdout.out;
-}
-
 define set_modified (s)
 {
   s._flags |= VED_MODIFIED;
-
-%  variable
-%    retval,
-%    d = diff (strjoin (s.lines, "\n") + "\n", s._abspath, &retval);
-%
-%  if (NULL == retval)
-%    {
-%    send_msg_dr (d, 1, s.ptr[0], s.ptr[1]);
-%    return;
-%    }
-%
-%  if (-1 == retval)
-%    {
-%    % change
-%    send_msg_dr (d, 1, s.ptr[0], s.ptr[1]);
-%    return;
-%    }
-%
-%  ifnot (retval)
-%    return;
-%
-%  s.undo = [s.undo, d];
-%
-%  variable pos = @Pos_Type;
-%
-%  _store_pos_ (pos, s;;__qualifiers ());
-%
-%  list_append (s.undoset, pos);
-%
-%  s._undolevel++;
 }
 
 private define undo (s)
 {
-  vundo.undo (s);
-  return;
-  ifnot (length (s.undo))
-    return;
-
-  variable
-    retval,
-    in,
-    isbig = 256 * 256 <= s.st_.st_size,
-    d;
-
-  if (0 == s._undolevel)
-    {
-    s.lines = __vgetlines (s._abspath, s._indent, s.st_);
-    s._len = length (s.lines) - 1;
-    s._i = s._ii;
-    s.draw ();
-    return;
-    }
-
-  in = s.undo[s._undolevel - 1];
-
-  d = patch (in, s._dir, &retval;isbig = isbig);
-
-  if (NULL == retval)
-    {
-    send_msg_dr (d, 1, s.ptr[0], s.ptr[1]);
-    return;
-    }
-
-  if (-1 == retval || 1 == retval)
-    {
-    % change
-    send_msg_dr (d, 1, s.ptr[0], s.ptr[1]);
-    return;
-    }
-
-  s.lines = strchop (d, '\n', 0);
-  s._len = length (s.lines) - 1;
-
-  _restore_pos_ (s.undoset[s._undolevel - 1], s);
-
-  s._undolevel--;
-
-  s._flags |= VED_MODIFIED;
-
-  s.draw ();
+  vundo.undolw (s);
 }
 
 private define redo (s)
 {
   vundo.redo (s);
-  return;
-  if (s._undolevel == length (s.undo))
-    return;
-
-  variable
-    retval,
-    in = s.undo[s._undolevel],
-    isbig = 256 * 256 <= s.st_.st_size,
-    d;
-
-  d = patch (in, path_dirname (s._fname), &retval;isbig = isbig);
-
-  if (NULL == retval)
-    {
-    send_msg_dr (d, 1, s.ptr[0], s.ptr[1]);
-    return;
-    }
-
-  if (-1 == retval || 1 == retval)
-    {
-    % change
-    send_msg_dr (d, 1, s.ptr[0], s.ptr[1]);
-    return;
-    }
-
-  s.lines = strchop (d, '\n', 0);
-  s._len = length (s.lines) - 1;
-
-  _restore_pos_ (s.undoset[s._undolevel], s);
-
-  s._undolevel++;
-
-  s._flags |= VED_MODIFIED;
-
-  s.draw ();
 }
 
 %%% SEARCH
@@ -3351,6 +3173,7 @@ private define v_l_loop (vs, s)
 
       s.st_.st_size = getsizear (s.lines);
       set_modified (s);
+      vundo.set (s, vs.lines, vs.lnrs);
       s.draw ();
       send_msg ("deleted", 1);
       return;
@@ -4171,7 +3994,7 @@ private define ed_del_line (s)
   if (s._i > s._len)
     s._i = s._len;
 
-  vundo.set (s, strtrim_end (_get_reg_ (reg)), i;_i = s._i);
+  vundo.set (s, strtok (strtrim_end (_get_reg_ (reg)), "\n"), [i];_i = s._i, deleted);
 
   set_modified (s;_i = s._i);
 
@@ -4196,6 +4019,8 @@ private define ed_del_word (s, what)
   word = (@func) (s, line, col, &start, &end);
 
   _set_reg_ (reg, word);
+
+  vundo.set (s, line, i);
 
   line = sprintf ("%s%s", substr (line, 1, start), substr (line, end + 2, -1));
 
@@ -4448,6 +4273,7 @@ private define ed_del_to_end (s)
     s.lines[i] = line;
     s.lins[s.ptr[0] - s.rows[0]] = line;
 
+    vundo.set (s, [_get_reg_ (reg)], [i]);
     set_modified (s);
 
     s.st_.st_size = getsizear (s.lines);
@@ -4471,6 +4297,8 @@ private define ed_del_to_end (s)
 
   s.ptr[1]--;
   s._index--;
+
+  vundo.set (s, [_get_reg_ (reg)], [i]);
 
   set_modified (s);
 
@@ -4500,7 +4328,10 @@ private define ed_editline (s)
     next_l = s.lines[lnr + 1];
 
   if ('C' == s._chr)
+    {
+    vundo.set (s, [line], [lnr]);
     line = substr (line, 1, s._index);
+    }
   else if ('a' == s._chr && len)
     {
     s._index++;
@@ -4660,7 +4491,6 @@ private define ed_put (s)
 private define ed_toggle_case (s)
 {
   variable
-    func,
     col = s._index,
     i = __vlnr (s, '.'),
     line = __vline (s, '.'),
@@ -4668,9 +4498,14 @@ private define ed_toggle_case (s)
 
   chr = decode (chr)[0];
 
-  func = islower (chr) ? &toupper : &tolower;
 
-  chr = char ((@func) (chr));
+  ifnot (__define_case (&chr))
+    {
+    variable func = islower (chr) ? &toupper : &tolower;
+    chr = char ((@func) (chr));
+    }
+  else
+    chr = char (chr);
 
   s.st_.st_size -= strbytelen (line);
   line = substr (line, 1, col) + chr + substr (line, col + 2, - 1);

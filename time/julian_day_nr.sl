@@ -30,6 +30,6 @@ define julian_day_nr (tim)
 
   if (12 > lhour >= 0)
     jdn--;
- 
+
   return jdn;
 }
