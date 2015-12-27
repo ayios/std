@@ -1,4 +1,4 @@
-define decode (str)
+private define decode (self, str)
 {
   variable
     d,
@@ -14,6 +14,5 @@ define decode (str)
       break;
     }
 
-  return length (l) ? list_to_array (l) : ['\n'];
+  length (l) ? list_to_array (l) : ['\n'];
 }
-

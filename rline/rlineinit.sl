@@ -531,10 +531,10 @@ private define append_dir_indicator (base, files)
 
 private define _sort_by_mtime_ (dir, ar)
 {
-  array_sort (array_map (ULong_Type, &get_struct_field,
-    array_map (Struct_Type, &stat_file,
-    array_map (String_Type, &path_concat, dir, ar)),
-    "st_mtime"); dir = -1);
+  variable lar = array_map (String_Type, &path_concat, dir, ar);
+  variable st = array_map (Struct_Type, &stat_file, lar);
+  st = st[wherenot (_isnull (st))];
+  array_sort (array_map (ULong_Type, &get_struct_field, st, "st_mtime");dir = -1);
 }
 
 private define listdirectory (retval, dir, pat, pos)

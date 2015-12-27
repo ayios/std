@@ -5,7 +5,7 @@ private define tostdout ()
   variable args = __pop_list (_NARGS);
 
   if (1 == length (args) && typeof (args[0]) == Array_Type &&
-    any ([String_Type, Integer_Type] == _typeof (args[0])))
+    any ([String_Type, Integer_Type, UInteger_Type] == _typeof (args[0])))
     {
     args = args[0];
 

@@ -174,6 +174,36 @@ public variable __;
 private variable NSS  = Assoc_Type[Any_Type];
 private variable __R__ = {};
 
+private define add_self (ns)
+{
+  variable self = qualifier ("methods");
+  variable methods = "err_handler" + (ns == "__" ? "" : ",vget");
+  ifnot (NULL == self)
+    if (String_Type == typeof (self))
+      methods += "," + self;
+
+  variable i;
+  methods = strchop (methods, ',', 0);
+  _for i (0, length (methods) - 1)
+    methods[i] = strtrim (strtrim (methods[i]), "_");
+
+  self = qualifier ("varself");
+  variable varmethods = "name";
+  ifnot (NULL == self)
+    if (String_Type == typeof (self))
+      varmethods += "," + self;
+
+  varmethods = strchop (varmethods, ',', 0);
+  _for i (0, length (varmethods) - 1)
+    varmethods[i] = "__" + strtrim (strtrim (varmethods[i]), "_");
+
+  methods = [methods, varmethods];
+
+  NSS[ns]["__SELF__"] = @Struct_Type (methods);
+  NSS[ns]["__SELF__"].__name = ns;
+  NSS[ns]["__SELF__"].err_handler = qualifier ("err_handler");
+}
+
 private define ns_get (ns)
 {
   ifnot (assoc_key_exists (NSS, ns))
@@ -190,31 +220,7 @@ private define ns_get (ns)
       NSS[ns]["__FUNC__"] = Assoc_Type[Struct_Type];
 
     if (self)
-      {
-      self = qualifier ("methods");
-      variable methods = "err_handler" + (ns == "__" ? "" : ",vget");
-      ifnot (NULL == self)
-        if (String_Type == typeof (self))
-          methods += "," + self;
-
-      variable i;
-      methods = strchop (methods, ',', 0);
-      _for i (0, length (methods) - 1)
-        methods[i] = strtrim (strtrim (methods[i]), "_");
-
-      self = qualifier ("varself");
-      variable varmethods = "name";
-      ifnot (NULL == self)
-        if (String_Type == typeof (self))
-          varmethods += "," + self;
-
-      varmethods = strchop (varmethods, ',', 0);
-      _for i (0, length (varmethods) - 1)
-        varmethods[i] = "__" + strtrim (strtrim (varmethods[i]), "_");
-
-      methods = [methods, varmethods];
-      NSS[ns]["__SELF__"] = @Struct_Type (methods);
-      }
+      add_self (ns;;__qualifiers);
     }
 
   NSS[ns];
@@ -264,8 +270,8 @@ private define __check___V__ (o, func)
 
 private define var_init (ns, vname, vval)
 {
-  ns = __check_ns__ (ns, _function_name);
-  variable __v__ = __check___V__ (ns, _function_name);
+  ns = ns_get (ns;;struct {@__qualifiers, addVar = 1});
+  variable __v__ = ns["__V__"];
 
   vname = strtrim (vname, "__");
 
@@ -300,8 +306,8 @@ private define var_init (ns, vname, vval)
 
 private define var_put (ns, vname, vval)
 {
-  variable __ns__ = __check_ns__ (ns, _function_name);
-  variable __v__ = __check___V__ (__ns__, _function_name);
+  variable __ns__ = ns_get (ns;;struct {@__qualifiers, addVar = 1});
+  variable __v__ = __ns__["__V__"];
 
   if (0 == assoc_key_exists (__v__, vname) || qualifier ("ReInitVar", 0))
     var_init (ns, vname, vval;;__qualifiers);
@@ -332,9 +338,25 @@ private define var_get (ns, vname)
   __v__[vname].val;
 }
 
+private define add_method (ns, method)
+{
+  variable m = get_struct_field_names (ns["__SELF__"]);
+
+  if (any (m == method))
+    return m;
+
+  variable n = @Struct_Type ([m, method]);
+  variable i;
+  _for i (0, length (m) - 1)
+    set_struct_field (n, m[i], get_struct_field (ns["__SELF__"], m[i]));
+
+  NSS[ns["__SELF__"].__name]["__SELF__"] = n;
+  m;
+}
+
 private define func_init (ns, func, ref, method)
 {
-  variable __ns__ = __check_ns__ (ns, _function_name);
+  variable __ns__ = ns_get (ns;;struct {@__qualifiers, addFun = 1});
   variable __f__ = __ns__["__FUNC__"];
   variable varargs = qualifier ("varargs", func[-1] == '?'
     ? (func = strtrim_end (func, "?"), 1) : 0);
@@ -354,11 +376,6 @@ private define func_init (ns, func, ref, method)
         throw __Error, sprintf (
          "%S: is not a RefType not callable, and declaration qualifiers are missing", func),
            NULL;
-
-  if (assoc_key_exists (__f__, f))
-    ifnot (qualifier ("ReInitFunc", 0))
-      throw __Error,  "FunctionIsDefinedError::" + _function_name + "::" + func +
-        ", is defined", NULL;
 
   ifnot (NULL == ref)
     __f__[f] = struct {func = ref, self = strlen (func) != strlen (fb),
@@ -391,56 +408,60 @@ private define func_init (ns, func, ref, method)
 
     funcstr += "\n" + `__.fput ("` + ns + `", "` + func + `", &` +
       funcrefname + `;` + `ismethod=` + string (method) +
-        `, debug = ` + string (qualifier ("debug")) + `, ReInitFunc = ` +
-        string (qualifier ("ReInitFunc")) + `, trace = ` +
-        string (trace) + `);`;
+        `, debug = ` + string (qualifier ("debug")) +
+        `, trace = ` + string (trace) + `);`;
 
      try
-       eval (funcstr, ns);
+       eval (funcstr);
      catch AnyError:
        throw __Error, "FuncFromQualifierEvalError::" + _function_name +
          "::EVALSTRING: " + funcstr, __get_exception_info;
      }
 
-  if (method)
+  ifnot (method)
+    return;
+
+  ifnot (assoc_key_exists (__ns__, "__SELF__"))
+    add_self (ns;;__qualifiers);
+
+  ifnot (Struct.field_exists (__ns__["__SELF__"], fe))
+    () = add_method (__ns__, fe);
+
+  ifnot (trace)
     {
-    if (assoc_key_exists (__ns__, "__SELF__"))
-      if (Struct.field_exists (__ns__["__SELF__"], fe))
-        ifnot (trace)
-          set_struct_field (__ns__["__SELF__"], fe, __f__[f].func);
-         else
-           {
-           variable def_body, def_args;
-           if (varargs)
-             {
-             def_body = "\n" + `  variable args = __pop_list (_NARGS);` + "\n" +
-             ` list_append (args, "` + ns + `::` + f + `::` + f + `");` + "\n" +
-             `  __call__ (__push_list (args);;__qualifiers);`;
-             def_args = "";
-             }
-           else
-             {
-             variable i;
-             def_args = "self";
-             _for i (1, __f__[f].nargs)
-               def_args += ", arg" + string (i);
+    set_struct_field (__ns__["__SELF__"], fe, __f__[f].func);
+    return;
+    }
 
-             def_body = "\n" + `  __call__ (` + def_args + `, "` + ns + `::` +
-               f + `::@method@";;__qualifiers);`;
-             }
+  variable def_body, def_args;
+  if (varargs)
+    {
+    def_body = "\n" + `  variable args = __pop_list (_NARGS);` + "\n" +
+    ` list_append (args, "` + ns + `::` + f + `::` + f + `");` + "\n" +
+    `  __call__ (__push_list (args);;__qualifiers);`;
+    def_args = "";
+    }
+  else
+    {
+    variable i;
+    def_args = "self";
+    _for i (1, __f__[f].nargs)
+      def_args += ", arg" + string (i);
 
-          variable str = "\n" + `private define  ` + f + ` (` + def_args + `)` + "\n" +
-            `{` + def_body + "\n}\n" +
-            `set_struct_field (__call__ (NULL, "` + ns + `", "__self__::__get__"), "` +
-            fe + `", &` + f + `);` + "\n";
+    def_body = "\n" + `  __call__ (` + def_args + `, "` + ns + `::` +
+      f + `::@method@";;__qualifiers);`;
+    }
 
-          try
-            eval (str, ns);
-          catch AnyError:
-            throw __Error, "FuncMethodEvalError::" + _function_name + "::EVALSTRING: " + str,
-              __get_exception_info;
-          }
-       }
+  variable str = "\n" + `private define  ` + f + ` (` + def_args + `)` + "\n" +
+    `{` + def_body + "\n}\n" +
+    `set_struct_field (__call__ (NULL, "` + ns + `", "__self__::__get__"), "` +
+    fe + `", &` + f + `);` + "\n";
+
+  try
+    eval (str, ns);
+  catch AnyError:
+    throw __Error, "FuncMethodEvalError::" + _function_name + "::EVALSTRING: " + str,
+      __get_exception_info;
 }
 
 private define func_get (ns, func)
@@ -470,29 +491,8 @@ private define self_get (ns)
 
 private define self_add_method (ns, method, func, ref)
 {
-  variable __ns__ = __check_ns__ (ns, _function_name);
-  ifnot (assoc_key_exists (__ns__, "__SELF__"))
-    throw __Error, "SelfIsUndefinedError::" + _function_name + "::" + ns +
-      ", __SELF__ is not defined", NULL;
-
-  variable m = get_struct_field_names (__ns__["__SELF__"]);
-
-  if (any (m == method))
-    {
-    if (qualifier_exists ("strict_on_err"))
-      throw __Error, "SelfIsDefinedMethodError::" + _function_name + "::" + method +
-        " is already defined", NULL;
-    }
-  else
-    {
-    variable n = @Struct_Type ([m, method]);
-
-    variable i;
-    _for i (0, length (m) - 1)
-      set_struct_field (n, m[i], get_struct_field (__ns__["__SELF__"], m[i]));
-
-    NSS[ns]["__SELF__"] = n;
-    }
+  variable __ns__ = ns_get (ns;;struct {@__qualifiers, addFun = 1, addSelf = 1});
+  variable m = add_method (__ns__, method);
 
   ifnot (NULL == func)
     func_init (ns, func, ref, 1;;__qualifiers);
@@ -533,7 +533,8 @@ private define __print_exc__ (e, __r__)
 
 private define err_handler (e, __r__)
 {
-  __print_exc__ (e, __r__);
+  ifnot (NULL == __r__)
+    __print_exc__ (e, __r__);
 
   variable err;
   while (NULL != e && Struct.field_exists (e, "message") && NULL != (err = e.message, err))
@@ -574,23 +575,18 @@ private define err_handler (e, __r__)
     return;
     }
 
-  try
-    {
-    if (NULL != __r__ &&
-        Struct_Type == typeof (__r__) &&
-        Struct.field_exists (__r__, "ns") &&
-        NULL != __r__.ns)
-      variable handler = self_get (__r__.ns).err_handler;
+  variable handler = NULL;
 
-    if (NULL != handler &&
-        Ref_Type == typeof (handler) &&
-        __is_callable (handler))
-      {
-      (@handler) (__r__;;__qualifiers);
-      return;
-      }
-    }
-  finally {}
+  if (NULL != __r__ &&
+      Struct_Type == typeof (__r__) &&
+      Struct.field_exists (__r__, "ns") &&
+      NULL != __r__.ns)
+    handler = self_get (__r__.ns).err_handler;
+
+  if (NULL != handler &&
+      Ref_Type == typeof (handler) &&
+      __is_callable (handler))
+    (@handler) (__r__;;__qualifiers);
 }
 
 private define RunTime_Type () {loop (_NARGS) pop ();}
@@ -648,13 +644,6 @@ private define vget_ (self, vname)
 
 private define new (self, ns)
 {
-  if (assoc_key_exists (NSS, ns) && 0 == qualifier ("ReInitNs", 0))
-    if (qualifier_exists ("throw"))
-      throw __Error, "NsIsDefined::" + _function_name + "::" + ns
-        + ", is already defined", NULL;
-    else
-      return;
-
   variable init = ns_get (ns;;__qualifiers);
   variable funcs = qualifier ("funcs");
   variable refs = qualifier ("refs");
@@ -683,16 +672,12 @@ private define new (self, ns)
 
     ifnot (ns == "__")
       func_init (ns, "__vget_",  trace ? &vget__ : &vget_, 1;;__qualifiers);
-
-    Array.map (Void_Type, &set_struct_field, NSS[ns]["__SELF__"],
-      ["err_handler", "__name"],
-      {qualifier ("err_handler"), ns});
     }
 }
 
 new (NULL, "__self__";funcs = ["get_"], refs = [&self_get], addVar = 0, addSelf = 0);
-new (NULL, "__";
-  methods = "new,vput,vget,vinit,fget,finit,fput,sget,sadd,efmt",
+
+new (NULL, "__"; methods = "new,vput,vget,vinit,fget,finit,fput,sget,sadd,efmt",
   funcs = ["__new_", "vput___", "vget__", "vinit___", "fget__", "finit____", "fput___",
     "sget_", "sadd____", "efmt_"],
   refs = [&new, &var_put, &var_get, &var_init, &func_get, &func_init, &func_put, &self_get,
@@ -725,7 +710,9 @@ var_init ("__", "DIRNS", path_dirname (__FILE__));
 
 __.new ("Struct";methods = "field_exists",
   funcs = ["__field_exists__"], refs = [&field_exists__]);
+
 __.new ("Array";methods = "map", funcs = ["map?"], refs = [Array.tmp]);
+
 __.new ("IO";methods = "readfd,readfile,tostderr,tostdout",
   funcs = ["readfd_", "tostderr?"],
   refs = [IO.readfd, IO.tmp]);

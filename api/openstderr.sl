@@ -11,9 +11,11 @@ define tostderr__ ()
   () = lseek (STDERRFD, 0, SEEK_END);
 
   if (1 == length (args) && typeof (args[0]) == Array_Type &&
-    String_Type == _typeof (args[0]))
+    any ([String_Type, Integer_Type, UInteger_Type] == _typeof (args[0])))
     {
     args = args[0];
+    if (any (_typeof (args) == [Integer_Type, UInteger_Type]))
+      args = array_map (String_Type, &string, args);
 
     ifnot (qualifier_exists ("n"))
       args += "\n";

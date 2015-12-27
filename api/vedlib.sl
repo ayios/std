@@ -206,17 +206,26 @@ private define build_ftype_table ()
 build_ftype_table ();
 
 if (-1 == mkdir (VED_DIR, File.vget ("PERM")["PRIVATE"]))
-  __err_handler__ (1;msg = VED_DIR + ": cannot make directory, " + errno_string (errno)); 
+  __err_handler__ (1;msg = VED_DIR + ": cannot make directory, " + errno_string (errno));
+
+__.sadd ("String", "decode", "decode", NULL;trace =0);
 
 load.from ("search", "searchandreplace", "search";err_handler = &__err_handler__);
-load.from ("string", "decode", NULL;err_handler = &__err_handler__);
 load.from ("stdio", "appendstr", NULL;err_handler = &__err_handler__);
 load.from ("array", "getsize", NULL;err_handler = &__err_handler__);
 load.from ("pcre", "find_unique_words_in_lines", 1;err_handler = &__err_handler__);
 load.from ("pcre", "find_unique_lines_in_lines", 1;err_handler = &__err_handler__);
 load.from ("api", "vundo", 0;err_handler = &__err_handler__);
 
-vundo.new ();
+__.sadd ("Array", "istype", "istype__", NULL);
+
+__.new ("File";methods = "are_same,isreg",
+  funcs = ["are_same__", "isreg_"],
+  refs = [NULL, NULL]);
+
+__.new ("Diff";methods = "new,patch,files",
+  funcs = ["__new__", "patch_", "__files__"],
+  refs = [NULL, NULL, NULL]);
 
 define getXsel (){return "";}
 define seltoX (sel){}
@@ -327,7 +336,7 @@ define __vtail (s)
     "[%s] (row:%d col:%d lnr:%d/%d %.0f%% strlen:%d chr:%d) undo %d/%d",
     path_basename (s._fname), s.ptr[0], s.ptr[1] - s._indent + 1, lnr,
     s._len + 1, (100.0 / s._len) * (lnr - 1), __vlinlen (s, '.'),
-    qualifier ("chr", decode (substr (line, s._index + 1, 1))[0]),
+    qualifier ("chr", String.decode (substr (line, s._index + 1, 1))[0]),
     s._undolevel, length (s.undo));
 }
 
@@ -1154,20 +1163,20 @@ define bufdelete (s, bufname, force)
     }
 }
 
-private define _store_pos_ (pos, s)
+define __vedStorePos (v, pos)
 {
-  pos._i = qualifier ("_i", s._ii);
-  pos.ptr = @s.ptr;
-  pos._index = s._index;
-  pos._findex = s._findex;
+  pos._i = qualifier ("_i", v._ii);
+  pos.ptr = @v.ptr;
+  pos._index = v._index;
+  pos._findex = v._findex;
 }
 
-private define _restore_pos_ (pos, s)
+define __vedRestorePos (v, pos)
 {
-  s._i = pos._i;
-  s.ptr = pos.ptr;
-  s._index = pos._index;
-  s._findex = pos._findex;
+  v._i = pos._i;
+  v.ptr = pos.ptr;
+  v._index = pos._index;
+  v._findex = pos._findex;
 }
 
 private define _rdregs_ ()
@@ -1228,14 +1237,14 @@ private define mark_init (m)
 
 array_map (&mark_init, array_map (String_Type, &string, ['`', '<', '>']));
 
-private define mark_set (m, s)
+private define mark_set (s, m)
 {
-  _store_pos_ (MARKS[m], s);
+  __vedStorePos (s, MARKS[m]);
 }
 
 define markbacktick (s)
 {
-  mark_set (string ('`'), s);
+  mark_set (s, string ('`'));
 }
 
 private define mark (s)
@@ -1246,7 +1255,7 @@ private define mark (s)
     {
     m = string (m);
     mark_init (m);
-    mark_set (m, s);
+    mark_set (s, m);
     }
 }
 
@@ -1618,6 +1627,7 @@ private define _word_change_case_ (s, what)
 {
   variable
     ii,
+    chr,
     end,
     start,
     word = "",
@@ -1631,8 +1641,8 @@ private define _word_change_case_ (s, what)
   ifnot (strlen (orig))
     return;
 
-  variable ar = decode (orig);
-
+  variable ar = String.decode (orig);
+IO.tostderr (ar);
   _for ii (0, length (ar) - 1)
     ifnot (__define_case (&ar[ii]))
       if ((@func_cond) (ar[ii]))
@@ -2276,7 +2286,7 @@ define set_modified (s)
 
 private define undo (s)
 {
-  vundo.undolw (s);
+  vundo.undo (s);
 }
 
 private define redo (s)
@@ -3173,7 +3183,7 @@ private define v_l_loop (vs, s)
 
       s.st_.st_size = getsizear (s.lines);
       set_modified (s);
-      vundo.set (s, vs.lines, vs.lnrs);
+      vundo.set (s, vs.lines, vs.lnrs;deleted);
       s.draw ();
       send_msg ("deleted", 1);
       return;
@@ -3430,7 +3440,7 @@ private define v_char_mode (vs, s)
       set_modified (s);
 
       waddline (s, __vgetlinestr (s, s.lines[vs.startlnr], 1), 0, s.ptr[0]);
-
+      vundo.set (s, [s.lines[vs.startlnr]], [vs.startlnr]);
       __vdraw_tail (s);
       send_msg ("deleted", 1);
       return;
@@ -3646,6 +3656,8 @@ private define v_bw_mode (vs, s)
       sel = strjoin (vs.sel, "\n");
       _set_reg_ ("\"", sel);
       seltoX (sel);
+      vundo.set (s, vs.lines, vs.lnrs;blwise);
+
       _for i (0, length (vs.lnrs) - 1)
         {
         lnr = vs.lnrs[i];
@@ -3673,6 +3685,7 @@ private define v_bw_mode (vs, s)
       sel = strjoin (vs.sel, "\n");
       _set_reg_ ("\"", sel);
       seltoX (sel);
+      vundo.set (s, vs.lines, vs.lnrs;blwise);
       variable txt = rline->__gettxt ("", vs.vlins[0] - 1, vs.startcol)._lin;
 
       _for i (0, length (vs.lnrs) - 1)
@@ -3734,6 +3747,7 @@ private define v_bw_mode (vs, s)
         s.lines[lnr] = line;
         }
 
+      vundo.set (s, vs.lines, vs.lnrs;blwise);
       set_modified (s);
       break;
       }
@@ -4496,7 +4510,7 @@ private define ed_toggle_case (s)
     line = __vline (s, '.'),
     chr = substr (line, col + 1, 1);
 
-  chr = decode (chr)[0];
+  chr = String.decode (chr)[0];
 
 
   ifnot (__define_case (&chr))
@@ -4545,7 +4559,7 @@ private define ins_tab (is, s, line)
     {
     s.ptr[1] += len;
     waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
-    __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+    __vdraw_tail (s;chr = String.decode (substr (@line, s._index + 1, 1))[0]);
     return;
     }
 
@@ -4563,7 +4577,7 @@ private define ins_tab (is, s, line)
     lline = __vgetlinestr (s, @line, s._findex + 1 - s._indent);
 
   waddline (s, lline, 0, s.ptr[0]);
-  __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+  __vdraw_tail (s;chr = String.decode (substr (@line, s._index + 1, 1))[0]);
 }
 
 private define ins_reg (s, line)
@@ -4588,7 +4602,7 @@ private define ins_char (is, s, line)
     {
     s.ptr[1]++;
     waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
-    __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+    __vdraw_tail (s;chr = String.decode (substr (@line, s._index + 1, 1))[0]);
     return;
     }
 
@@ -4604,7 +4618,7 @@ private define ins_char (is, s, line)
     s.ptr[1]++;
 
   waddline (s, lline, 0, s.ptr[0]);
-  __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+  __vdraw_tail (s;chr = String.decode (substr (@line, s._index + 1, 1))[0]);
 }
 
 private define ins_del_prev (is, s, line)
@@ -4655,7 +4669,7 @@ private define ins_del_prev (is, s, line)
     lline = __vgetlinestr (s, @line, s._findex + 1 - s._indent);
 
     waddline (s, lline, 0, s.ptr[0]);
-    __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+    __vdraw_tail (s;chr = String.decode (substr (@line, s._index + 1, 1))[0]);
     is.modified = 1;
     return;
     }
@@ -4677,14 +4691,14 @@ private define ins_del_prev (is, s, line)
       s._findex = len - s._linlen;
       lline = substr (@line, s._findex + 1, -1);
       waddline (s, lline, 0, s.ptr[0]);
-      __vdraw_tail (s;chr = decode (substr (@line, s._index, 1))[0]);
+      __vdraw_tail (s;chr = String.decode (substr (@line, s._index, 1))[0]);
       return;
       }
 
     s._findex = s._indent;
     s.ptr[1] = len;
     waddline (s, @line, 0, s.ptr[0]);
-    __vdraw_tail (s;chr = decode (substr (@line, s._index, 1))[0]);
+    __vdraw_tail (s;chr = String.decode (substr (@line, s._index, 1))[0]);
     s._is_wrapped_line = 0;
     return;
     }
@@ -4699,7 +4713,7 @@ private define ins_del_prev (is, s, line)
     waddlineat (s, lline, 0, s.ptr[0], s.ptr[1], s._maxlen);
     }
 
-  __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+  __vdraw_tail (s;chr = String.decode (substr (@line, s._index + 1, 1))[0]);
 
   is.modified = 1;
 }
@@ -4720,7 +4734,7 @@ private define ins_del_next (is, s, line)
           s.draw (;dont_draw);
           is.modified = 1;
           waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
-          __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+          __vdraw_tail (s;chr = String.decode (substr (@line, s._index + 1, 1))[0]);
           }
 
         return;
@@ -4729,7 +4743,7 @@ private define ins_del_next (is, s, line)
         {
         @line = " ";
         waddline (s, @line, 0, s.ptr[0]);
-        __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+        __vdraw_tail (s;chr = String.decode (substr (@line, s._index + 1, 1))[0]);
         is.modified = 1;
         return;
         }
@@ -4750,7 +4764,7 @@ private define ins_del_next (is, s, line)
       else
         waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
 
-      __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+      __vdraw_tail (s;chr = String.decode (substr (@line, s._index + 1, 1))[0]);
       }
 
     return;
@@ -4763,7 +4777,7 @@ private define ins_del_next (is, s, line)
   else
     waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
 
-  __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+  __vdraw_tail (s;chr = String.decode (substr (@line, s._index + 1, 1))[0]);
   is.modified = 1;
 }
 
@@ -4788,7 +4802,7 @@ private define ins_eol (is, s, line)
   else
     s.ptr[1] = len;
 
-  __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+  __vdraw_tail (s;chr = String.decode (substr (@line, s._index + 1, 1))[0]);
 }
 
 private define ins_bol (is, s, line)
@@ -4797,7 +4811,7 @@ private define ins_bol (is, s, line)
   s._index = s._indent;
   s.ptr[1] = s._indent;
   waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
-  __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+  __vdraw_tail (s;chr = String.decode (substr (@line, s._index + 1, 1))[0]);
   s._is_wrapped_line = 0;
 }
 
@@ -4818,7 +4832,7 @@ private define ins_completeline (is, s, line, comp_line)
       s.ptr[1]++;
 
     waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
-    __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+    __vdraw_tail (s;chr = String.decode (substr (@line, s._index + 1, 1))[0]);
     is.modified = 1;
     }
 }
@@ -4849,7 +4863,7 @@ private define ins_right (is, s, line)
     waddline (s, lline, 0, s.ptr[0]);
     }
 
-  __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+  __vdraw_tail (s;chr = String.decode (substr (@line, s._index + 1, 1))[0]);
 }
 
 private define ins_left (is, s, line)
@@ -4858,7 +4872,7 @@ private define ins_left (is, s, line)
     {
     s._index--;
     s.ptr[1]--;
-    __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+    __vdraw_tail (s;chr = String.decode (substr (@line, s._index + 1, 1))[0]);
     }
   else
     if (s._is_wrapped_line)
@@ -4869,7 +4883,7 @@ private define ins_left (is, s, line)
 
       waddline (s, lline, 0, s.ptr[0]);
 
-      __vdraw_tail (s;chr = decode (substr (@line, s._index, 1))[0]);
+      __vdraw_tail (s;chr = String.decode (substr (@line, s._index, 1))[0]);
 
       if (s._index - 1 == s._indent)
         s._is_wrapped_line = 0;
@@ -4954,8 +4968,8 @@ private define ins_down (is, s, line)
     s.ptr[0]++;
     __vdraw_tail (s;chr = strlen (@line)
       ? s._index > s._indent
-        ? decode (substr (@line, s._index + 1, 1))[0]
-        : decode (substr (@line, s._indent + 1, 1))[0]
+        ? String.decode (substr (@line, s._index + 1, 1))[0]
+        : String.decode (substr (@line, s._indent + 1, 1))[0]
       : ' ');
 
     return;
@@ -4971,8 +4985,8 @@ private define ins_down (is, s, line)
 
   variable chr = strlen (@line)
     ? s._index > s._indent
-      ? decode (substr (@line, s._index + 1, 1))[0]
-      : decode (substr (@line, s._indent + 1, 1))[0]
+      ? String.decode (substr (@line, s._index + 1, 1))[0]
+      : String.decode (substr (@line, s._indent + 1, 1))[0]
     : ' ';
 
   s.draw (;chr = chr);
@@ -5023,8 +5037,8 @@ private define ins_up (is, s, line)
     s.ptr[0]--;
     __vdraw_tail (s;chr = strlen (@line)
       ? s._index > s._indent
-        ? decode (substr (@line, s._index + 1, 1))[0]
-        : decode (substr (@line, s._indent + 1, 1))[0]
+        ? String.decode (substr (@line, s._index + 1, 1))[0]
+        : String.decode (substr (@line, s._indent + 1, 1))[0]
       : ' ');
     return;
     }
@@ -5033,8 +5047,8 @@ private define ins_up (is, s, line)
 
   variable chr = strlen (@line)
     ? s._index > s._indent
-      ? decode (substr (@line, s._index + 1, 1))[0]
-      : decode (substr (@line, s._indent + 1, 1))[0]
+      ? String.decode (substr (@line, s._index + 1, 1))[0]
+      : String.decode (substr (@line, s._indent + 1, 1))[0]
     : ' ';
 
   s.draw (;chr = chr);
@@ -5094,7 +5108,7 @@ private define ins_cr (is, s, line)
     s.draw (;dont_draw);
 
     waddline (s, @line, 0, s.ptr[0]);
-    __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+    __vdraw_tail (s;chr = String.decode (substr (@line, s._index + 1, 1))[0]);
 
     s._index = indent;
     s._findex = s._indent;
@@ -5257,7 +5271,7 @@ define ctrl_completion_rout (s, line, type)
 
       s.ptr[1] = s._index;
 
-      __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+      __vdraw_tail (s;chr = String.decode (substr (@line, s._index + 1, 1))[0]);
 
       return;
       }
@@ -5359,7 +5373,7 @@ define ins_fnamecompletion (lnr, s, line)
   set_modified (s);
 
   waddline (s, __vgetlinestr (s, @line, 1), 0, s.ptr[0]);
-  __vdraw_tail (s;chr = decode (substr (@line, s._index + 1, 1))[0]);
+  __vdraw_tail (s;chr = String.decode (substr (@line, s._index + 1, 1))[0]);
 }
 
 define blockcompletion (lnr, s, line)
