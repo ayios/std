@@ -451,7 +451,7 @@ private define _getbgstatus_ (pid)
 
   variable status = waitpid (atoi (pid), 0);
 
-  variable out = read_fd (STDOUTFDBG;pos = OUTBG.st_.st_size);
+  variable out = IO.readfd (STDOUTFDBG;pos = OUTBG.st_.st_size);
 
   ifnot (NULL == out)
     if (APP.realshell)
@@ -516,7 +516,7 @@ private define _fork_ (p, argv, env)
 
   _waitpid_ (p);
 
-  variable err = read_fd (errfd;pos = ERR_VED.st_.st_size);
+  variable err = IO.readfd (errfd;pos = ERR_VED.st_.st_size);
 
   ifnot (NULL == err)
     if (APP.realshell)
@@ -566,7 +566,7 @@ private define _execute_ (argv)
 
     if (-1 == retval)
       {
-      variable err = read_fd (STDERRFD;pos = ERR_VED.st_.st_size);
+      variable err = IO.readfd (STDERRFD;pos = ERR_VED.st_.st_size);
 
       if (APP.realshell)
         IO.tostdout (err);
@@ -627,7 +627,7 @@ private define _execute_ (argv)
 
 private define _builtinpost_ ()
 {
-  variable err = read_fd (STDERRFD;pos = ERR_VED.st_.st_size);
+  variable err = IO.readfd (STDERRFD;pos = ERR_VED.st_.st_size);
 
   ifnot (NULL == err)
     if (APP.realshell)
@@ -763,7 +763,7 @@ private define _echo_ (argv)
 
     if (">>" == flags || 0 == access (file, F_OK))
       {
-      if (-1 == appendstr (file, strjoin (argv, " ") + hasnewline))
+      if (-1 == String.append (file, strjoin (argv, " ") + hasnewline))
        return;
       }
     else

@@ -6,7 +6,7 @@ load.from ("stdio", "copy", NULL;err_handler = &__err_handler__);
 load.from ("dir", "cprecursive", NULL;err_handler = &__err_handler__);
 load.from ("dir", "cprecursive_opts", NULL;err_handler = &__err_handler__);
 __.sadd ("Dir", "eval", "eval_", NULL;   __DIRNS__ = Dir.vget ("STDDIR") + "/dir");
-load.from ("dir", "are_same_files", NULL;err_handler = &__err_handler__);
+__.sadd ("File", "are_same", "are_same__", NULL);
 
 define assign_interactive_noclobber (interactive, noclobber, code)
 {
@@ -168,7 +168,7 @@ define main ()
         }
 
     if (source == destname ||
-        1 == are_same_files (source, destname;
+        1 == File.are_same (source, destname;
           fnamea_st = st_source, fnameb_st = st_destname))
       {
       IO.tostdout (sprintf ("`%s' and `%s' are the same file", source, destname));

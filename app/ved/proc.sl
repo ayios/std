@@ -37,9 +37,9 @@ else
       ft = "txt";
 
     fn = VED_DIR + "/__stdin." + ft;
-    __stdin = read_fd (fileno (stdin));
+    __stdin = IO.readfd (fileno (stdin));
     ifnot (NULL == __stdin)
-      () = writestring (fn, __stdin);
+      () = String.write (fn, __stdin);
     }
   else
     {

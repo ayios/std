@@ -28,10 +28,11 @@ variable Setid_Type = struct
   user = Env.vget ("user")
   };
 
+__.sadd ("String", "append", "append__", NULL);
+__.sadd ("String", "write", "write__", NULL);
 load.from ("proc", "envs", 1;err_handler = &__err_handler__);
 load.from ("sock", "sock", 0;err_handler = &__err_handler__);
 load.from ("wind", "ostopline", NULL;err_handler = &__err_handler__);
-load.from ("stdio", "appendstr", NULL;err_handler = &__err_handler__);
 load.from ("api", "eval", NULL;err_handler = &__err_handler__);
 load.from ("api", "clientfuncs", NULL;err_handler = &__err_handler__);
 

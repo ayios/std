@@ -3,7 +3,7 @@ load.module ("std", "pcre", NULL;err_handler = &__err_handler__);
 load.from ("file", "remove", NULL;err_handler = &__err_handler__);
 load.from ("dir", "fswalk", NULL;err_handler = &__err_handler__);
 __.sadd ("Dir", "eval", "eval_", NULL;__DIRNS__ = Dir.vget ("STDDIR") + "/dir");
-load.from ("array", "arrayfuncs", NULL;err_handler = &__err_handler__);
+__.sadd ("Array", "unique", "__unique__", NULL;trace = 0);
 
 define assign_string_pattern (pat, pattern, what)
 {
@@ -160,7 +160,7 @@ define main ()
   filelist = [length (files) ? files : "", length (filelist) ?
     list_to_array (filelist) : ""];
   filelist = filelist[where (strlen (filelist))];
-  filelist = filelist[unique (filelist)];
+  filelist = filelist[Array.unique (filelist)];
   filelist = filelist[array_sort (filelist;dir=-1)];
 
   ifnot (length (filelist))

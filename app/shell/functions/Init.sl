@@ -75,7 +75,7 @@ define shell ();
 define init_shell ()
 {
   if (-1 == access (STACKFILE, F_OK))
-    writestring (STACKFILE, "STACK = {}");
+    String.write (STACKFILE, "STACK = {}");
 
   load.from (APP.loaddir, "shell", NULL;err_handler = &__err_handler__);
 

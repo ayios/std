@@ -1,4 +1,4 @@
-define find_unique_lines_in_lines (ar, str, end)
+private define unique_lines (ar, str, end)
 {
   variable i;
   variable lines = Assoc_Type[Null_Type];

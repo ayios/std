@@ -15,7 +15,7 @@ define shell ()
   ifnot (fileexists (Dir.vget ("TEMPDIR") + "/" + strftime ("%m_%d-intro")))
     {
     runcom (["intro"], NULL);
-    () = writestring (Dir.vget ("TEMPDIR") + "/" + strftime ("%m_%d-intro"), "ok");
+    () = String.write (Dir.vget ("TEMPDIR") + "/" + strftime ("%m_%d-intro"), "ok");
     }
 
   topline (" -- shell --");

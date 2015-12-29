@@ -118,7 +118,7 @@ private define atexit (s)
     close_fd (s.stdout, stdout);
 
     if (NULL == s.stdout.file)
-      s.stdout.out = read_fd (s.stdout.read);
+      s.stdout.out = IO.readfd (s.stdout.read);
     }
 
   ifnot (NULL == s.stderr)
@@ -126,7 +126,7 @@ private define atexit (s)
     close_fd (s.stderr, stderr);
 
     if (NULL == s.stderr.file)
-      s.stderr.out = read_fd (s.stderr.read);
+      s.stderr.out = IO.readfd (s.stderr.read);
     }
 
   ifnot (NULL == s.stdin)

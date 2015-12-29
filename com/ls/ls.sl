@@ -1,6 +1,7 @@
 load.module ("std", "pcre", NULL;err_handler = &__err_handler__);
 
-load.from ("array", "arrayfuncs", NULL;err_handler = &__err_handler__);
+__.sadd ("Array", "unique", "__unique__", NULL;trace = 0);
+
 load.from ("dir", "fswalk", NULL;err_handler = &__err_handler__);
 
 __.sadd ("Dir", "eval", "eval_", NULL;__DIRNS__ = Dir.vget ("STDDIR") + "/dir");
@@ -57,7 +58,7 @@ define assign_filetype (type, filetype, code)
 
   @filetype = Char_Type[0];
 
-  ar = ar[unique (ar)];
+  ar = ar[Array.unique (ar)];
 
   _for i (0, length (ar) - 1)
     {
@@ -136,7 +137,7 @@ define getpwuid (user_ar)
   if (NULL == lines)
     return array_map (String_Type, &string, user_ar);
 
-  uids = user_ar[unique (user_ar)];
+  uids = user_ar[Array.unique (user_ar)];
 
   _for i (0, length (uids) - 1)
     {
@@ -172,7 +173,7 @@ define getgrgid (group_ar)
   if (NULL == lines)
     return array_map (String_Type, &string, group_ar);
 
-  gids = group_ar[unique (group_ar)];
+  gids = group_ar[Array.unique (group_ar)];
 
   _for i (0, length (gids) - 1)
     {

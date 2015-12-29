@@ -57,7 +57,6 @@ ifnot (NULL == APP.excom)
   load.from ("dir", "are_same_files", NULL;err_handler = &__err_handler__);
   load.from ("file", "fileis",  NULL;err_handler = &__err_handler__);
   load.from ("proc", "envs", 1;err_handler = &__err_handler__);
-  load.from ("stdio", "appendstr", NULL;err_handler = &__err_handler__);
   load.from ("api", "openbg", NULL;err_handler = &__err_handler__);
   load.from ("api", "cominit", NULL;err_handler = &__err_handler__);
   load.from ("api", "filterexcom", NULL;err_handler = &__err_handler__);

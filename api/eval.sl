@@ -169,7 +169,7 @@ define __eval ()
     }
 
   if (length (history))
-    () = writestring (histfile, strjoin (history, "\n"));
+    () = String.write (histfile, strjoin (history, "\n"));
 
   send_msg (" ", 0);
 

@@ -1,4 +1,4 @@
-static define find_unique_words_in_lines (ar, str, end)
+private define unique_words (ar, str, end)
 {
   variable i;
 

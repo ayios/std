@@ -2,7 +2,7 @@ private variable gbt;
 
 private define get_int (fd)
 {
-  () = read (fd, &gbt, 16);
+  () = read (fd, &gbt, 32);
   eval (gbt);
 }
 
@@ -13,7 +13,7 @@ private define send_int (fd, i)
 
 private define get_str (fd)
 {
-  () = read (fd, &gbt, 4096);
+  () = read (fd, &gbt, 16384);
   gbt;
 }
 

@@ -70,21 +70,6 @@ typedef struct
   rline,
   } Wind_Type;
 
-typedef struct
-  {
-  global,
-  fname,
-  ar,
-  pat,
-  patstr,
-  substlist,
-  numchanges,
-  newlines,
-  askwhensubst,
-  ask,
-  lnronfile,
-  } Search_Type;
-
 private variable vis = struct
   {
   _i,
@@ -208,16 +193,24 @@ build_ftype_table ();
 if (-1 == mkdir (VED_DIR, File.vget ("PERM")["PRIVATE"]))
   __err_handler__ (1;msg = VED_DIR + ": cannot make directory, " + errno_string (errno));
 
-__.sadd ("String", "decode", "decode", NULL;trace =0);
+__.sadd ("String", "decode", "decode", NULL;trace = 0);
+__.sadd ("String", "append", "append__", NULL);
+__.sadd ("String", "write", "write__", NULL);
 
-load.from ("search", "searchandreplace", "search";err_handler = &__err_handler__);
-load.from ("stdio", "appendstr", NULL;err_handler = &__err_handler__);
-load.from ("array", "getsize", NULL;err_handler = &__err_handler__);
-load.from ("pcre", "find_unique_words_in_lines", 1;err_handler = &__err_handler__);
-load.from ("pcre", "find_unique_lines_in_lines", 1;err_handler = &__err_handler__);
-load.from ("api", "vundo", 0;err_handler = &__err_handler__);
-
+__.sadd ("Array", "shift", "shift__", NULL);
 __.sadd ("Array", "istype", "istype__", NULL);
+__.sadd ("Array", "getsize", "getsize", NULL;trace = 0);
+
+__.sadd ("Re", "unique_lines", "unique_lines___", NULL);
+__.sadd ("Re", "unique_words", "unique_words___", NULL);
+
+__.new ("Ved";methods = "storePos,restorePos",
+  funcs = ["storePos__", "restorePos__"],
+  refs = [NULL, NULL]);
+
+__.new ("Subst";methods = "new,exec,new_lines,assign,askonsubst",
+   funcs = ["__new__", "exec__", "new_lines__", "assign_", "askonsubst_______"],
+   refs = [NULL, NULL, NULL, NULL, NULL]);
 
 __.new ("File";methods = "are_same,isreg",
   funcs = ["are_same__", "isreg_"],
@@ -226,6 +219,17 @@ __.new ("File";methods = "are_same,isreg",
 __.new ("Diff";methods = "new,patch,files",
   funcs = ["__new__", "patch_", "__files__"],
   refs = [NULL, NULL, NULL]);
+
+__.new ("Vundo";methods = "undo,set,redo",
+  funcs = ["__undo_", "__redo_", "__set___"],
+  refs = [NULL, NULL, NULL],
+  vars = ["rec", "level", "redo"], values = {Struct_Type[5], 0, NULL},
+  varself = "rec,level,redo");
+
+Vundo.__rec = Struct_Type[3];
+Vundo.__rec[0] = struct {pos = @Pos_Type, data, inds, deleted, blwise};
+Vundo.__rec[1] = struct {pos = @Pos_Type, data, inds, deleted, blwise};
+Vundo.__rec[2] = struct {pos = @Pos_Type, data, inds, deleted, blwise};
 
 define getXsel (){return "";}
 define seltoX (sel){}
@@ -1163,22 +1167,6 @@ define bufdelete (s, bufname, force)
     }
 }
 
-define __vedStorePos (v, pos)
-{
-  pos._i = qualifier ("_i", v._ii);
-  pos.ptr = @v.ptr;
-  pos._index = v._index;
-  pos._findex = v._findex;
-}
-
-define __vedRestorePos (v, pos)
-{
-  v._i = pos._i;
-  v.ptr = pos.ptr;
-  v._index = pos._index;
-  v._findex = pos._findex;
-}
-
 private define _rdregs_ ()
 {
   return ['*',  '/', '%', '='];
@@ -1239,7 +1227,7 @@ array_map (&mark_init, array_map (String_Type, &string, ['`', '<', '>']));
 
 private define mark_set (s, m)
 {
-  __vedStorePos (s, MARKS[m]);
+  Ved.storePos (s, MARKS[m]);
 }
 
 define markbacktick (s)
@@ -1653,7 +1641,7 @@ IO.tostderr (ar);
       word += char (ar[ii]);
 
   ifnot (orig == word)
-    vundo.set (s, line, i);
+    Vundo.set (s, line, i);
 
   line = sprintf ("%s%s%s", substr (line, 1, start), word, substr (line, end + 2, -1));
   s.lins[s.ptr[0] - s.rows[0]] = line;
@@ -1663,7 +1651,7 @@ IO.tostderr (ar);
 
   set_modified (s);
 
-  s.st_.st_size = getsizear (s.lines);
+  s.st_.st_size = Array.getsize (s.lines);
 
   waddline (s, line, 0, s.ptr[0]);
 
@@ -2262,7 +2250,7 @@ private define _set_nr_ (s, incrordecr)
 
   set_modified (s);
 
-  s.st_.st_size = getsizear (s.lines);
+  s.st_.st_size = Array.getsize (s.lines);
 
   waddline (s, line, 0, s.ptr[0]);
 
@@ -2286,12 +2274,12 @@ define set_modified (s)
 
 private define undo (s)
 {
-  vundo.undo (s);
+  Vundo.undo (s);
 }
 
 private define redo (s)
 {
-  vundo.redo (s);
+  Vundo.redo (s);
 }
 
 %%% SEARCH
@@ -3130,7 +3118,7 @@ private define v_l_loop (vs, s)
         _for i (0, length (vs.lnrs) - 1)
           s.lines[vs.lnrs[i]] = repeat (" ", s._shiftwidth) + s.lines[vs.lnrs[i]];
 
-      s.st_.st_size = getsizear (s.lines);
+      s.st_.st_size = Array.getsize (s.lines);
       ifnot (size == s.st_.st_size)
         set_modified (s);
       else
@@ -3152,7 +3140,7 @@ private define v_l_loop (vs, s)
           s.lines[vs.lnrs[i]] = l;
           }
 
-      s.st_.st_size = getsizear (s.lines);
+      s.st_.st_size = Array.getsize (s.lines);
       ifnot (size == s.st_.st_size)
         set_modified (s);
       else
@@ -3181,9 +3169,9 @@ private define v_l_loop (vs, s)
         s._len = 0;
         }
 
-      s.st_.st_size = getsizear (s.lines);
+      s.st_.st_size = Array.getsize (s.lines);
       set_modified (s);
-      vundo.set (s, vs.lines, vs.lnrs;deleted);
+      Vundo.set (s, vs.lines, vs.lnrs;deleted);
       s.draw ();
       send_msg ("deleted", 1);
       return;
@@ -3435,12 +3423,12 @@ private define v_char_mode (vs, s)
       s.ptr[0] = vs.ptr[0];
       s.ptr[1] = index;
 
-      s.st_.st_size = getsizear (s.lines);
+      s.st_.st_size = Array.getsize (s.lines);
 
       set_modified (s);
 
       waddline (s, __vgetlinestr (s, s.lines[vs.startlnr], 1), 0, s.ptr[0]);
-      vundo.set (s, [s.lines[vs.startlnr]], [vs.startlnr]);
+      Vundo.set (s, [s.lines[vs.startlnr]], [vs.startlnr]);
       __vdraw_tail (s);
       send_msg ("deleted", 1);
       return;
@@ -3656,7 +3644,7 @@ private define v_bw_mode (vs, s)
       sel = strjoin (vs.sel, "\n");
       _set_reg_ ("\"", sel);
       seltoX (sel);
-      vundo.set (s, vs.lines, vs.lnrs;blwise);
+      Vundo.set (s, vs.lines, vs.lnrs;blwise);
 
       _for i (0, length (vs.lnrs) - 1)
         {
@@ -3685,7 +3673,7 @@ private define v_bw_mode (vs, s)
       sel = strjoin (vs.sel, "\n");
       _set_reg_ ("\"", sel);
       seltoX (sel);
-      vundo.set (s, vs.lines, vs.lnrs;blwise);
+      Vundo.set (s, vs.lines, vs.lnrs;blwise);
       variable txt = rline->__gettxt ("", vs.vlins[0] - 1, vs.startcol)._lin;
 
       _for i (0, length (vs.lnrs) - 1)
@@ -3747,7 +3735,7 @@ private define v_bw_mode (vs, s)
         s.lines[lnr] = line;
         }
 
-      vundo.set (s, vs.lines, vs.lnrs;blwise);
+      Vundo.set (s, vs.lines, vs.lnrs;blwise);
       set_modified (s);
       break;
       }
@@ -4008,7 +3996,7 @@ private define ed_del_line (s)
   if (s._i > s._len)
     s._i = s._len;
 
-  vundo.set (s, strtok (strtrim_end (_get_reg_ (reg)), "\n"), [i];_i = s._i, deleted);
+  Vundo.set (s, strtok (strtrim_end (_get_reg_ (reg)), "\n"), [i];_i = s._i, deleted);
 
   set_modified (s;_i = s._i);
 
@@ -4034,7 +4022,7 @@ private define ed_del_word (s, what)
 
   _set_reg_ (reg, word);
 
-  vundo.set (s, line, i);
+  Vundo.set (s, line, i);
 
   line = sprintf ("%s%s", substr (line, 1, start), substr (line, end + 2, -1));
 
@@ -4045,7 +4033,7 @@ private define ed_del_word (s, what)
 
   set_modified (s);
 
-  s.st_.st_size = getsizear (s.lines);
+  s.st_.st_size = Array.getsize (s.lines);
 
   waddline (s, __vgetlinestr (s, line, 1), 0, s.ptr[0]);
 
@@ -4099,7 +4087,7 @@ private define ed_del_trailws (s)
   s._index = s._indent + len;
   s.ptr[1] = s._index;
 
-  s.st_.st_size = getsizear (s.lines);
+  s.st_.st_size = Array.getsize (s.lines);
 
   set_modified (s);
 
@@ -4152,7 +4140,7 @@ private define ed_del_chr (s)
   s.lins[s.ptr[0] - s.rows[0]] = line;
   s.lines[i] = line;
 
-  s.st_.st_size = getsizear (s.lines);
+  s.st_.st_size = Array.getsize (s.lines);
 
   set_modified (s);
 
@@ -4287,10 +4275,10 @@ private define ed_del_to_end (s)
     s.lines[i] = line;
     s.lins[s.ptr[0] - s.rows[0]] = line;
 
-    vundo.set (s, [_get_reg_ (reg)], [i]);
+    Vundo.set (s, [_get_reg_ (reg)], [i]);
     set_modified (s);
 
-    s.st_.st_size = getsizear (s.lines);
+    s.st_.st_size = Array.getsize (s.lines);
 
     waddline (s, __vgetlinestr (s, line, 1), 0, s.ptr[0]);
 
@@ -4307,12 +4295,12 @@ private define ed_del_to_end (s)
   s.lins[s.ptr[0] - s.rows[0]] = line;
   s.lines[i] = line;
 
-  s.st_.st_size = getsizear (s.lines);
+  s.st_.st_size = Array.getsize (s.lines);
 
   s.ptr[1]--;
   s._index--;
 
-  vundo.set (s, [_get_reg_ (reg)], [i]);
+  Vundo.set (s, [_get_reg_ (reg)], [i]);
 
   set_modified (s);
 
@@ -4343,7 +4331,7 @@ private define ed_editline (s)
 
   if ('C' == s._chr)
     {
-    vundo.set (s, [line], [lnr]);
+    Vundo.set (s, [line], [lnr]);
     line = substr (line, 1, s._index);
     }
   else if ('a' == s._chr && len)
@@ -4411,7 +4399,7 @@ private define ed_newline (s)
       newline_str (s, &indent, line),
       s.lines[["next" == dir ? lnr + 1 : lnr:]]];
 
-  s.st_.st_size = getsizear (s.lines);
+  s.st_.st_size = Array.getsize (s.lines);
 
   s._i = lnr == 0 ? 0 : s._ii;
 
@@ -4459,7 +4447,7 @@ private define ed_Put (s)
 
   s._i = lnr == 0 ? 0 : s._ii;
 
-  s.st_.st_size = getsizear (s.lines);
+  s.st_.st_size = Array.getsize (s.lines);
 
   set_modified (s);
 
@@ -4492,7 +4480,7 @@ private define ed_put (s)
 
   s._i = lnr == 0 ? 0 : s._ii;
 
-  s.st_.st_size = getsizear (s.lines);
+  s.st_.st_size = Array.getsize (s.lines);
 
   set_modified (s);
 
@@ -5134,7 +5122,7 @@ private define ins_esc (is, s, line)
 
     set_modified (s);
 
-    s.st_.st_size = getsizear (s.lines);
+    s.st_.st_size = Array.getsize (s.lines);
     }
 
   topline (" -- pager --");
@@ -5188,9 +5176,9 @@ define ctrl_completion_rout (s, line, type)
     {
     ifnot (indexchanged)
       if ("ins_linecompletion" == type)
-        ar = pcre->find_unique_lines_in_lines (s.lines, item, NULL;ign_lead_ws);
+        ar = Re.unique_lines (s.lines, item, NULL;ign_lead_ws);
       else if ("ins_wordcompletion" == type)
-        ar = pcre->find_unique_words_in_lines (s.lines, item, NULL);
+        ar = Re.unique_words (s.lines, item, NULL);
       else if ("blockcompletion" == type)
         ifnot (strlen (item))
           ar = block_ar;
@@ -5368,7 +5356,7 @@ define ins_fnamecompletion (lnr, s, line)
   @line = (i ? substr (@line, 1, i) : "") + fn +
     (s._index + 1 == strlen (@line) ? "" : substr (@line, s._index + 2, -1));
   s.lines[lnr] = @line;
-  s.st_.st_size = getsizear (s.lines);
+  s.st_.st_size = Array.getsize (s.lines);
 
   set_modified (s);
 
@@ -5410,7 +5398,7 @@ define blockcompletion (lnr, s, line)
     s.lines = [s.lines[[:lnr]], 1 == length (ar) ? String_Type[0] : ar[[1:]],
       lnr == s._len ? String_Type[0] :  s.lines[[lnr+1:]]];
     s._len = length (s.lines) - 1;
-    s.st_.st_size = getsizear (s.lines);
+    s.st_.st_size = Array.getsize (s.lines);
 
     set_modified (s);
 
@@ -5489,7 +5477,7 @@ private define ins_getline (is, s, line)
       {
       s.lins[s.ptr[0] - s.rows[0]] = @line;
       s.lines[is.lnr] = @line;
-      s.st_.st_size = getsizear (s.lines);
+      s.st_.st_size = Array.getsize (s.lines);
       __vwritefile (s, NULL, s.ptr, NULL, NULL);
       s._flags &= ~VED_MODIFIED;
       send_msg_dr (s._abspath + " written", 0, s.ptr[0], s.ptr[1]);
@@ -5711,7 +5699,9 @@ define __substitute ()
       return;
     }
 
-  variable s = search->init (pat, sub;global = global, askwhensubst = ask);
+  variable s = Subst.new (pat, sub;
+    fname = buf._abspath, global = global, askwhensubst = ask, askonsubst = &_askonsubst_);
+
   if (NULL == s)
     {
     variable err = ();
@@ -5719,10 +5709,7 @@ define __substitute ()
     return;
     }
 
-  s.fname = path_basename (buf._abspath);
-  s.ask = &_askonsubst_;
-
-  variable retval = search->search_and_replace (s, buf.lines[lnrs]);
+  variable retval = Subst.exec (s, buf.lines[lnrs]);
 
   ifnot (retval)
     {
@@ -5745,7 +5732,7 @@ define __substitute ()
     else
       buf.lines[lnrs] = ar;
 
-    buf.st_.st_size = getsizear (buf.lines);
+    buf.st_.st_size = Array.getsize (buf.lines);
     set_modified (buf);
     buf.draw ();
     }

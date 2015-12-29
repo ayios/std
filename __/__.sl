@@ -412,10 +412,10 @@ private define func_init (ns, func, ref, method)
         `, trace = ` + string (trace) + `);`;
 
      try
-       eval (funcstr);
+       eval (funcstr, ns);
      catch AnyError:
        throw __Error, "FuncFromQualifierEvalError::" + _function_name +
-         "::EVALSTRING: " + funcstr, __get_exception_info;
+         "::EVALSTRING: \n" + funcstr, __get_exception_info;
      }
 
   ifnot (method)
@@ -644,6 +644,7 @@ private define vget_ (self, vname)
 
 private define new (self, ns)
 {
+  eval (`public variable ` + ns + `;`);
   variable init = ns_get (ns;;__qualifiers);
   variable funcs = qualifier ("funcs");
   variable refs = qualifier ("refs");

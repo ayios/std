@@ -1,8 +1,10 @@
-load.from ("search", "searchandreplaceInit", NULL;err_handler = &__err_handler__);
-
+load.module ("std", "pcre", "Global";err_handler = &__err_handler__);
 load.module ("std", "fork", NULL;err_handler = &__err_handler__);
 
-load.from ("posix", "read_fd", NULL;err_handler = &__err_handler__);
+__.new ("Subst";methods = "new,exec,new_lines,assign,askonsubst",
+   funcs = ["__new__", "exec__", "new_lines__", "assign_", "askonsubst______"],
+   refs = [NULL, NULL, NULL, NULL, NULL]);
+
 load.from ("stdio", "writefile", NULL;err_handler = &__err_handler__);
 load.from ("dir", "fswalk", NULL;err_handler = &__err_handler__);
 load.from ("proc", "procInit", NULL;err_handler = &__err_handler__);
@@ -92,8 +94,8 @@ private define sed (file, s)
 
   s.fname = file;
 
-  s.askwhensubst = NULL == WHENSUBST ? 1 : 0;
-  retval = search->search_and_replace (s, IO.readfile (file));
+  s.askwhensubst = NULL == WHENSUBST;
+  retval = Subst.exec (s, IO.readfile (file));
 
   if (NULL == retval)
     {
@@ -237,8 +239,8 @@ define main ()
     exit_me (1);
     }
 
-  variable type = search->init (PAT, SUBSTITUTE;global = GLOBAL,
-    askwhensubst = NULL == WHENSUBST ? 1 : 0);
+  variable type = Subst.new (PAT, SUBSTITUTE;global = GLOBAL,
+    askwhensubst = NULL == WHENSUBST);
 
   if (NULL == type)
     {
