@@ -2,7 +2,8 @@ load.module ("std", "pcre", NULL;err_handler = &__err_handler__);
 
 load.from ("file", "remove", NULL;err_handler = &__err_handler__);
 load.from ("dir", "fswalk", NULL;err_handler = &__err_handler__);
-__.sadd ("Dir", "eval", "eval_", NULL;__DIRNS__ = Dir.vget ("STDDIR") + "/dir");
+
+__.sadd ("Dir", "eval", "eval_", NULL;FuncRefName = "evaldir");
 __.sadd ("Array", "unique", "__unique__", NULL;trace = 0);
 
 define assign_string_pattern (pat, pattern, what)

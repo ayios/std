@@ -40,9 +40,10 @@ define shell_pre_header (argv)
 define shell_post_header ()
 {
   if (APP.realshell)
-    IO.tostdout ("[" + string (iarg) + "](" + getcwd + ")[" + string (SHELLLASTEXITSTATUS) + "]$";n);
+    IO.tostdout (sprintf ("[%d](%s)[%d]$ ", iarg, getcwd, SHELLLASTEXITSTATUS);
+      n);
   else
-    toscratch ("[" + string (iarg) + "](" + getcwd + ")[" + string (SHELLLASTEXITSTATUS) + "]$ ");
+    toscratch (sprintf ("[%d](%s)[%d]$ ", iarg, getcwd, SHELLLASTEXITSTATUS));
 }
 
 load.from ("api", "exscratch", NULL;err_handler = &__err_handler__);
@@ -86,7 +87,6 @@ private define _write_ (argv)
     {
     __vwritefile (b, "w!" == command, [PROMPTROW, 1], file, append;
       lines = b.lines[lnrs]);
-    return;
     }
 }
 
@@ -247,7 +247,6 @@ private define _preexec_ (argv, header, issudo, env)
   @issudo = qualifier ("issudo");
   @env = [proc->defenv (), "PPID=" + string (Env.vget ("PID"))];
 
-
   variable p = proc->init (@issudo, 0, 1);
 
   p.issu = @issudo ? 0 : 1;
@@ -276,7 +275,7 @@ private define _preexec_ (argv, header, issudo, env)
     argv = [SUDO_BIN, "-S", "-E", "-p", "", argv];
     }
 
-  return argv, p;
+  argv, p;
 }
 
 private define _parse_redir_ (lastarg, file, flags)
@@ -357,7 +356,7 @@ private define _parse_redir_ (lastarg, file, flags)
 
   @flags = lflags;
   @file = lfile;
-  return 1;
+  1;
 }
 
 private define _parse_argv_ (argv, isbg)
@@ -366,7 +365,7 @@ private define _parse_argv_ (argv, isbg)
   variable file = isbg ? STDOUTBG : APP.realshell ? get_cur_buf()._abspath : SCRATCH;
   variable retval = _parse_redir_ (argv[-1], &file, &flags);
 
-  return file, flags, retval;
+  file, flags, retval;
 }
 
 private define _getpasswd_ ()
@@ -434,7 +433,7 @@ private define _getbgstatus_ (pid)
   else
     if (-1 == kill (atoi (pid), SIGALRM))
       {
-      IO.tostderr (pid + ": " + errno_string (errno) + "\n");
+      IO.tostderr (pid + ": " + errno_string (errno));
       return;
       }
 
@@ -451,7 +450,7 @@ private define _getbgstatus_ (pid)
 
   variable status = waitpid (atoi (pid), 0);
 
-  variable out = IO.readfd (STDOUTFDBG;pos = OUTBG.st_.st_size);
+  variable out = IO.readfd (STDOUTFDBG;offset = OUTBG.st_.st_size);
 
   ifnot (NULL == out)
     if (APP.realshell)
@@ -459,13 +458,11 @@ private define _getbgstatus_ (pid)
     else
       toscratch ("\n" + pid + ": " + strjoin (BGPIDS[pid].argv, " ") + "\n" +  out);
 
-
   ifnot (force)
     if (APP.realshell)
       IO.tostdout (pid + ": exit status " + string (status.exit_status));
     else
       toscratch (pid + ": exit status " + string (status.exit_status) + "\n");
-
 
   BGPIDS[pid].atexit ();
 
@@ -516,11 +513,11 @@ private define _fork_ (p, argv, env)
 
   _waitpid_ (p);
 
-  variable err = IO.readfd (errfd;pos = ERR_VED.st_.st_size);
+  variable err = IO.readfd (errfd;offset = ERR_VED.st_.st_size);
 
-  ifnot (NULL == err)
+  if (strlen (err))
     if (APP.realshell)
-      IO.tostdout (err);
+      IO.tostdout (err;n);
     else
       toscratch (err);
 }
@@ -566,7 +563,7 @@ private define _execute_ (argv)
 
     if (-1 == retval)
       {
-      variable err = IO.readfd (STDERRFD;pos = ERR_VED.st_.st_size);
+      variable err = IO.readfd (STDERRFD;offset = ERR_VED.st_.st_size);
 
       if (APP.realshell)
         IO.tostdout (err);
@@ -625,27 +622,6 @@ private define _execute_ (argv)
   _postexec_ (header;;__qualifiers ());
 }
 
-private define _builtinpost_ ()
-{
-  variable err = IO.readfd (STDERRFD;pos = ERR_VED.st_.st_size);
-
-  ifnot (NULL == err)
-    if (APP.realshell)
-      IO.tostdout (err);
-    else
-      toscratch (err + "\n");
-
-  shell_post_header ();
-
-  draw (get_cur_buf ());
-}
-
-private define _builtinpre_ (argv)
-{
-  precom ();
-  shell_pre_header (argv);
-}
-
 private define _kill_bg_job (argv)
 {
   shell_pre_header (argv);
@@ -696,6 +672,27 @@ private define _list_bg_jobs_ (argv)
     ar = [ar, pids[i] + ": " + strjoin (BGPIDS[pids[i]].argv, " ") + "\n"];
 
   IO.tostdout (ar);
+
+  shell_post_header ();
+
+  draw (get_cur_buf ());
+}
+
+private define _builtinpre_ (argv)
+{
+  precom ();
+  shell_pre_header (argv);
+}
+
+private define _builtinpost_ ()
+{
+  variable err = IO.readfd (STDERRFD;offset = ERR_VED.st_.st_size);
+
+  ifnot (NULL == err)
+    if (APP.realshell)
+      IO.tostdout (err);
+    else
+      toscratch (err + "\n");
 
   shell_post_header ();
 
@@ -795,7 +792,7 @@ private define _cd_ (argv)
   else
     {
     variable dir = Dir.eval (argv[1]);
-    ifnot (are_same_files (getcwd (), dir))
+    ifnot (File.are_same (getcwd (), dir))
       if (-1 == chdir (dir))
         {
         IO.tostderr (errno_string (errno));
@@ -853,7 +850,7 @@ private define _which_ (argv)
   variable msg = NULL != path ? path : com + " hasn't been found in PATH";
 
   if (APP.realshell)
-    IO.tostdout (msg);
+    IO.tostdout (msg;n);
   else
     toscratch (msg);
 

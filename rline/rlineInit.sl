@@ -46,7 +46,7 @@ typedef struct
 
 load.module ("std", "pcre", NULL;err_handler = &__err_handler__);
 
-__.sadd ("Dir", "eval", "eval_", NULL;__DIRNS__ = Dir.vget ("STDDIR") + "/dir");
+__.sadd ("Dir", "eval", "eval_", NULL;FuncRefName = "evaldir");
 
 load.from ("input", "inputInit", 1;err_handler = &__err_handler__);
 load.from ("smg", "widg", "widg";err_handler = &__err_handler__);

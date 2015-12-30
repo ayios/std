@@ -1,6 +1,6 @@
 private variable promptcolors = [0, 11, 2, 1];
 private variable promptregexp =
-  pcre_compile ("^\[(\d*)\]\((.*)\)\[(\d*)\]\$ "R, 0);
+  pcre_compile ("^\[(\d*)\]\((.*)\)\[(\d*)\]\$"R, 0);
 
 private variable dircolor = 12;
 private variable dirregexp = [

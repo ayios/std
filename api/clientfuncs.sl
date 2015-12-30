@@ -2,23 +2,15 @@ define draw (s)
 {
   variable st = NULL == s._fd ? lstat_file (s._abspath) : fstat (s._fd);
 
-  if (NULL == st)
+  if (NULL == st ||
+    (s.st_.st_size && st.st_atime == s.st_.st_atime && st.st_size == s.st_.st_size))
     {
     s._i = s._ii;
     s.draw ();
     return;
     }
 
-  if (s.st_.st_size)
-    if (st.st_atime == s.st_.st_atime && st.st_size == s.st_.st_size)
-      {
-      s._i = s._ii;
-      s.draw ();
-      return;
-      }
-
   s.st_ = st;
-
   s.lines = __vgetlines (s._abspath, s._indent, st);
 
   s._len = length (s.lines) - 1;
@@ -46,9 +38,6 @@ define viewfile (s, type, pos, _i)
   __vsetbuf (s._abspath);
 
   topline (" -- pager -- (" + type + " BUF) --";row =  s.ptr[0], col = s.ptr[1]);
-
-  ifnot (NULL == pos)
-    (s.ptr[0] = pos[0], s.ptr[1] = pos[1]);
 
   draw (s;pos = pos, _i = _i);
 

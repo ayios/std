@@ -4,7 +4,7 @@ __.sadd ("Array", "unique", "__unique__", NULL;trace = 0);
 
 load.from ("dir", "fswalk", NULL;err_handler = &__err_handler__);
 
-__.sadd ("Dir", "eval", "eval_", NULL;__DIRNS__ = Dir.vget ("STDDIR") + "/dir");
+__.sadd ("Dir", "eval", "eval_", NULL;FuncRefName = "evaldir");
 
 verboseon ();
 
@@ -45,7 +45,7 @@ define format_ar_for_print (ar, columns)
     index += items;
     }
 
-  return lar;
+  lar;
 }
 
 define assign_filetype (type, filetype, code)
@@ -93,7 +93,7 @@ define filter_filetype (type, filetype)
   foreach t (filetype)
     ar = [ar, where (t == type)];
 
-  return ar;
+  ar;
 }
 
 define append_indicator (value, files, type, quote)
@@ -113,7 +113,7 @@ define append_link_indicator (files, type)
 
 define match_executables (files, type, executables)
 {
-  return where ((1 <= type <= 2) and (0 == executables));
+  where ((1 <= type <= 2) and (0 == executables));
 }
 
 define append_executable_indicator (files, type, executables)
@@ -155,7 +155,7 @@ define getpwuid (user_ar)
     ar[indices] = uid;
     }
 
-  return ar;
+  ar;
 }
 
 define getgrgid (group_ar)
@@ -191,7 +191,7 @@ define getgrgid (group_ar)
     ar[indices] = gid;
     }
 
-  return ar;
+  ar;
 }
 
 define long_format (files, st)
@@ -259,7 +259,7 @@ define long_format (files, st)
 
 define get_type (mode)
 {
-  return wherefirst (array_map (Char_Type, &stat_is, st_mode, mode));
+  wherefirst (array_map (Char_Type, &stat_is, st_mode, mode));
 }
 
 define print_to_screen (files, opts)
@@ -412,7 +412,7 @@ define print_to_screen (files, opts)
     indices = indices[i];
     type = type[i];
     }
- 
+
   if (NULL == opts.append_indicator)
     {
     append_indicator (0, files, type, "/");
@@ -423,7 +423,7 @@ define print_to_screen (files, opts)
       append_indicator (2, files, type, "@");
     else
       append_link_indicator (files, type);
- 
+
     append_indicator (5, files, type, "|");
     append_indicator (6, files, type, "=");
     append_executable_indicator (files, type, indices);
@@ -502,7 +502,7 @@ define file_callback (file, st, filelist, opts)
   else
     list_append (filelist, file);
 
-  return 1;
+  1;
 }
 
 define dir_callback (dir, st, filelist, opts)
@@ -535,7 +535,7 @@ define dir_callback (dir, st, filelist, opts)
       if (opts.match)
         list_delete (filelist, -1);
 
-  return 1;
+  1;
 }
 
 define main ()
@@ -594,7 +594,7 @@ define main ()
     dir = __argv[[i:]];
     dir = dir[where (strncmp (dir, "--", 2))];
     }
- 
+
   _for i (0, length (dir) - 1)
     if ("." != dir[i])
       dir[i] = Dir.eval (dir[i];dont_change);

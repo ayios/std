@@ -22,7 +22,8 @@ private define readFD__ (fd)
   variable buf;
   variable str = "";
 
-  if (-1 == lseek (fd, qualifier ("FPPOS", 0), SEEK_SET))
+  if (-1 == lseek (fd, qualifier ("offset", 0),
+      qualifier ("seek_set", SEEK_SET)))
     throw __Error, "IOSeekError::" + _function_name + "::lseek error, " + errno_string (errno), NULL;
 
   while (read (fd, &buf, 1024) > 0)
@@ -58,7 +59,7 @@ private define tostderr ()
 
 private define  __tostderr__ ()
 {
-  variable args = __pop_list (_NARGS-1);
+  variable args = __pop_list (_NARGS - 1);
   pop ();
   tostderr (__push_list (args));
 }
@@ -173,6 +174,7 @@ public variable __;
 
 private variable NSS  = Assoc_Type[Any_Type];
 private variable __R__ = {};
+private variable VARARGS = 0x1bc;
 
 private define add_self (ns)
 {
@@ -208,6 +210,7 @@ private define ns_get (ns)
 {
   ifnot (assoc_key_exists (NSS, ns))
     {
+    eval (`public variable ` + ns + `;`);
     NSS[ns] = Assoc_Type[Any_Type];
     variable v = qualifier ("addVar", 1);
     variable f = qualifier ("addFun", 1);
@@ -379,12 +382,12 @@ private define func_init (ns, func, ref, method)
 
   ifnot (NULL == ref)
     __f__[f] = struct {func = ref, self = strlen (func) != strlen (fb),
-      nargs = varargs ? 434 : strlen (fb) - strlen (fe)};
+      nargs = varargs ? VARARGS : strlen (fb) - strlen (fe)};
   else
     {
     if (NULL == funcstr)
       {
-      variable orig = funcfname, basedir = qualifier ("__DIRNS__", var_get ("__", "DIRNS"));
+      variable orig = funcfname, basedir = qualifier ("DIRNS", var_get ("__", "DIRNS"));
       ifnot (path_is_absolute (funcfname))
         if (-1 == access (funcfname, F_OK|R_OK))
           if (-1 == access ((funcfname = orig + ".sl", funcfname), F_OK|R_OK))
@@ -589,9 +592,15 @@ private define err_handler (e, __r__)
     (@handler) (__r__;;__qualifiers);
 }
 
-private define RunTime_Type () {loop (_NARGS) pop ();}
+private define RunTime_Type ()
+{
+  loop (_NARGS) pop ();
+}
 
-private define __call_at_exit__ (inited){}
+private define __call_at_exit__ ()
+{
+  pop ();
+}
 
 public define __call__ ()
 {
@@ -610,7 +619,7 @@ public define __call__ ()
     variable f = func_get (from, func;;__qualifiers);
     (func, nargs, needsobj) = f.func, f.nargs, f.self;
 
-    ifnot (434 == nargs)
+    ifnot (VARARGS == nargs)
       if (_NARGS - 1 < nargs)
         throw __Error, "FuncCallNumArgsError::__call__::" + func + " is declared with " +
           string (nargs) + " but _NARGS returns " + string (_NARGS), NULL;
@@ -627,9 +636,7 @@ public define __call__ ()
   catch AnyError:
     err_handler (NULL, inited ? __R__[-1] : NULL;;__qualifiers);
   finally
-    {
     __call_at_exit__ (inited);
-    }
 }
 
 private define vget__ (self, vname)
@@ -644,7 +651,6 @@ private define vget_ (self, vname)
 
 private define new (self, ns)
 {
-  eval (`public variable ` + ns + `;`);
   variable init = ns_get (ns;;__qualifiers);
   variable funcs = qualifier ("funcs");
   variable refs = qualifier ("refs");
@@ -672,7 +678,7 @@ private define new (self, ns)
       `);
 
     ifnot (ns == "__")
-      func_init (ns, "__vget_",  trace ? &vget__ : &vget_, 1;;__qualifiers);
+      func_init (ns, "__vget_", trace ? &vget__ : &vget_, 1;;__qualifiers);
     }
 }
 

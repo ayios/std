@@ -121,14 +121,12 @@ load.from ("parse", "cmdopt", NULL;err_handler = &__err_handler__);
 
 define verboseon ()
 {
-  __.fput ("IO", "tostdout?", NULL;ReInitFunc = 1, FuncFname = "comtostdout",
-    FuncRefName = "tostdout", __DIRNS__ = __.vget ("__", "DIRNS") + "/../print");
+  __.fput ("IO", "tostdout?", NULL;FuncFname = "comtostdout");
 }
 
 define verboseoff ()
 {
-  __.fput ("IO", "tostdout?", NULL;ReInitFunc = 1, FuncFname = "null_tostdout",
-    FuncRefName = "tostdout", __DIRNS__ = __.vget ("__", "DIRNS") + "/../print");
+  __.fput ("IO", "tostdout?", NULL;FuncFname = "null_tostdout");
 }
 
 load.from ("api", "comapi", NULL;err_handler = &__err_handler__);

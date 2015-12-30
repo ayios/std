@@ -172,7 +172,7 @@ private define __importfrom__ (ns, module, dons)
   ifnot (NULL == dons)
     import (lns + "/" + module, dons);
   else
-    import (lns + "/" + module);
+    import (lns + "/" + module, "Global");
 }
 
 private define __getref__ (ns, lib, dons)

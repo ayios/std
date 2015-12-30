@@ -197,7 +197,7 @@ __.sadd ("String", "decode", "decode", NULL;trace = 0);
 __.sadd ("String", "append", "append__", NULL);
 __.sadd ("String", "write", "write__", NULL);
 
-__.sadd ("Array", "shift", "shift__", NULL);
+__.sadd ("Array", "shift", "shift", NULL;trace = 0);
 __.sadd ("Array", "istype", "istype__", NULL);
 __.sadd ("Array", "getsize", "getsize", NULL;trace = 0);
 
@@ -1274,7 +1274,7 @@ define preloop (s)
 
 private define _draw_ (s)
 {
-  if (-1 == s._len)
+  if (-1 == s._len) % this shouldn't occur
     {
     send_msg ("_draw_ (), caught -1 == s._len condition" + s._fname, 1);
     s.lins = [__get_null_str (s._indent)];

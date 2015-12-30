@@ -4,34 +4,33 @@ variable ERR_VED;
 
 define tostderr__ ()
 {
+  variable str;
   variable fmt = "%S";
   loop (_NARGS) fmt += " %S";
   variable args = __pop_list (_NARGS);
 
-  () = lseek (STDERRFD, 0, SEEK_END);
+  () = lseek (STDERRFD, qualifier ("offset", 0), qualifier ("seek_set", SEEK_END));
 
   if (1 == length (args) && typeof (args[0]) == Array_Type &&
-    any ([String_Type, Integer_Type, UInteger_Type] == _typeof (args[0])))
+    any ([String_Type, BString_Type, Integer_Type, UInteger_Type] == _typeof (args[0])))
     {
     args = args[0];
     if (any (_typeof (args) == [Integer_Type, UInteger_Type]))
       args = array_map (String_Type, &string, args);
 
-    ifnot (qualifier_exists ("n"))
-      args += "\n";
+    str = strjoin (args, "\n");
 
-    try
-      {
-      () = array_map (Integer_Type, &write, STDERRFD, args);
-      }
-    catch AnyError:
-      throw __Error, "IOWriteError::" + _function_name + "::" + errno_string (errno), NULL;
+    ifnot (qualifier_exists ("n"))
+      str += "\n";
     }
+  else if (1 == length (args) &&
+    any ([String_Type, BString_Type] == typeof (args[0])))
+      str = args[0] + (qualifier_exists ("n") ? "" : "\n");
   else
-    {
-    variable str = sprintf (fmt, __push_list (args), qualifier_exists ("n") ? "" : "\n");
-    () = write (STDERRFD, str);
-    }
+    str = sprintf (fmt, __push_list (args), qualifier_exists ("n") ? "" : "\n");
+
+  if (-1 == write (STDERRFD, str))
+    throw __Error, "IOWriteError::" + _function_name + "::" + errno_string (errno), NULL;
 }
 
 __.fput ("IO", "tostderr?", &tostderr__;ReInitFunc=1);

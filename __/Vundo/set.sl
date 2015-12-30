@@ -19,4 +19,3 @@ private define set (u, v, data, inds)
   u.__rec[u.__level].deleted = qualifier_exists ("deleted");
   u.__rec[u.__level].blwise = qualifier_exists ("blwise");
 }
-

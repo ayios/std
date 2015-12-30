@@ -54,7 +54,7 @@ load.from ("api", "idle", NULL;err_handler = &__err_handler__);
 ifnot (NULL == APP.excom)
   {
   variable GREPFILE = Dir.vget ("TEMPDIR") + "/" + string (Env.vget ("PID")) + "grep.list";
-  load.from ("dir", "are_same_files", NULL;err_handler = &__err_handler__);
+  __.sadd ("File", "are_same", "are_same__", NULL);
   load.from ("file", "fileis",  NULL;err_handler = &__err_handler__);
   load.from ("proc", "envs", 1;err_handler = &__err_handler__);
   load.from ("api", "openbg", NULL;err_handler = &__err_handler__);

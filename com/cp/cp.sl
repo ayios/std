@@ -5,7 +5,8 @@ load.from ("dir", "parents", NULL;err_handler = &__err_handler__);
 load.from ("stdio", "copy", NULL;err_handler = &__err_handler__);
 load.from ("dir", "cprecursive", NULL;err_handler = &__err_handler__);
 load.from ("dir", "cprecursive_opts", NULL;err_handler = &__err_handler__);
-__.sadd ("Dir", "eval", "eval_", NULL;   __DIRNS__ = Dir.vget ("STDDIR") + "/dir");
+
+__.sadd ("Dir", "eval", "eval_", NULL;FuncRefName = "evaldir");
 __.sadd ("File", "are_same", "are_same__", NULL);
 
 define assign_interactive_noclobber (interactive, noclobber, code)
