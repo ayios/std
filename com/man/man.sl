@@ -1,6 +1,5 @@
 load.module ("std", "pcre", NULL;err_handler = &__err_handler__);
-
-load.from ("dir", "fswalk", NULL;err_handler = &__err_handler__);
+load.from ("__/FS", "walk", NULL;err_handler = &__err_handler__);
 load.from ("file", "copyfile", NULL;err_handler = &__err_handler__);
 load.from ("string", "strtoint", NULL;err_handler = &__err_handler__);
 load.from ("proc", "procInit", NULL;err_handler = &__err_handler__);
@@ -200,22 +199,19 @@ define main ()
   ifnot (NULL == cache)
     {
     variable
-      fs,
       lu = strlen (MANDIR),
       ll = strlen (LOCALMANDIR),
       ulist = {},
       llist = {};
 
-    fs = fswalk_new (NULL, &file_callback;fargs = {llist});
-    fs.walk (LOCALMANDIR);
+    FS.walk (LOCALMANDIR, NULL, &file_callback;fargs = {llist});
     llist = list_to_array (llist, String_Type);
     llist = llist[where ("man" == array_map (String_Type,  &substr, llist, ll + 1, 3))];
 
-    fs = fswalk_new (NULL, &file_callback;fargs = {ulist});
-    fs.walk (MANDIR);
+    FS.walk (MANDIR, NULL, &file_callback;fargs = {ulist});
     ulist = list_to_array (ulist, String_Type);
     ulist = ulist[where ("man" == array_map (String_Type,  &substr, ulist, lu + 1, 3))];
- 
+
     variable list = [llist, ulist];
 
     _for i (0, length (list) - 1)

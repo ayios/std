@@ -1,9 +1,6 @@
 load.module ("std", "pcre", NULL;err_handler = &__err_handler__);
-
+load.from ("__/FS", "walk", NULL;err_handler = &__err_handler__);
 __.sadd ("Array", "unique", "__unique__", NULL;trace = 0);
-
-load.from ("dir", "fswalk", NULL;err_handler = &__err_handler__);
-
 __.sadd ("Dir", "eval", "eval_", NULL;FuncRefName = "evaldir");
 
 verboseon ();
@@ -625,12 +622,10 @@ define main ()
       {
       MAXDEPTH = length (strtok (dir[i], "/")) + maxdepth;
 
-      fw = fswalk_new (&dir_callback, &file_callback;
+      FS.walk (dir[i], &dir_callback, &file_callback;
         dargs = {filelist, opts},
         fargs = {filelist, opts}
         );
-
-      fw.walk (dir[i]);
 
       if (length (filelist))
         if (dir[i] == filelist[-1])

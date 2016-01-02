@@ -1,7 +1,8 @@
 load.module ("std", "pcre", NULL;err_handler = &__err_handler__);
 
 load.from ("file", "remove", NULL;err_handler = &__err_handler__);
-load.from ("dir", "fswalk", NULL;err_handler = &__err_handler__);
+
+load.from ("__/FS", "walk", NULL;err_handler = &__err_handler__);
 
 __.sadd ("Dir", "eval", "eval_", NULL;FuncRefName = "evaldir");
 __.sadd ("Array", "unique", "__unique__", NULL;trace = 0);
@@ -146,17 +147,11 @@ define main ()
 
   files = files[wherenot (_isnull (files))];
 
-  variable fs;
-
   if (length (dirlist))
     _for i (0, length (dirlist) - 1)
-      {
-      fs = fswalk_new (&dir_callback, &file_callback;
-          dargs = {filelist},
-          fargs = {filelist, opts});
-
-      fs.walk (dirlist[i]);
-      }
+      FS.walk (dirlist[i], &dir_callback, &file_callback;
+        dargs = {filelist},
+        fargs = {filelist, opts});
 
   filelist = [length (files) ? files : "", length (filelist) ?
     list_to_array (filelist) : ""];

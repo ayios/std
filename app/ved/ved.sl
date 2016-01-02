@@ -1,5 +1,4 @@
 load.from ("api", "apiInit", 1;err_handler = &__err_handler__);
-
 APP = api->init (__FILE__;
   vedrline = 1,
   stdout = 0,

@@ -1,6 +1,6 @@
 load.from ("string", "modeconversion", NULL;err_handler = &__err_handler__);
 load.from ("sys", "modetoint", NULL;err_handler = &__err_handler__);
-load.from ("dir", "fswalk", NULL;err_handler = &__err_handler__);
+load.from ("__/FS", "walk", NULL;err_handler = &__err_handler__);
 
 private variable EXIT_CODE = 0;
 
@@ -36,19 +36,19 @@ private define file_callback (file, st, mode)
     return 1;
 
   chmod_it (file, mode);
-  return 1;
+  1;
 }
 
 private define dir_callback (dir, st, mode)
 {
   if (NULL == mode)
     return 1;
- 
+
   if (stat_is ("lnk", st.st_mode))
     return 1;
 
   chmod_it (dir, mode);
-  return 1;
+  1;
 }
 
 define main ()
@@ -62,7 +62,7 @@ define main ()
     mode = NULL,
     recursive = NULL,
     c = cmdopt_new (&_usage);
- 
+
   c.add ("mode", &mode;type = "str");
   c.add ("recursive", &recursive);
   c.add ("directories", &directories);
@@ -77,7 +77,7 @@ define main ()
     IO.tostderr (sprintf ("%s: it requires a filename", __argv[0]));
     exit_me (1);
     }
- 
+
   if (NULL == mode)
     {
     IO.tostderr (sprintf ("%s: --mode was not given", __argv[0]));
@@ -92,10 +92,10 @@ define main ()
     IO.tostderr (err);
     exit_me (1);
     }
- 
+
   files = __argv[[i:]];
   files = files[where (strncmp (files, "--", 2))];
- 
+
   _for i (0, length (files) - 1)
     {
     if (-1 == access (files[i], F_OK))
@@ -107,12 +107,8 @@ define main ()
     if (_isdirectory (files[i]))
       {
       ifnot (NULL == recursive)
-        {
-        fs = fswalk_new (&dir_callback, &file_callback;
+        FS.walk (files[i], &dir_callback, &file_callback;
           dargs = {NULL == directories ? NULL : mode}, fargs = {mode});
-
-        fs.walk (files[i]);
-        }
       else
         if (stat_is ("lnk", stat_file (files[i]).st_mode))
           continue;
@@ -121,7 +117,7 @@ define main ()
 
       continue;
       }
- 
+
     if (stat_is ("lnk", stat_file (files[i]).st_mode))
       continue;
 

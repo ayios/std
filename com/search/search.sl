@@ -1,5 +1,5 @@
 load.module ("std", "pcre", NULL;err_handler = &__err_handler__);
-load.from ("dir", "fswalk", NULL;err_handler = &__err_handler__);
+load.from ("__/FS", "walk", NULL;err_handler = &__err_handler__);
 
 private variable
   MAXDEPTH = 1,
@@ -83,7 +83,7 @@ private define dir_callback_a (dir, st)
   if (length (strtok (dir, "/")) > MAXDEPTH)
     return 0;
 
-  return 1;
+  1;
 }
 
 private define file_callback (file, st)
@@ -100,19 +100,14 @@ private define file_callback (file, st)
 
   exec (file);
 
-  return 1;
+  1;
 }
 
 private define recursivefunc (dir, depth)
 {
-  variable
-    fs = fswalk_new (&dir_callback_a, &file_callback);
-
   MAXDEPTH = length (strtok (dir, "/")) + depth;
-
-  fs.walk (dir);
-
-  return 0;
+  FS.walk (dir, &dir_callback_a, &file_callback);
+  0;
 }
 
 private define grep (file, depth)
@@ -144,7 +139,7 @@ private define dir_callback (dir, st)
   if (length (strtok (dir, "/")) > MAXDEPTH)
     return 0;
 
-  return 1;
+  1;
 }
 
 private define file_callback_c (file, st, filelist)
@@ -153,7 +148,7 @@ private define file_callback_c (file, st, filelist)
     if ((NULL == stat_file (file)) && (errno == ENOENT))
       list_append (filelist, sprintf ("%s: %s", file, readlink (file)));
 
-  return 1;
+  1;
 }
 
 private define file_callback_b (file, st, filelist)
@@ -161,7 +156,7 @@ private define file_callback_b (file, st, filelist)
   if (pcre_exec (PAT, path_basename (file)))
     list_append (filelist, file);
 
-  return 1;
+  1;
 }
 
 private define findfilesfunc (dir, depth)
@@ -174,32 +169,28 @@ private define findfilesfunc (dir, depth)
     return String_Type[0];
     }
 
-  variable
-    filelist = {},
-    fs = fswalk_new (&dir_callback, &file_callback_b; fargs = {filelist});
-
   MAXDEPTH = length (strtok (dir, "/")) + depth;
-  fs.walk (dir);
+
+  variable filelist = {};
+  FS.walk (dir, &dir_callback, &file_callback_b; fargs = {filelist});
 
   ifnot (length (filelist))
     return String_Type[0];
 
-  return list_to_array (filelist);
+  list_to_array (filelist);
 }
 
 private define danglinglinksfunc (dir, depth)
 {
-  variable
-    filelist = {},
-    fs = fswalk_new (&dir_callback, &file_callback_c; fargs = {filelist});
-
   MAXDEPTH = length (strtok (dir, "/")) + depth;
-  fs.walk (dir);
+
+  variable filelist = {};
+  FS.walk (dir, &dir_callback, &file_callback_c; fargs = {filelist});
 
   ifnot (length (filelist))
     return String_Type[0];
 
-  return list_to_array (filelist);
+  list_to_array (filelist);
 }
 
 define main ()

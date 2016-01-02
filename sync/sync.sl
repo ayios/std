@@ -1,5 +1,5 @@
 load.from ("file", "copyfile", NULL;err_handler = &__err_handler__);
-load.from ("dir", "fswalk", NULL;err_handler = &__err_handler__);
+load.from ("__/FS", "walk", NULL;err_handler = &__err_handler__);
 load.from ("dir", "makedir", NULL;err_handler = &__err_handler__);
 load.from ("sys", "modetoint", NULL;err_handler = &__err_handler__);
 load.from ("file", "fileis", NULL;err_handler = &__err_handler__);
@@ -126,7 +126,7 @@ private define file_callback_a (file, st, s, cur, other, exit_code)
       return -1;
       }
 
-  return 1;
+  1;
 }
 
 private define dir_callback_a (dir, st, s, dirs, cur, other)
@@ -145,18 +145,17 @@ private define dir_callback_a (dir, st, s, dirs, cur, other)
 
 private define rm_extra (s, cur, other)
 {
-  variable
-    exit_code = 0,
-    dirs = {},
-    fs = fswalk_new (&dir_callback_a, &file_callback_a;
-      dargs = {s, dirs, cur, other}, fargs = {s, cur, other, &exit_code});
-
   if (s.interactive_remove)
     Accept_All_As_Yes = 0;
   else
     Accept_All_As_Yes = 1;
 
-  fs.walk (other);
+  variable
+    exit_code = 0,
+    dirs = {};
+
+  FS.walk (other, &dir_callback_a, &file_callback_a;
+      dargs = {s, dirs, cur, other}, fargs = {s, cur, other, &exit_code});
 
   if (exit_code)
     return 1;
@@ -173,7 +172,7 @@ private define rm_extra (s, cur, other)
 
   Accept_All_As_Yes = 0;
 
-  return 0;
+  0;
 }
 
 private define clean (force, backup, backupfile, dest)
@@ -364,7 +363,7 @@ private define _copy (s, source, dest, st_source, st_dest)
 
   IO.tostdout (sprintf ("`%s' -> `%s' %s", source, path_basename (dest), backuptext));
 
-  return 1;
+  1;
 }
 
 private define file_callback (file, st, s, source, dest, exit_code)
@@ -413,7 +412,7 @@ private define file_callback (file, st, s, source, dest, exit_code)
       return retval;
       }
 
-  return 1;
+  1;
 }
 
 private define dir_callback (dir, st, s, source, dest, exit_code)
@@ -443,7 +442,7 @@ private define dir_callback (dir, st, s, source, dest, exit_code)
       return -1;
       }
 
-  return 1;
+  1;
 }
 
 private define _sync (s, source, dest)
@@ -482,17 +481,14 @@ private define _sync (s, source, dest)
     return exit_code;
     }
 
-  variable
-    fs = fswalk_new (&dir_callback, &file_callback;
+  FS.walk (source, &dir_callback, &file_callback;
     dargs = {s, source, dest, &exit_code}, fargs = {s, source, dest, &exit_code});
-
-  fs.walk (source);
 
   ifnot (exit_code)
     if (s.rmextra)
       exit_code = rm_extra (s, source, dest);
 
-  return exit_code;
+  exit_code;
 }
 
 static define sync_new ()
@@ -542,5 +538,5 @@ static define sync_new ()
     else
       init.methods[i] = refs[methods[i]];
 
-  return init;
+  init;
 }

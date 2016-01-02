@@ -1,4 +1,4 @@
-load.from ("dir", "fswalk", NULL;err_handler = &__err_handler__);
+load.from ("__/FS", "walk", NULL);
 load.from ("dir", "cprecursive", NULL;err_handler = &__err_handler__);
 load.from ("dir", "cprecursive_opts", NULL;err_handler = &__err_handler__);
 
@@ -23,17 +23,14 @@ define mvdir (source, dest, opts)
     files,
     retval,
     backup,
-    fswalk,
     backuptext = "",
     sourcedirs = {},
     sourcefiles = {},
     st_dest = stat_file (dest);
 
-  fswalk = fswalk_new (&dir_callback, &file_callback;
+  FS.walk (source, &dir_callback, &file_callback;
       dargs = {sourcedirs}, fargs = {sourcefiles});
 
-  fswalk.walk (source);
- 
   if (NULL != st_dest && opts.backup)
     {
     backup = sprintf ("%s%s", dest, opts.suffix);
@@ -43,7 +40,7 @@ define mvdir (source, dest, opts)
       IO.tostderr (sprintf ("cannot backup `%s': Directory not empty", backup));
       return -1;
       }
- 
+
     opts.backup = NULL;
     retval = cprecursive (dest, backup, opts);
     opts.backup = 1;
@@ -56,7 +53,7 @@ define mvdir (source, dest, opts)
 
     backuptext = sprintf (" (backup: `%s')", backup);
     }
- 
+
   variable keep_backup_opt = opts.backup;
   opts.backup = NULL;
   retval = cprecursive (source, dest, opts);
@@ -83,5 +80,5 @@ define mvdir (source, dest, opts)
       }
 
   IO.tostderr (sprintf ("`%s' -> `%s'%s", source, dest, backuptext));
-  return 0;
+  0;
 }

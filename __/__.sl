@@ -14,7 +14,7 @@ public define __use_namespace (ns)
 
 __use_namespace ("IO");
 
-private define readFD__ (fd)
+private define readfd (fd)
 {
   if (NULL == fd)
     throw __Error, "IOFDIsNullError::" + _function_name + ": File Descriptor is NULL", NULL;
@@ -64,16 +64,16 @@ private define  __tostderr__ ()
   tostderr (__push_list (args));
 }
 
-public variable IO = struct {readfd = &readFD__, tostderr = &__tostderr__, tmp = &tostderr};
+public variable IO = struct {readfd = &readfd, tostderr = &__tostderr__, tmp = &tostderr};
 
 __use_namespace ("Struct");
 
-private define field_exists__ (self, s, field)
+private define field_exists (self, s, field)
 {
   wherefirst (get_struct_field_names (s) == field);
 }
 
-public variable Struct = struct {field_exists = &field_exists__};
+public variable Struct = struct {field_exists = &field_exists};
 
 __use_namespace ("Array");
 
@@ -388,14 +388,13 @@ private define func_init (ns, func, ref, method)
     if (NULL == funcstr)
       {
       variable orig = funcfname, basedir = qualifier ("DIRNS", var_get ("__", "DIRNS"));
+
       ifnot (path_is_absolute (funcfname))
         if (-1 == access (funcfname, F_OK|R_OK))
           if (-1 == access ((funcfname = orig + ".sl", funcfname), F_OK|R_OK))
-            if (-1 == access ((funcfname = path_concat (basedir, orig), funcfname), F_OK|R_OK))
+            if (-1 == access ((funcfname = path_concat (basedir, ns) + "/" + orig, funcfname), F_OK|R_OK))
               if (-1 == access ((funcfname = funcfname + ".sl", funcfname), F_OK|R_OK))
-                if (-1 == access ((funcfname = path_concat (basedir, ns) + "/" + orig, funcfname), F_OK|R_OK))
-                  if (-1 == access ((funcfname = funcfname + ".sl", funcfname), F_OK|R_OK))
-                    funcfname = NULL;
+                funcfname = NULL;
 
       if (NULL != funcfname && path_is_absolute (funcfname))
         if (-1 == access (funcfname, F_OK|R_OK))
@@ -716,7 +715,7 @@ private define __call_at_exit__ (inited)
 var_init ("__", "DIRNS", path_dirname (__FILE__));
 
 __.new ("Struct";methods = "field_exists",
-  funcs = ["__field_exists__"], refs = [&field_exists__]);
+  funcs = ["__field_exists__"], refs = [&field_exists]);
 
 __.new ("Array";methods = "map", funcs = ["map?"], refs = [Array.tmp]);
 

@@ -1,5 +1,5 @@
-load.from ("dir", "fswalk", NULL;err_handler = &__err_handler__);
- 
+load.from ("__/FS", "walk", NULL;err_handler = &__err_handler__);
+
 variable
   CHANGEREF = NULL,
   EXIT_CODE = 0;
@@ -10,7 +10,7 @@ define getcuruser (uid)
     line,
     rec,
     lines = IO.readfile ("/etc/passwd");
- 
+
   uid = string (uid);
 
   foreach line (lines)
@@ -20,7 +20,7 @@ define getcuruser (uid)
       return rec[0];
     }
 
-  return "NONE";
+  "NONE";
 }
 
 define getcurgroup (gid)
@@ -29,7 +29,7 @@ define getcurgroup (gid)
     line,
     rec,
     lines = IO.readfile ("/etc/group");
- 
+
   gid = string (gid);
 
   foreach line (lines)
@@ -39,7 +39,7 @@ define getcurgroup (gid)
       return rec[0];
     }
 
-  return "NONE";
+  "NONE";
 }
 
 define change_ref (file, uid, gid, user, group)
@@ -99,7 +99,7 @@ define chown_it (file, uid, gid, user, group)
     }
   else
     cur_group = getcurgroup (cur_gid);
- 
+
   if (-1 == (@whatchown) (file, uid, gid))
     {
     IO.tostderr (sprintf (
@@ -114,7 +114,7 @@ define chown_it (file, uid, gid, user, group)
       IO.tostdout (sprintf ("changed ownership of `%s' from %s:%s to %s:%s",
         file, cur_user, cur_group, user, group));
     }
- 
+
   if (islink)
     ifnot (NULL == CHANGEREF)
       change_ref (file, uid, gid, user, group);
@@ -123,13 +123,13 @@ define chown_it (file, uid, gid, user, group)
 define dir_callback (dir, st, uid, gid, user, group)
 {
   chown_it (dir, uid, gid, user, group;st = st);
-  return 1;
+  1;
 }
 
 define file_callback (file, st, uid, gid, user, group)
 {
   chown_it (file, uid, gid, user, group;st = st);
-  return 1;
+  1;
 }
 
 define _getuid (user)
@@ -137,9 +137,9 @@ define _getuid (user)
   variable
     rec,
     lines = IO.readfile ("/etc/passwd");
- 
+
   rec = wherenot (strncmp (lines, sprintf ("%s:", user), strlen (user) + 1));
- 
+
   ifnot (length (rec))
     return NULL;
 
@@ -147,7 +147,7 @@ define _getuid (user)
   if (7 != length (rec))
     return NULL;
 
-  return atoi (rec[2]);
+  atoi (rec[2]);
 }
 
 define _getgid (group)
@@ -166,14 +166,13 @@ define _getgid (group)
   if (4 != length (rec))
     return NULL;
 
-  return atoi (rec[2]);
+  atoi (rec[2]);
 }
 
 define main ()
 {
   variable
     i,
-    fs,
     uid,
     gid,
     files,
@@ -191,13 +190,13 @@ define main ()
   c.add ("info", &info);
 
   i = c.process (__argv, 1);
- 
+
   if (i == __argc)
     {
     IO.tostderr (sprintf ("%s: it requires a filename", __argv[0]));
     exit_me (1);
     }
- 
+
   files = __argv[[i:]];
   files = files[where (strncmp (files, "--", 2))];
 
@@ -214,7 +213,7 @@ define main ()
     IO.tostderr (sprintf ("%s: No such user, aborting ...", user));
     exit_me (1);
     }
- 
+
   ifnot (NULL == group)
     {
     gid = _getgid (group);
@@ -226,7 +225,7 @@ define main ()
     }
   else
     gid = NULL;
- 
+
   _for i (0, length (files) - 1)
     {
     if (-1 == access (files[i], F_OK))
@@ -238,12 +237,8 @@ define main ()
     if (_isdirectory (files[i]))
       {
       ifnot (NULL == recursive)
-        {
-        fs = fswalk_new (&dir_callback, &file_callback;uselstat,
+        FS.walk (files[i], &dir_callback, &file_callback;uselstat,
             dargs = {uid, gid, user, group}, fargs = {uid, gid, user, group});
-
-        fs.walk (files[i]);
-        }
       else
         chown_it (files[i], uid, gid, user, group);
 

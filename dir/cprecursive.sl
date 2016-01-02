@@ -1,6 +1,6 @@
 load.module ("std", "pcre", NULL;err_handler = &__err_handler__);
 load.from ("stdio", "copy", NULL;err_handler = &__err_handler__);
-load.from ("dir", "fswalk", NULL;err_handler = &__err_handler__);
+load.from ("__/FS", "walk", NULL;err_handler = &__err_handler__);
 load.from ("dir", "makedir", NULL;err_handler = &__err_handler__);
 
 private define dir_callback (dir, st, source, dest, opts, exit_code)
@@ -24,7 +24,7 @@ private define dir_callback (dir, st, source, dest, opts, exit_code)
       return -1;
       }
 
-  return 1;
+  1;
 }
 
 private define file_callback (file, st_source, source, dest, opts, exit_code)
@@ -35,7 +35,7 @@ private define file_callback (file, st_source, source, dest, opts, exit_code)
       IO.tostdout (sprintf ("omitting hidden file `%s'", file));
       return 1;
       }
- 
+
   ifnot (NULL == opts.matchpat)
     ifnot (pcre_exec (opts.matchpat, file))
       {
@@ -59,19 +59,17 @@ private define file_callback (file, st_source, source, dest, opts, exit_code)
     return -1;
     }
 
-  return 1;
+  1;
 }
 
 define cprecursive (source, dest, opts)
 {
-  variable
-    exit_code = 0,
-    fs = fswalk_new (&dir_callback, &file_callback;
+  variable exit_code = 0;
+
+  FS.walk (source, &dir_callback, &file_callback;
     dargs = {source, dest, opts, &exit_code},
     fargs = {source, dest, opts, &exit_code},
     maxdepth = opts.maxdepth);
 
-  fs.walk (source);
-
-  return exit_code;
+  exit_code;
 }

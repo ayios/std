@@ -154,7 +154,7 @@ private define __loadfrom__ (ns, lib, dons)
       ? 1 == dons
         ? ns
         : NULL
-      : String_Type == typeof (dons) || BString_Type == typeof (dons)
+      : any ([String_Type, BString_Type] == typeof (dons))
         ? dons
         : NULL;
 
@@ -188,7 +188,7 @@ private define __getref__ (ns, lib, dons)
       ? 1 == dons
         ? ns
         : NULL
-      : String_Type == typeof (dons) || BString_Type == typeof (dons)
+      : any ([String_Type, BString_Type] == typeof (dons))
         ? dons
         : NULL;
 
@@ -227,7 +227,7 @@ private define which (executable)
     NULL;
 }
 
-__.new ("Sys";methods = "which", funcs = ["which_"], refs = [&which]);
+__.sadd ("Sys", "which", "which_", &which);
 
 private define readfile (file)
 {

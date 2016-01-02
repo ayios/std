@@ -7,7 +7,7 @@ __.new ("Subst";methods = "new,exec,new_lines,assign,askonsubst",
 
 load.from ("posix", "read_fd", NULL;err_handler = &__err_handler__);
 load.from ("stdio", "writefile", NULL;err_handler = &__err_handler__);
-load.from ("dir", "fswalk", NULL;err_handler = &__err_handler__);
+load.from ("__/FS", "walk", NULL;err_handler = &__err_handler__);
 load.from ("proc", "procInit", NULL;err_handler = &__err_handler__);
 load.from ("file", "fileis", NULL;err_handler = &__err_handler__);
 
@@ -201,7 +201,6 @@ define main ()
 {
   variable
     i,
-    fs,
     ia,
     err,
     files,
@@ -283,9 +282,8 @@ define main ()
 
     if (_isdirectory (files[i]))
       {
-      fs = fswalk_new (&dir_callback, &file_callback;fargs = {type});
       MAXDEPTH = length (strtok (files[i], "/")) + maxdepth;
-      fs.walk (files[i]);
+      FS.walk (files[i], &dir_callback, &file_callback;fargs = {type});
 
       continue;
       }
