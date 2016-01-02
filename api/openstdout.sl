@@ -19,7 +19,7 @@ define tostdout__ ()
   loop (_NARGS) fmt += " %S";
   variable args = __pop_list (_NARGS);
 
-  () = lseek (STDOUTFD, qualifier ("offset", 0), qualifier ("seek_set", SEEK_END));
+  () = lseek (STDOUTFD, qualifier ("offset", 0), qualifier ("seek_pos", SEEK_END));
 
   if (1 == length (args) && typeof (args[0]) == Array_Type &&
     any ([String_Type, BString_Type, Integer_Type, UInteger_Type] == _typeof (args[0])))

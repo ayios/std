@@ -22,9 +22,7 @@ private define readfd (fd)
   variable buf;
   variable str = "";
 
-  if (-1 == lseek (fd, qualifier ("offset", 0),
-      qualifier ("seek_set", SEEK_SET)))
-    throw __Error, "IOSeekError::" + _function_name + "::lseek error, " + errno_string (errno), NULL;
+  () = lseek (fd, qualifier ("offset", 0), qualifier ("seek_pos", SEEK_SET));
 
   while (read (fd, &buf, 1024) > 0)
     str += buf;

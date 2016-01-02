@@ -5,7 +5,6 @@ __.new ("Subst";methods = "new,exec,new_lines,assign,askonsubst",
    funcs = ["__new__", "exec__", "new_lines__", "assign_", "askonsubst______"],
    refs = [NULL, NULL, NULL, NULL, NULL]);
 
-load.from ("posix", "read_fd", NULL;err_handler = &__err_handler__);
 load.from ("stdio", "writefile", NULL;err_handler = &__err_handler__);
 load.from ("__/FS", "walk", NULL;err_handler = &__err_handler__);
 load.from ("proc", "procInit", NULL;err_handler = &__err_handler__);
