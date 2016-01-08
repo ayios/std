@@ -1,8 +1,6 @@
 static define getloginname ()
 {
-  variable name = rline->getline (;pchar = "login:");
-
-  return strtrim_end (name);
+  strtrim_end (rline->getline (;pchar = "login:"));
 }
 
 static define login ()
@@ -11,12 +9,12 @@ static define login ()
 
   user = getloginname ();
 
-  (uid, gid) = setpwuidgid (user, &msg);
+  (uid, gid) = Sys.setpwuidgid (user, &msg);
 
   if (NULL == uid || NULL == gid)
     exit_me (1;msg = msg);
 
-  group = setgrname (gid, &msg);
+  group = Sys.setgrname (gid, &msg);
 
   if (NULL == group)
     exit_me (1;msg = msg);

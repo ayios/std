@@ -281,7 +281,5 @@ public define send_msg (str, clr)
   atrcaddnstr (str, clr, MSGROW, 0, COLUMNS);
 }
 
-init ();
-
 IMG = List_Type[LINES - 2];
 set_img ([0:LINES - 3], NULL, NULL, NULL);

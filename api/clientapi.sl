@@ -4,7 +4,6 @@ load.module ("std", "socket",  NULL;err_handler = &__err_handler__);
 
 load.from ("api", "atexit", NULL;err_handler = &__err_handler__);
 load.from ("api", "err_handler", NULL;err_handler = &__err_handler__);
-load.from ("sys", "getpw", NULL;err_handler = &__err_handler__);
 load.from ("sys", "checkpermissions", NULL;err_handler = &__err_handler__);
 load.from ("sys", "setpermissions", NULL;err_handler = &__err_handler__);
 load.from ("api", "initstream", NULL;err_handler = &__err_handler__);
@@ -33,11 +32,35 @@ else
 
 if (APP.os)
   {
+  Sys->Fun ("setgrname__", NULL);
+
   load.from ("proc", "getdefenv", 1;err_handler = &__err_handler__);
-  load.from ("api", "setenv", NULL;err_handler = &__err_handler__);
   load.from ("api", "connect", NULL;err_handler = &__err_handler__);
   load.from ("api", "osstdfuncs", NULL;err_handler = &__err_handler__);
   load.from ("api", "osapprl", NULL;err_handler = &__err_handler__);
+
+  $1 = getpwuid (getuid ());
+
+  if (NULL == $1)
+    __err_handler__ (1;msg = "cannot find the UID " + string (getuid) +
+      " in /etc/passwd, who are you?");
+
+  Env->Var ("uid", $1.pw_uid);
+  Env->Var ("gid", $1.pw_gid);
+  Env->Var ("user", $1.pw_name);
+  Env->Var ("group", Sys.setgrname (Env->Vget ("gid"), &$1));
+
+  if (NULL == Env->Vget ("group"))
+    __err_handler__ (1;msg = "cannot find the GID " + string (Env->Vget ("gid")) +
+      " in /etc/group, who are you?");
+
+  __uninitialize (&$1);
+
+  putenv ("USER=" + Env->Vget ("user"));
+  putenv ("LOGNAME=" + Env->Vget ("user"));
+  putenv ("USERNAME=" +  Env->Vget ("user"));
+  putenv ("HOME=/home/" + Env->Vget ("user"));
+  putenv ("GROUP=" + Env->Vget ("group"));
   }
 else
   load.from ("api", "stdfuncs", NULL;err_handler = &__err_handler__);
@@ -103,3 +126,5 @@ define __rehash ()
 __initrline ();
 
 UNDELETABLE = [UNDELETABLE, SPECIAL];
+
+smg->init ();

@@ -697,9 +697,8 @@ public define Use (ns)
 static define New ()
 {
   __->__call__ (NULL, "` + ns + `" , "__::__new__::New";;__qualifiers);
-}`, ns);
+};
 
-  eval (`
 static define Var (vname, vval)
 {
   __->__call__ (NULL, "` + ns + `" , vname, vval, "__::__vput__::Var";;__qualifiers);
