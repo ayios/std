@@ -8,7 +8,7 @@ load.from ("stdio", "writefile", NULL;err_handler = &__err_handler__);
 private variable
   MANDIR = "/usr/share/man/",
   LOCALMANDIR = "/usr/local/share/man/",
-  DATA_DIR = sprintf ("%s/man", Dir.vget ("LCLDATADIR")),
+  DATA_DIR = sprintf ("%s/man", Dir->Vget ("LCLDATADIR")),
   MYMANDIR = sprintf ("%s/manhier", DATA_DIR);
 
 private variable
@@ -78,7 +78,7 @@ define getpage (page)
  
   () = remove (errfn);
 
-  errfn = Dir.vget ("TEMPDIR") + "/" + string (getpid) + substr (string (_time), 7, -1)  + "manerrs";
+  errfn = Dir->Vget ("TEMPDIR") + "/" + string (getpid) + substr (string (_time), 7, -1)  + "manerrs";
 
   if (length (ar))
     {

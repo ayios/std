@@ -1,6 +1,6 @@
 load.from ("file", "ln", NULL;err_handler = &__err_handler__);
 
-__.sadd ("Dir", "eval", "eval_", NULL;FuncRefName = "evaldir");
+Dir->Fun ("eval_", NULL;FuncRefName = "evaldir");
 
 define main ()
 {

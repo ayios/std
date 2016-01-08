@@ -68,7 +68,7 @@ private define fetch (s, url)
   catch CurlError:
     {
     ifnot (qualifier_exists ("dont_print"))
-      IO.tostderr (__.efmt (NULL));
+      IO.tostderr (Err.efmt (NULL));
 
     ifnot (write_to_var)
       {

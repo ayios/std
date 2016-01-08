@@ -1,5 +1,5 @@
-variable STDOUTBG   = Dir.vget ("TEMPDIR") + "/" + string (Env.vget ("PID")) + "_stdoutbg.ashell";
-variable BGDIR      = Dir.vget ("TEMPDIR") + "/" + string (Env.vget ("PID")) + "_procs";
+variable STDOUTBG   = Dir->Vget ("TEMPDIR") + "/" + string (Env->Vget ("PID")) + "_stdoutbg.ashell";
+variable BGDIR      = Dir->Vget ("TEMPDIR") + "/" + string (Env->Vget ("PID")) + "_procs";
 variable BGPIDS     = Assoc_Type[Struct_Type];
 variable STDOUTFDBG = initstream (STDOUTBG);
 variable OUTBG;
@@ -10,7 +10,7 @@ ifnot (access (BGDIR, F_OK))
     __err_handler__ (1;msg = BGDIR + ": is not a directory");
   }
 else
-  if (-1 == mkdir (BGDIR, File.vget ("PERM")["PRIVATE"]))
+  if (-1 == mkdir (BGDIR, File->Vget ("PERM")["PRIVATE"]))
     __err_handler__ (1;msg = BGDIR + ": " + errno_string (errno));
 
 OUTBG = init_ftype ("ashell");

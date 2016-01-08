@@ -21,7 +21,7 @@ define _osapprec_ (s)
   Sock.send_int (SOCKET, APP_GET_CONNECTED);
 
   variable apps = Sock.get_str (SOCKET);
-  variable me = APP.appname + "::" + string (Env.vget ("PID"));
+  variable me = APP.appname + "::" + string (Env->Vget ("PID"));
   apps = strchop (strtrim_end (apps), '\n', 0);
   apps = apps[wherenot (me == apps)];
 

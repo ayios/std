@@ -1,4 +1,4 @@
-variable STDERR = Dir.vget ("TEMPDIR") + "/" + string (Env.vget ("PID")) + "_" + APP.appname + "_stderr.txt";
+variable STDERR = Dir->Vget ("TEMPDIR") + "/" + string (Env->Vget ("PID")) + "_" + APP.appname + "_stderr.txt";
 variable STDERRFD = initstream (STDERR);
 variable ERR_VED;
 
@@ -33,7 +33,7 @@ define tostderr__ ()
     throw __Error, "IOWriteError::" + _function_name + "::" + errno_string (errno), NULL;
 }
 
-__.fput ("IO", "tostderr?", &tostderr__;ReInitFunc=1);
+IO->Fun ("tostderr?", &tostderr__);
 
 if (is_defined ("init_ftype"))
   {

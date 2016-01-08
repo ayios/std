@@ -83,4 +83,5 @@ private define walk (dir, dir_method, file_method)
   fswalk_new (dir_method, file_method;;__qualifiers).walk (dir);
 }
 
-__.sadd ("FS", "walk", "walk___", &walk);
+Use ("FS");
+FS->Fun ("walk___", &walk);

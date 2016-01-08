@@ -1,3 +1,5 @@
+Use ("Sock");
+
 private variable gbt;
 
 private define get_int (fd)
@@ -54,7 +56,7 @@ private define send_int_ar (rdfd, wrfd, int_ar)
   () = write (wrfd, int_ar);
 }
 
-__.new ("Sock";methods = "send_int,get_int,send_str,get_str," +
+Sock->New (;methods = "send_int,get_int,send_str,get_str," +
   "send_int_ar,get_int_ar,send_str_ar,get_str_ar",
   funcs = ["send_int__", "get_int_", "send_str__", "get_str_",
    "send_int_ar___", "get_int_ar__", "send_str_ar___", "get_str_ar__"],

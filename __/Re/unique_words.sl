@@ -7,7 +7,7 @@ private define unique_words (ar, str, end)
 
   try
     {
-    pat = pcre_compile (pat, PCRE_UTF8);
+    pat = pcre_compile (pat, PCRE_UTF8|0x20000000);
     }
   catch ParseError:
     return String_Type[0];

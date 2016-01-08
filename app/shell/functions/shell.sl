@@ -12,10 +12,10 @@ define shell ()
 {
   __vsetbuf (OUT_VED._abspath);
 
-  ifnot (fileexists (Dir.vget ("TEMPDIR") + "/" + strftime ("%m_%d-intro")))
+  ifnot (fileexists (Dir->Vget ("TEMPDIR") + "/" + strftime ("%m_%d-intro")))
     {
     runcom (["intro"], NULL);
-    () = String.write (Dir.vget ("TEMPDIR") + "/" + strftime ("%m_%d-intro"), "ok");
+    () = String.write (Dir->Vget ("TEMPDIR") + "/" + strftime ("%m_%d-intro"), "ok");
     }
 
   topline (" -- shell --");

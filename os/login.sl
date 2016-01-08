@@ -26,21 +26,18 @@ static define login ()
   if (-1 == authenticate (user, passwd))
     exit_me (1;msg = "authentication error");
 
-  variable home = "/home/" + user;
-
-  ifnot (access (home, F_OK))
+  ifnot (access (Env->Vget ("HOME"), F_OK))
     {
-    ifnot (_isdirectory (home))
-      exit_me (1;msg = home + " is not a directory");
+    ifnot (_isdirectory (Env->Vget ("HOME")))
+      exit_me (1;msg = Env->Vget ("HOME") + " is not a directory");
     }
   else
-    exit_me (1;msg = home + " is not a directory");
+    exit_me (1;msg = Env->Vget ("HOME") + " is not a directory");
 
-  __.vput ("Env", "user", user);
-  __.vput ("Env", "uid", uid);
-  __.vput ("Env", "gid", gid);
-  __.vput ("Env", "group", group);
-  __.vput ("Env", "home", home);
+  Env->Var ("user", user);
+  Env->Var ("uid", uid);
+  Env->Var ("gid", gid);
+  Env->Var ("group", group);
 
-  return encryptpasswd (passwd);
+  encryptpasswd (passwd);
 }

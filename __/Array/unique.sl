@@ -1,4 +1,4 @@
-__.sadd ("Array", "shift", "shift", NULL;trace = 0);
+Array->Fun ("shift", NULL;trace = 0);
 
 private define unique (s, a) % upstream code
 {

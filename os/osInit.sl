@@ -1,3 +1,5 @@
+Use ("String");
+
 typedef struct
   {
   _sockaddr,
@@ -23,13 +25,14 @@ typedef struct
 variable Setid_Type = struct
   {
   setid = 1,
-  uid = Env.vget ("uid"),
-  gid = Env.vget ("gid"),
-  user = Env.vget ("user")
+  uid = Env->Vget ("uid"),
+  gid = Env->Vget ("gid"),
+  user = Env->Vget ("user")
   };
 
-__.sadd ("String", "append", "append__", NULL);
-__.sadd ("String", "write", "write__", NULL);
+String->Fun ("append__", NULL);
+String->Fun ("write__", NULL);
+
 load.from ("proc", "envs", 1;err_handler = &__err_handler__);
 load.from ("sock", "sock", 0;err_handler = &__err_handler__);
 load.from ("wind", "ostopline", NULL;err_handler = &__err_handler__);
@@ -101,7 +104,7 @@ define __reconnect_to_app (appl)
 
   s._state &= ~IDLED;
 
-  return s;
+  s;
 }
 
 define __set_idled (s)
@@ -150,15 +153,15 @@ define __get_con_apps ()
     str += sprintf ("%s::%d\n", pid[0], APPS[pid[0]][pid[1]].p_.pid);
     }
 
-  return str;
+  str;
 }
 
 define __connect_to_app (s)
 {
-  while (-1 == access (Dir.vget ("TEMPDIR") + "/_" + s._appname + "_.init", F_OK))
-    ifnot (access (Dir.vget ("TEMPDIR") + "/_" + s._appname + "_.initerr", F_OK))
+  while (-1 == access (Dir->Vget ("TEMPDIR") + "/_" + s._appname + "_.init", F_OK))
+    ifnot (access (Dir->Vget ("TEMPDIR") + "/_" + s._appname + "_.initerr", F_OK))
       {
-      () = remove (Dir.vget ("TEMPDIR") + "/_" + s._appname + "_.initerr");
+      () = remove (Dir->Vget ("TEMPDIR") + "/_" + s._appname + "_.initerr");
 
       s.p_.atexit ();
 
@@ -339,7 +342,7 @@ private define tabhook (s)
 define initrline ()
 {
   variable rl = rline->init (&init_commands;
-    histfile = Dir.vget ("HISTDIR") + "/" + string (OSUID) + "oshistory",
+    histfile = Dir->Vget ("HISTDIR") + "/" + string (OSUID) + "oshistory",
     tabhook = &tabhook,
     on_lang = &toplinedr,
     on_lang_args = {"-- OS --"});
@@ -364,14 +367,29 @@ private define  _loop_ ()
     throw RunTimeError, " ", __get_exception_info ();
 }
 
+private define _R_ (ns, func, caller, args, handler)
+{
+  struct {
+    ns = ns,
+    func = func,
+    caller = caller,
+    args = args,
+    handler = handler,
+    err = String_Type[0],
+    };
+}
+
 define osloop ()
 {
+  variable r = _R_ ("os", "osloop", NULL, NULL, NULL);
+
   forever
     try
       _loop_ ();
     catch RunTimeError:
       {
-      IO.tostderr (__.efmt (__get_exception_info.object));
+      Err.eprint (__get_exception_info);
+%      IO.tostderr (Err.efmt (__get_exception_info.object));
       smg->init ();
       draw (ERR); % new func: draw_and_take_some_action
       }
@@ -384,7 +402,7 @@ private define _apptable_ ()
   variable app;
   variable dir;
   variable apps;
-  variable dirs = [Dir.vget ("USRDIR"), Dir.vget ("STDDIR"), Dir.vget ("LCLDIR")];
+  variable dirs = [Dir->Vget ("USRDIR"), Dir->Vget ("STDDIR"), Dir->Vget ("LCLDIR")];
 
   _for i (0, length (dirs) - 1)
     {

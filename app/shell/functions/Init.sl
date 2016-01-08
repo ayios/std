@@ -17,7 +17,7 @@ define on_wind_change (w)
 
 define on_wind_new (w)
 {
-  variable o = Dir.vget ("TEMPDIR") + "/" + string (Env.vget ("PID")) + "_" + APP.appname +
+  variable o = Dir->Vget ("TEMPDIR") + "/" + string (Env->Vget ("PID")) + "_" + APP.appname +
     string (_time)[[5:]] + "_stdout.shell";
 
   variable oved =init_ftype (APP.stdouttype);
@@ -55,7 +55,7 @@ define _del_frame_ (s)
 
 define _new_frame_ (s)
 {
-  new_frame (Dir.vget ("TEMPDIR") + "/" + string (Env.vget ("PID")) + "_" + APP.appname +
+  new_frame (Dir->Vget ("TEMPDIR") + "/" + string (Env->Vget ("PID")) + "_" + APP.appname +
     string (_time)[[5:]] + "_stdout.shell");
 
   variable b = get_cur_buf ();

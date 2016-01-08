@@ -1,7 +1,9 @@
+Use ("Subst");
+
 load.module ("std", "pcre", NULL;err_handler = &__err_handler__);
 load.module ("std", "fork", NULL;err_handler = &__err_handler__);
 
-__.new ("Subst";methods = "new,exec,new_lines,assign,askonsubst",
+Subst->New (;methods = "new,exec,new_lines,assign,askonsubst",
    funcs = ["__new__", "exec__", "new_lines__", "assign_", "askonsubst______"],
    refs = [NULL, NULL, NULL, NULL, NULL]);
 
@@ -57,7 +59,7 @@ define unified_diff (lines, fname)
 
   if (isbigin)
     {
-    variable fn = Dir.vget ("TEMPDIR") + "/" + path_basename (fname) + "_" + string (Env.vget ("PID")) + "_" +
+    variable fn = Dir->Vget ("TEMPDIR") + "/" + path_basename (fname) + "_" + string (Env->Vget ("PID")) + "_" +
       string (_time)[[5:]];
     writefile (lines, fn);
     com[-1] = fn;
@@ -130,7 +132,7 @@ private define sed (file, s)
         }
       catch AnyError:
         {
-        IO.tostderr (["WRITTING ERROR", __.efmt (NULL)]);
+        IO.tostderr (["WRITTING ERROR", Err.efmt (NULL)]);
         }
       }
 }

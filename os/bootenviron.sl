@@ -1,29 +1,29 @@
-if (NULL == Env.vget ("TERM"))
+if (NULL == Env->Vget ("TERM"))
   {
   IO.tostderr ("TERM environment variable isn't set");
   exit (1);
   }
 
-if (NULL == Env.vget ("LANG"))
+if (NULL == Env->Vget ("LANG"))
   {
   IO.tostderr ("LANG environment variable isn't set");
   exit (1);
   }
 
-if (5 > strlen (Env.vget ("LANG")) || "UTF-8" != substr (Env.vget ("LANG"),
-  strlen (Env.vget ("LANG")) - 4, -1))
+if (5 > strlen (Env->Vget ("LANG")) || "UTF-8" != substr (Env->Vget ("LANG"),
+  strlen (Env->Vget ("LANG")) - 4, -1))
   {
-  IO.tostderr ("locale: " + Env.vget ("LANG") + " isn't UTF-8 (Unicode), or misconfigured");
+  IO.tostderr ("locale: " + Env->Vget ("LANG") + " isn't UTF-8 (Unicode), or misconfigured");
   exit (1);
   }
 
-if (NULL == Env.vget ("home"))
+if (NULL == getenv ("HOME"))
   {
   IO.tostderr ("HOME environment variable isn't set");
   exit (1);
   }
 
-if (NULL == Env.vget ("PATH"))
+if (NULL == Env->Vget ("PATH"))
   {
   IO.tostderr ("PATH environment variable isn't set");
   exit (1);
@@ -32,17 +32,17 @@ if (NULL == Env.vget ("PATH"))
 SLSH_BIN = Sys.which ("slsh");
 SUDO_BIN = Sys.which ("sudo");
 
-__.vput ("Env", "user", setpwname (Env.vget ("uid"), &$1));
+Env->Var ("user", setpwname (Env->Vget ("uid"), &$1));
 
-if (NULL == Env.vget ("user"))
+if (NULL == Env->Vget ("user"))
   {
   IO.tostderr (__tmp ($1));
   exit (1);
   }
 
-__.vput ("Env", "group", setgrname (Env.vget ("gid"), &$1));
+Env->Var ("group", setgrname (Env->Vget ("gid"), &$1));
 
-if (NULL == Env.vget ("group"))
+if (NULL == Env->Vget ("group"))
   {
   IO.tostderr (__tmp ($1));
   exit (1);

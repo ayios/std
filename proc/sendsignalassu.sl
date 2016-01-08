@@ -12,4 +12,3 @@ pid = atoi (pid);
 variable retval = kill (pid, sig);
 
 exit (0);
-

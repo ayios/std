@@ -1,7 +1,7 @@
 define __err_handler__(__r__)
 {
   if (APP.os)
-    $1 = open (Dir.vget ("TEMPDIR") + "/_" + APP.appname + "_.initerr", O_WRONLY|O_CREAT, S_IRWXU);
+    $1 = open (Dir->Vget ("TEMPDIR") + "/_" + APP.appname + "_.initerr", O_WRONLY|O_CREAT, S_IRWXU);
 
   at_exit ();
 

@@ -183,7 +183,7 @@ private define tabhook (s)
 define rlineinit ()
 {
   variable rl = rline->init (&my_commands;;struct {
-    histfile = Dir.vget ("HISTDIR") + "/" + string (getuid ()) + "vedhistory",
+    histfile = Dir->Vget ("HISTDIR") + "/" + string (getuid ()) + "vedhistory",
     historyaddforce = 1,
     tabhook = &tabhook,
     %totype = "Func_Type",
@@ -218,7 +218,7 @@ define __write_buffers ()
       else
         if (-1 == access (fn, W_OK))
           {
-          IO.tostderr (fn + " is not writable by you " + Env.vget ("user"));
+          IO.tostderr (fn + " is not writable by you " + Env->Vget ("user"));
           hasnewmsg = 1;
           continue;
           }

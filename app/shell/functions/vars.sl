@@ -1,2 +1,2 @@
 variable STACK;
-variable STACKFILE = Dir.vget ("HISTDIR") + "/" + string (Env.vget ("uid")) + "stack";
+variable STACKFILE = Dir->Vget ("HISTDIR") + "/" + string (Env->Vget ("uid")) + "stack";

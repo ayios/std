@@ -15,7 +15,7 @@ variable dir;
 
 _TICKETS
 
-=dir & getdir (Dir.vget ("STDDIR"), \"app\", \"shell\");
+=dir & getdir (Dir->Vget ("STDDIR"), \"app\", \"shell\");
 __[dir]
   [TKTID]:0001>$mydir/0001.abt: [TP][ENH][HPRRT] [DSCR].
 ___add ved [DONE]
@@ -33,7 +33,7 @@ ___add ved [DONE]
 ---if strlen (header) > COLUMNS
 .
 
-=dir & getdir (Dir.vget ("STDDIR"), \"app\", \"ved\");
+=dir & getdir (Dir->Vget ("STDDIR"), \"app\", \"ved\");
 __[dir]:file>$dir/functions/share/vedfuncs.sl:
   [TKTID]:0003>$mydir/0003.abt: [TP][ENH][HPRRT] [DSCR].
 ---add edit other [DONE]
@@ -54,19 +54,19 @@ __[dir]:file>$dir/functions/share/vedfuncs.sl:
 --- add ! for system calls
 .
 
-=dir & getdir (Dir.vget ("STDDIR"), \"proc\", \"loadcommand\");
+=dir & getdir (Dir->Vget ("STDDIR"), \"proc\", \"loadcommand\");
 ---[dir]
 [TKTID]:0006>$mydir/0006.abt: [TP][NFXNG][HPRRT] [DSCR].
 ---ask function
 .
 
-=dir & getdir (Dir.vget ("STDDIR"), \"com\", \"mount\");
+=dir & getdir (Dir->Vget ("STDDIR"), \"com\", \"mount\");
 ---[dir]
 [TKTID]:0007>$mydir/0007.abt: [TP][ENH][LPRRT] [DSCR].
 ---turn verbose on by default
 .
 
-=dir & getdir (Dir.vget ("STDDIR"), \"rline\");
+=dir & getdir (Dir->Vget ("STDDIR"), \"rline\");
 __[dir]:file>$dir/rlineinit.sl:
   [TKTID]:0014>$mydir/0014.abt: [TP][ENH][HPRRT] [DSCR].
 ---add last component completion

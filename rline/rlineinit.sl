@@ -1432,7 +1432,7 @@ private define getpattern (s, pat)
   rl._lin = rl.argv[0];
 
   variable
-    ar = IO.readfile (Dir.vget ("STDDATADIR") + "/Txt_Type/pcresyntax.txt"),
+    ar = IO.readfile (Dir->Vget ("STDDATADIR") + "/Txt_Type/pcresyntax.txt"),
     len = length (ar),
     lines = s._lines - (strlen (s._lin) / s._columns) - 3,
     prow = s._prow - (strlen (s._lin) / s._columns) - (len > lines ? lines : len) - 1;

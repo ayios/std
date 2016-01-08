@@ -35,23 +35,23 @@ private define parse_flags (fd)
 {
   ifnot (NULL == fd.wr_flags)
     {
-    ifnot (assoc_key_exists (File.vget ("FLAGS"), fd.wr_flags))
-      fd.wr_flags = File.vget ("FLAGS")[">"];
+    ifnot (assoc_key_exists (File->Vget ("FLAGS"), fd.wr_flags))
+      fd.wr_flags = File->Vget ("FLAGS")[">"];
     else
-      fd.wr_flags = File.vget ("FLAGS")[fd.wr_flags];
+      fd.wr_flags = File->Vget ("FLAGS")[fd.wr_flags];
     }
   else
     if (-1 == access (fd.file, F_OK))
-      fd.wr_flags = File.vget ("FLAGS")[">"];
+      fd.wr_flags = File->Vget ("FLAGS")[">"];
     else
-      fd.wr_flags = File.vget ("FLAGS")[">|"];
+      fd.wr_flags = File->Vget ("FLAGS")[">|"];
 
   ifnot (NULL == fd.append_flags)
     fd.wr_flags |= fd.append_flags;
 
   if (fd.wr_flags & O_CREAT)
     if (NULL == fd.mode)
-      fd.mode = File.vget ("PERM")["_PRIVATE"];
+      fd.mode = File->Vget ("PERM")["_PRIVATE"];
 }
 
 private define open_file (fd, fp)

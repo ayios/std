@@ -1,7 +1,7 @@
 private define write (file, str)
 {
   variable fd = open (file, O_WRONLY|O_CREAT|O_TRUNC,
-    qualifier ("flags", File.vget ("PERM")["__PUBLIC"]));
+    qualifier ("flags", File->Vget ("PERM")["__PUBLIC"]));
 
   if (NULL == fd)
     {

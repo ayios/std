@@ -179,7 +179,7 @@ static define apploop (s)
 
 private define _addflags_ (p, s)
 {
-  p.stderr.file = Dir.vget ("TEMPDIR") + "/" + string (Env.vget ("PID")) +
+  p.stderr.file = Dir->Vget ("TEMPDIR") + "/" + string (Env->Vget ("PID")) +
     "Srv" + s._appname + "err";
   p.stderr.wr_flags = ">|";
 }
@@ -193,7 +193,7 @@ static define init_app (name, dir, argv)
   s._procfile = dir + "/proc";;
   s._appname = name;
   s.argv = argv;
-  s._sockaddr = Dir.vget ("TEMPDIR") + "/" + string (Env.vget ("PID")) + name + ".sock";
+  s._sockaddr = Dir->Vget ("TEMPDIR") + "/" + string (Env->Vget ("PID")) + name + ".sock";
 
   _log_ ("initing " + s._appname + ", sockaddress: " + s._sockaddr, LOGALL);
 
@@ -206,11 +206,11 @@ private define _getargvenv_ (p, s, argv)
 
   variable env = [proc->defenv (), sprintf ("SOCKADDR=%s", s._sockaddr)];
 
-  ifnot (NULL == Env.vget ("display"))
-    env = [env, "DISPLAY=" + Env.vget ("display")];
+  ifnot (NULL == Env->Vget ("display"))
+    env = [env, "DISPLAY=" + Env->Vget ("display")];
 
-  ifnot (NULL == Env.vget ("xauthority"))
-    env = [env, "XAUTHORITY=" + Env.vget ("xauthority")];
+  ifnot (NULL == Env->Vget ("xauthority"))
+    env = [env, "XAUTHORITY=" + Env->Vget ("xauthority")];
 
   return argv, env;
 }

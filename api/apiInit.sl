@@ -17,8 +17,8 @@ static define init (dir)
   s.excom      = qualifier ("excom", NULL);
   s.loaddir    = "app/" + s.appname + "/functions";
   s.os         = qualifier ("os", 0);
-  s.tmpdir     = qualifier ("tmpdir", Dir.vget ("TEMPDIR") + "/" + s.appname + "_" +
-    string (Env.vget ("PID")) + "_" + string (_time)[[5:]]);
+  s.tmpdir     = qualifier ("tmpdir", Dir->Vget ("TEMPDIR") + "/" + s.appname + "_" +
+    string (Env->Vget ("PID")) + "_" + string (_time)[[5:]]);
 
   if (NULL != s.excom && 1 == s.excom)
     {

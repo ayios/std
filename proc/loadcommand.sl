@@ -11,8 +11,8 @@ variable PPID = getenv ("PPID");
 variable BG = getenv ("BG");
 variable BGPIDFILE;
 variable BGX = 0;
-variable WRFIFO = Dir.vget ("TEMPDIR") + "/" + string (PPID) + "_SRV_FIFO.fifo";
-variable RDFIFO = Dir.vget ("TEMPDIR") + "/" + string (PPID) + "_CLNT_FIFO.fifo";
+variable WRFIFO = Dir->Vget ("TEMPDIR") + "/" + string (PPID) + "_SRV_FIFO.fifo";
+variable RDFIFO = Dir->Vget ("TEMPDIR") + "/" + string (PPID) + "_CLNT_FIFO.fifo";
 variable RDFD = NULL;
 variable WRFD = NULL;
 variable stdoutfile = getenv ("stdoutfile");
@@ -41,7 +41,7 @@ if (NULL == BG)
 
 ifnot (NULL == BG)
   {
-  BGPIDFILE = BG + "/" + string (Env.vget ("PID")) + ".RUNNING";
+  BGPIDFILE = BG + "/" + string (Env->Vget ("PID")) + ".RUNNING";
   () = open (BGPIDFILE, O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR);
 
   signal (SIGALRM, &sigalrm_handler);
@@ -95,7 +95,7 @@ private define tostdout ()
   loop (_NARGS) pop ();
 }
 
-__.fput ("IO", "tostdout?", &tostdout;ReInitFunc = 1);
+IO->Fun ("tostdout?", &tostdout);
 
 public define __err_handler__ (__r__)
 {
@@ -107,9 +107,9 @@ public define __err_handler__ (__r__)
 }
 
 ifnot (access (stdoutfile, F_OK))
-  stdoutfd = open (stdoutfile, File.vget ("FLAGS")[stdoutflags]);
+  stdoutfd = open (stdoutfile, File->Vget ("FLAGS")[stdoutflags]);
 else
-  stdoutfd = open (stdoutfile, File.vget ("FLAGS")[stdoutflags], File.vget ("PERM")["__PUBLIC"]);
+  stdoutfd = open (stdoutfile, File->Vget ("FLAGS")[stdoutflags], File->Vget ("PERM")["__PUBLIC"]);
 
 if (NULL == stdoutfd)
   (@_exit_me_) (1;msg = errno_string (errno));
@@ -121,12 +121,12 @@ load.from ("parse", "cmdopt", NULL;err_handler = &__err_handler__);
 
 define verboseon ()
 {
-  __.fput ("IO", "tostdout?", NULL;FuncFname = "comtostdout");
+  IO->Fun ("tostdout?", NULL;FuncFname = "comtostdout");
 }
 
 define verboseoff ()
 {
-  __.fput ("IO", "tostdout?", NULL;FuncFname = "null_tostdout");
+  IO->Fun ("tostdout?", NULL;FuncFname = "null_tostdout");
 }
 
 load.from ("api", "comapi", NULL;err_handler = &__err_handler__);
@@ -282,4 +282,4 @@ define ask (questar, charar)
 try
   load.from ("com/" + com, "comInit", NULL;err_handler = &__err_handler__);
 catch AnyError:
-  (@_exit_me_) (1;msg = __.efmt (NULL));
+  (@_exit_me_) (1;msg = Err.efmt (NULL));

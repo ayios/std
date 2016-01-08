@@ -2,7 +2,7 @@ load.from ("wind", "topline", NULL;err_handler = &__err_handler__);
 
 define toplinedr (str)
 {
-  str += sprintf (" (OSADMIN: %s) (PID: %d) ", OSUSR, Env.vget ("PID"));
+  str += sprintf (" (OSADMIN: %s) (PID: %d) ", OSUSR, Env->Vget ("PID"));
 
   _topline_ (&str, COLUMNS);
 
@@ -12,7 +12,7 @@ define toplinedr (str)
 
 define topline (str)
 {
-  str += sprintf (" (OSADMIN: %s) (PID: %d) ", OSUSR, Env.vget ("PID"));
+  str += sprintf (" (OSADMIN: %s) (PID: %d) ", OSUSR, Env->Vget ("PID"));
 
   _topline_ (&str, COLUMNS);
 

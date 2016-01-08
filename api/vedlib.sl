@@ -1,3 +1,10 @@
+Use ("String");
+Use ("Re");
+Use ("Ved");
+Use ("Subst");
+Use ("Diff");
+Use ("Vundo");
+
 typedef struct
   {
   _i,
@@ -146,11 +153,11 @@ public variable
 public variable UNDELETABLE = String_Type[0];
 public variable SPECIAL = String_Type[0];
 public variable XCLIP_BIN = Sys.which ("xclip");
-public variable VED_DIR = Dir.vget ("TEMPDIR") + "/ved_" + string (Env.vget ("PID")) + "_" +
+public variable VED_DIR = Dir->Vget ("TEMPDIR") + "/ved_" + string (Env->Vget ("PID")) + "_" +
   string (_time)[[5:]];
 
 public variable
-  s_histfile = Dir.vget ("HISTDIR") + "/" + string (getuid ()) + "ved_search_history",
+  s_histfile = Dir->Vget ("HISTDIR") + "/" + string (getuid ()) + "ved_search_history",
   s_histindex = NULL,
   s_history = {};
 
@@ -173,7 +180,7 @@ private define build_ftype_table ()
   variable i;
   variable ii;
   variable ft;
-  variable nss = [Dir.vget ("LCLDIR"), Dir.vget ("STDDIR"), Dir.vget ("USRDIR")];
+  variable nss = [Dir->Vget ("LCLDIR"), Dir->Vget ("STDDIR"), Dir->Vget ("USRDIR")];
 
   % priority local < std < usr
   _for i (0, length (nss) - 1)
@@ -190,46 +197,44 @@ private define build_ftype_table ()
 
 build_ftype_table ();
 
-if (-1 == mkdir (VED_DIR, File.vget ("PERM")["PRIVATE"]))
+if (-1 == mkdir (VED_DIR, File->Vget ("PERM")["PRIVATE"]))
   __err_handler__ (1;msg = VED_DIR + ": cannot make directory, " + errno_string (errno));
 
-__.sadd ("String", "decode", "decode", NULL;trace = 0);
-__.sadd ("String", "append", "append__", NULL);
-__.sadd ("String", "write", "write__", NULL);
+String->Fun ("decode", NULL;trace = 0);
+String->Fun ("append__", NULL);
+String->Fun ("write__", NULL);
 
-__.sadd ("Array", "shift", "shift", NULL;trace = 0);
-__.sadd ("Array", "istype", "istype__", NULL);
-__.sadd ("Array", "getsize", "getsize", NULL;trace = 0);
+Array->Fun ("shift", NULL;trace = 0);
+Array->Fun ("istype__", NULL);
+Array->Fun ("getsize", NULL;trace = 0);
 
-__.sadd ("Re", "unique_lines", "unique_lines___", NULL);
-__.sadd ("Re", "unique_words", "unique_words___", NULL);
+Re->Fun ("unique_lines___", NULL);
+Re->Fun ("unique_words___", NULL);
 
-__.new ("Ved";methods = "storePos,restorePos",
+Ved->New (;methods = "storePos,restorePos",
   funcs = ["storePos__", "restorePos__"],
   refs = [NULL, NULL]);
 
-__.new ("Subst";methods = "new,exec,new_lines,assign,askonsubst",
+Subst->New (;methods = "new,exec,new_lines,assign,askonsubst",
    funcs = ["__new__", "exec__", "new_lines__", "assign_", "askonsubst_______"],
    refs = [NULL, NULL, NULL, NULL, NULL]);
 
-__.new ("File";methods = "are_same,isreg",
-  funcs = ["are_same__", "isreg_"],
-  refs = [NULL, NULL]);
+File->Fun ("are_same__", NULL);
+File->Fun ("isreg_", NULL);
 
-__.new ("Diff";methods = "new,patch,files",
+Diff->New (;methods = "new,patch,files",
   funcs = ["__new__", "patch_", "__files__"],
   refs = [NULL, NULL, NULL]);
 
-__.new ("Vundo";methods = "undo,set,redo",
+Vundo->New (;methods = "undo,set,redo,__rec,__level,__redo",
   funcs = ["__undo_", "__redo_", "__set___"],
-  refs = [NULL, NULL, NULL],
-  vars = ["rec", "level", "redo"], values = {Struct_Type[5], 0, NULL},
-  varself = "rec,level,redo");
+  refs = [NULL, NULL, NULL]);
 
 Vundo.__rec = Struct_Type[3];
 Vundo.__rec[0] = struct {pos = @Pos_Type, data, inds, deleted, blwise};
 Vundo.__rec[1] = struct {pos = @Pos_Type, data, inds, deleted, blwise};
 Vundo.__rec[2] = struct {pos = @Pos_Type, data, inds, deleted, blwise};
+Vundo.__level = 0;
 
 define getXsel (){return "";}
 define seltoX (sel){}
@@ -258,7 +263,7 @@ define init_ftype (ftype)
   load.from ("ftypes/" + ftype, ftype + "_functions", NULL;err_handler = &__err_handler__);
 
   type._type = ftype;
-  return type;
+  type;
 }
 
 define __get_null_str (indent)
@@ -2062,7 +2067,7 @@ define _change_frame_ (s)
 
 define _new_frame_ (s)
 {
-  new_frame (Dir.vget ("TEMPDIR") + "/" + string (_time) + ".noname");
+  new_frame (Dir->Vget ("TEMPDIR") + "/" + string (_time) + ".noname");
   s = get_cur_buf ();
 }
 
@@ -2086,7 +2091,7 @@ define on_wind_change (w)
 
 define on_wind_new (w)
 {
-  variable fn = Dir.vget ("TEMPDIR") + "/" + string (_time) + ".noname";
+  variable fn = Dir->Vget ("TEMPDIR") + "/" + string (_time) + ".noname";
   variable s = init_ftype ("txt");
   variable func = __get_reference ("txt_settype");
   (@func) (s, fn, w.frame_rows[0], NULL);
@@ -5847,8 +5852,8 @@ VED_PAGER[string (keys->rmap.backspace[0])] = &ed_del_trailws;
 VED_PAGER[string (keys->rmap.backspace[1])] = &ed_del_trailws;
 VED_PAGER[string (keys->rmap.backspace[2])] = &ed_del_trailws;
 
-ifnot (NULL == Env.vget ("display"))
-  ifnot (NULL == Env.vget ("xauthority"))
+ifnot (NULL == Env->Vget ("display"))
+  ifnot (NULL == Env->Vget ("xauthority"))
     ifnot (NULL == XCLIP_BIN)
       load.from ("X", "seltoX", NULL;err_handler = &__err_handler__);
 

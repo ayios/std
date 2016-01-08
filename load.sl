@@ -1,5 +1,11 @@
 () = evalfile (path_dirname (__FILE__) + "/__/__");
 
+Use ("Env");
+Use ("Dir");
+Use ("File");
+Use ("Sys");
+Use ("load");
+
 $1 = path_concat (getcwd (), path_dirname (__FILE__));
 
 if ($1[[-2:]] == "/.")
@@ -20,20 +26,21 @@ $1 = realpath ($1);
 set_slang_load_path ("");
 set_import_module_path ("");
 
-__.new ("Env";
-  vars = ["MACHINE", "OS", "PID", "gid", "uid", "home", "PATH",
+
+Env->New (;
+  vars = ["HOME", "MACHINE", "OS", "PID", "gid", "uid", "PATH",
     "TERM", "LANG", "display", "xauthority", "group",
     "user", "SLSH_LIB_DIR", "SLANG_MODULE_PATH", "ISSUPROC"],
-  values = {uname.machine, uname.sysname, getpid, getgid, getuid,
-    getenv ("HOME"), getenv ("PATH"), getenv ("TERM"), getenv ("LANG"),
+  values = {getenv ("HOME"), uname.machine, uname.sysname, getpid, getgid, getuid,
+    getenv ("PATH"), getenv ("TERM"), getenv ("LANG"),
     getenv ("DISPLAY"), getenv ("XAUTHORITY"), NULL, NULL, get_slang_load_path (),
     get_import_module_path (), getuid ? 0 : 1});
 
-__.new ("Dir";
+Dir->New (;
   vars = ["ROOTDIR", "ADIR", "STDDIR", "USRDIR", "LCLDIR", "MDLDIR", "STDDATADIR",
     "USRDATADIR", "LCLDATADIR", "HISTDIR", "SOURCEDIR", "TEMPDIR"],
   values = {$1, $1, $1 + "/std", $1 + "/usr", $1 + "/local",
-    $1 + "/modules/" + Env.vget ("MACHINE"), $1 + "/std/share/data",
+    $1 + "/modules/" + Env->Vget ("MACHINE"), $1 + "/std/share/data",
     $1 + "/usr/share/data", $1 + "/local/share/data",
     $1 + "/local/share/history", $1, $1 + "/tmp"});
 
@@ -59,7 +66,7 @@ $2["_PUBLIC"]  = $2["_STATIC"] |S_IROTH|S_IXOTH; % 0755
 $2["__PUBLIC"] = $2["__STATIC"]|        S_IROTH; % 0644
 $2["___PUBLIC"]= $2["_PRIVATE"]|S_IWGRP|S_IWOTH; % 0622
 
-__.new ("File"; vars = ["FLAGS", "PERM"], values = [$1, $2]);
+File->New (;vars = ["FLAGS", "PERM"], values = [$1, $2], ConstVar = 1);
 
 array_map (&__uninitialize, [&$1, &$2]);
 
@@ -114,8 +121,8 @@ private define __findns__ (ns, lns, lib)
   variable foundlib = NULL;
   variable foundns = NULL;
   variable i;
-  variable nss = [Dir.vget ("ADIR"), Dir.vget ("LCLDIR"),
-    Dir.vget ("STDDIR"), Dir.vget ("USRDIR")];
+  variable nss = [Dir->Vget ("ADIR"), Dir->Vget ("LCLDIR"),
+    Dir->Vget ("STDDIR"), Dir->Vget ("USRDIR")];
 
   _for i (0, length (nss) - 1)
     {
@@ -163,7 +170,7 @@ private define __loadfrom__ (ns, lib, dons)
 
 private define __importfrom__ (ns, module, dons)
 {
-  variable lns = Dir.vget ("MDLDIR") + "/" + ns;
+  variable lns = Dir->Vget ("MDLDIR") + "/" + ns;
 
   if (-1 == access (lns, F_OK))
     throw __Error, "LoadImportOpenError::" + _function_name + ":: (import) " + ns +
@@ -200,7 +207,7 @@ private define __loadfile__ (file, ns)
   () = __load__ (file, ns;;struct {fun = "", @__qualifiers});
 }
 
-__.new ("load";
+load->New (;
   funcs = ["from___", "module___", "file__", "getref___"],
   refs =  [&__loadfrom__, &__importfrom__, &__loadfile__, &__getref__],
   methods = "from,module,file,getref");
@@ -210,7 +217,7 @@ private define which (executable)
   variable
     ar,
     st,
-    path = Env.vget ("PATH");
+    path = Env->Vget ("PATH");
 
   if (NULL == path)
     return NULL;
@@ -227,7 +234,7 @@ private define which (executable)
     NULL;
 }
 
-__.sadd ("Sys", "which", "which_", &which);
+Sys->New (;funcs = ["which_"], refs = [&which]);
 
 private define readfile (file)
 {
@@ -244,7 +251,7 @@ private define readfile (file)
     array_map (String_Type, &strtrim_end, fgetslines (fp), "\n");
 }
 
-__.fput ("IO", "readfile_", &readfile);
+IO->Fun ("readfile_", &readfile);
 
 __use_namespace ("Global");
 

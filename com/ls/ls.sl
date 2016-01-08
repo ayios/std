@@ -1,7 +1,7 @@
 load.module ("std", "pcre", NULL;err_handler = &__err_handler__);
 load.from ("__/FS", "walk", NULL;err_handler = &__err_handler__);
-__.sadd ("Array", "unique", "__unique__", NULL;trace = 0);
-__.sadd ("Dir", "eval", "eval_", NULL;FuncRefName = "evaldir");
+Array->Fun ("__unique__", NULL;trace = 0);
+Dir->Fun ("eval_", NULL;FuncRefName = "evaldir");
 
 verboseon ();
 

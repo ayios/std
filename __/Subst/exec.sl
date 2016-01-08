@@ -42,7 +42,6 @@ private define exec (s, ar)
       finished = "";
       do
         {
-        % CHECK IF PCRE return chars or bytes
         match = pcre_nth_match (s.pat, 0);
         fpart = substr (str, 1, match[0]);
         context = substr (str, match[0] + 1, match[1] - match[0]);

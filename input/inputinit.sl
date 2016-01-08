@@ -22,8 +22,7 @@ private define el_getch ()
     ais = ['ϊ', 'ΐ', '¨'],
     ais_eng = ['i', ';', ':'];
 
-  while (0 == input_pending (1))
-    continue;
+  while (0 == input_pending (1));
 
   chr = getkey ();
 
@@ -35,8 +34,7 @@ private define el_getch ()
 
   if (';' == chr)
     {
-    while (0 == input_pending (1))
-      continue;
+    while (0 == input_pending (1));
     vowel = getkey ();
     index = wherefirst_eq (vowels_in_eng, vowel);
     if (NULL == index)
@@ -46,8 +44,7 @@ private define el_getch ()
     }
   else if (':' == chr)
     {
-    while (0 == input_pending (1))
-      continue;
+    while (0 == input_pending (1));
     vowel = getkey ();
     index = wherefirst_eq (ais_eng, vowel);
     if (NULL == index)
@@ -62,7 +59,7 @@ private define el_getch ()
       chr = el[index];
     }
 
-  return chr;
+  chr;
 }
 
 private define en_getch ()
@@ -82,13 +79,13 @@ private define en_getch ()
     else
       chr = getkey () + 65535;
 
-  return chr;
+  chr;
 }
 
 private define toggle_map ()
 {
   curlang = curlang == length (maps) - 1 ? 0 : curlang + 1;
-  return maps[curlang];
+  maps[curlang];
 }
 
 public define getch ();
@@ -108,7 +105,7 @@ public define getch ()
 
   if (any (keys->rmap.changelang == chr))
     if (qualifier_exists ("disable_langchange"))
-      return chr;
+      chr;
     else
       {
       getchar_lang = toggle_map ();
@@ -122,30 +119,30 @@ public define getch ()
         else
           (@callbackf);
 
-      return getch ();
+      getch ();
       }
   else
-    return chr;
+    chr;
 }
 
 static define get_en_lang ()
 {
-  return &en_getch;
+  &en_getch;
 }
 
 static define get_el_lang ()
 {
-  return &el_getch;
+  &el_getch;
 }
 
 static define getmapname ()
 {
-  return strup (substr (string (maps[curlang]), 2, 2));
+  strup (substr (string (maps[curlang]), 2, 2));
 }
 
 static define getlang ()
 {
-  return maps[curlang];
+  maps[curlang];
 }
 
 static define setlang (lang)

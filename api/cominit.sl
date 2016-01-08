@@ -5,8 +5,8 @@ variable licom = 0;
 variable icom = 0;
 variable iarg;
 variable SHELLLASTEXITSTATUS = 0;
-variable RDFIFO = Dir.vget ("TEMPDIR") + "/" + string (Env.vget ("PID")) +  "_SRV_FIFO.fifo";
-variable WRFIFO = Dir.vget ("TEMPDIR") + "/" + string (Env.vget ("PID")) +  "_CLNT_FIFO.fifo";
+variable RDFIFO = Dir->Vget ("TEMPDIR") + "/" + string (Env->Vget ("PID")) +  "_SRV_FIFO.fifo";
+variable WRFIFO = Dir->Vget ("TEMPDIR") + "/" + string (Env->Vget ("PID")) +  "_CLNT_FIFO.fifo";
 
 ifnot (access (RDFIFO, F_OK))
   if (-1 == remove (RDFIFO))
@@ -245,7 +245,7 @@ private define _preexec_ (argv, header, issudo, env)
 
   @header = strlen (argv[0]) > 1 && 0 == qualifier_exists ("no_header");
   @issudo = qualifier ("issudo");
-  @env = [proc->defenv (), "PPID=" + string (Env.vget ("PID"))];
+  @env = [proc->defenv (), "PPID=" + string (Env->Vget ("PID"))];
 
   variable p = proc->init (@issudo, 0, 1);
 
@@ -294,7 +294,7 @@ private define _parse_redir_ (lastarg, file, flags)
   index++;
 
   if (len == index)
-    return -1;
+    return 0;
 
   chr = lastarg[index];
 
@@ -304,7 +304,10 @@ private define _parse_redir_ (lastarg, file, flags)
     index++;
 
     if (len == index)
+      {
+      IO.tostderr ("There is no file to redirect output");
       return -1;
+      }
     }
 
   chr = lastarg[index];
@@ -315,7 +318,10 @@ private define _parse_redir_ (lastarg, file, flags)
     index++;
 
     if (len == index)
+      {
+      IO.tostderr ("There is no file to redirect output");
       return -1;
+      }
     }
 
   lfile = substr (lastarg, index + 1, -1);
@@ -388,7 +394,7 @@ private define _getpasswd_ ()
     {
     passwd = getpasswd ();
 
-    if (-1 == os->authenticate (Env.vget ("user"), passwd))
+    if (-1 == os->authenticate (Env->Vget ("user"), passwd))
       passwd = NULL;
 
     ifnot (NULL == passwd)
@@ -407,7 +413,7 @@ private define _sendsig_ (sig, pid, passwd)
   p.stdin.in = passwd;
 
   () = p.execv ([SUDO_BIN, "-S", "-E", "-p", "", SLSH_BIN,
-    Dir.vget ("STDDIR") + "/proc/sendsignalassu.sl", sig, pid], NULL);
+    Dir->Vget ("STDDIR") + "/proc/sendsignalassu.sl", sig, pid], NULL);
 }
 
 private define _getbgstatus_ (pid)
@@ -422,7 +428,7 @@ private define _getbgstatus_ (pid)
     else
       pidfile = BGDIR + "/" + pid + ".RUNNING";
 
-  if (0 == isnotsudo && Env.vget ("uid"))
+  if (0 == isnotsudo && Env->Vget ("uid"))
     {
     variable passwd = _getpasswd_ ();
     if (NULL == passwd)
@@ -437,7 +443,7 @@ private define _getbgstatus_ (pid)
       return;
       }
 
-  if (isnotsudo || (isnotsudo == 0 == Env.vget ("uid")))
+  if (isnotsudo || (isnotsudo == 0 == Env->Vget ("uid")))
     {
     variable rdfd = open (RDFIFO, O_RDONLY);
     variable buf = Sock.get_str (rdfd);
@@ -721,7 +727,7 @@ private define _echo_ (argv)
   ifnot (len)
     return;
 
-  variable tostd = APP.realshell ? __.fget ("IO", "__tostdout__").func : &toscratch;
+  variable tostd = APP.realshell ? IO->Fun ("__tostdout__").func : &toscratch;
 
   if (1 == len)
     {
@@ -765,7 +771,7 @@ private define _echo_ (argv)
       }
     else
       {
-      variable fd = open (file, O_CREAT|O_WRONLY, File.vget ("PERM")["__PUBLIC"]);
+      variable fd = open (file, O_CREAT|O_WRONLY, File->Vget ("PERM")["__PUBLIC"]);
       if (NULL == fd)
         IO.tostderr (file + ":" + errno_string (errno));
       else
@@ -863,7 +869,7 @@ define runapp (argv, env)
 {
   smg->suspend ();
 
-  argv[0] = Dir.vget ("ROOTDIR") + "/bin/" + argv[0];
+  argv[0] = Dir->Vget ("ROOTDIR") + "/bin/" + argv[0];
 
   variable issudo = qualifier ("issudo");
 
@@ -891,7 +897,7 @@ private define _build_comlist_ (a)
     c,
     ii,
     ex = qualifier_exists ("ex"),
-    d = [Dir.vget ("USRDIR"), Dir.vget ("STDDIR"), Dir.vget ("LCLDIR")];
+    d = [Dir->Vget ("USRDIR"), Dir->Vget ("STDDIR"), Dir->Vget ("LCLDIR")];
 
   _for i (0, length (d) - 1)
     {
@@ -996,7 +1002,7 @@ define init_commands ()
 
   a["search"] = @Argvlist_Type;
   a["search"].func = &_search_;
-  a["search"].dir = Dir.vget ("STDDIR") + "/com/search";
+  a["search"].dir = Dir->Vget ("STDDIR") + "/com/search";
 
   a;
 }

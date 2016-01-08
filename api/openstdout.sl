@@ -1,4 +1,4 @@
-variable STDOUT = Dir.vget ("TEMPDIR") + "/" + string (Env.vget ("PID")) + "_" + APP.appname + "_stdout." +
+variable STDOUT = Dir->Vget ("TEMPDIR") + "/" + string (Env->Vget ("PID")) + "_" + APP.appname + "_stdout." +
   APP.stdouttype;
 variable STDOUTFD = initstream (STDOUT);
 variable OUT_VED = NULL;
@@ -43,6 +43,6 @@ define tostdout__ ()
     throw __Error, "IOWriteError::" + _function_name + "::" + errno_string (errno), NULL;
 }
 
-__.fput ("IO", "tostdout?", &tostdout__);
+IO->Fun ("tostdout?", &tostdout__);
 
 SPECIAL = [SPECIAL, STDOUT];

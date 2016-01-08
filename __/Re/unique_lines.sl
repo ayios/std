@@ -6,7 +6,7 @@ private define unique_lines (ar, str, end)
     ? "\\s*" : "", str_quote_string (str, "()[]^\\+*.?", '\\'));
   try
     {
-    pat = pcre_compile (pat, PCRE_UTF8);
+    pat = pcre_compile (pat, PCRE_UTF8|0x20000000);
     }
   catch ParseError:
     return String_Type[0];
