@@ -1,5 +1,7 @@
 load.module ("std", "pcre", NULL;err_handler = &__err_handler__);
 
+public variable PCRE_UCP = 0x20000000;
+
 load.from ("dir", "makedir", NULL;err_handler = &__err_handler__);
 load.from ("dir", "parents", NULL;err_handler = &__err_handler__);
 load.from ("stdio", "copy", NULL;err_handler = &__err_handler__);

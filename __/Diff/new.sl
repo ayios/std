@@ -10,7 +10,7 @@ private define new (s, x, y)
   variable lcs;
 
   if (xl == yl)
-    if (x == y)
+    ifnot (any (x != y))
       return array_map (String_Type, &sprintf, " %s", x);
 
   _for pi (0, xl - 1)
@@ -68,13 +68,13 @@ private define new (s, x, y)
   prefix = list_to_array (prefix, String_Type);
   suffix = list_to_array (suffix, String_Type);
 
-  variable pinds = Integer_Type[length (prefix)];
-  variable sinds = Integer_Type[length (suffix)];
-  variable rinds = Integer_Type[length (res)];
-  variable tok;
-   _for i (0, length (res) - 1)
-     rinds[i] = (tok = res[i][0], tok == '-' ? -1 : tok == '+' ? 1 : 0);
-
-  [pinds, rinds, sinds];
+%  variable pinds = Integer_Type[length (prefix)];
+%  variable sinds = Integer_Type[length (suffix)];
+%  variable rinds = Integer_Type[length (res)];
+%  variable tok;
+%   _for i (0, length (res) - 1)
+%     rinds[i] = (tok = res[i][0], tok == '-' ? -1 : tok == '+' ? 1 : 0);
+%
+%  [pinds, rinds, sinds];
   [prefix, res, suffix];
 }

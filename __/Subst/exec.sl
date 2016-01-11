@@ -43,9 +43,9 @@ private define exec (s, ar)
       do
         {
         match = pcre_nth_match (s.pat, 0);
-        fpart = substr (str, 1, match[0]);
-        context = substr (str, match[0] + 1, match[1] - match[0]);
-        lpart = substr (str, match[1] + 1, -1);
+        fpart = substrbytes (str, 1, match[0]);
+        context = substrbytes (str, match[0] + 1, match[1] - match[0]);
+        lpart = substrbytes (str, match[1] + 1, -1);
 
         replace = "";
 

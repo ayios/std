@@ -5,6 +5,8 @@ Use ("Subst");
 Use ("Diff");
 Use ("Vundo");
 
+public variable PCRE_UCP = 0x20000000;
+
 typedef struct
   {
   _i,
@@ -672,17 +674,17 @@ private define _initrowsbuffvars_ (s)
 
 define get_cur_wind ()
 {
-  return VED_WIND[VED_CUR_WIND];
+  VED_WIND[VED_CUR_WIND];
 }
 
 define get_cur_frame ()
 {
-  return get_cur_wind ().cur_frame;
+  get_cur_wind ().cur_frame;
 }
 
 define get_cur_rline ()
 {
-  return get_cur_wind ().rline;
+  get_cur_wind ().rline;
 }
 
 define __vsetbuf (key)
@@ -1050,6 +1052,7 @@ define wind_change (to)
 
 define on_wind_new (w)
 {
+  (@__get_reference ("__initrline"));
 }
 
 define wind_init (name, frames)
@@ -2371,7 +2374,7 @@ private define search_backward (s, str)
 
   try
     {
-    pat = pcre_compile (str, PCRE_UTF8);
+    pat = pcre_compile (str, PCRE_UTF8|PCRE_UCP);
     }
   catch ParseError:
     {
@@ -2443,7 +2446,7 @@ private define search_forward (s, str)
 
   try
     {
-    pat = pcre_compile (str, PCRE_UTF8);
+    pat = pcre_compile (str, PCRE_UTF8|PCRE_UCP);
     }
   catch ParseError:
     {
@@ -5782,6 +5785,80 @@ private define handle_comma (s)
 
   if ('p' == chr)
     seltoX (get_cur_buf._abspath);
+}
+
+define PROJECT_VED (argv)
+{
+  ifnot (length (argv) - 1)
+    return;
+
+  variable pj;
+  variable fn;
+  variable args = argv[[1:]];
+
+  variable ind = is_arg ("--from-file=", args);
+  ifnot (NULL == ind)
+    {
+    fn = strchop (args[ind], '=', 0);
+    if (1 == length (fn))
+      return;
+
+    fn = fn[1];
+
+    if (-1 == access (fn, F_OK|R_OK))
+      return;
+
+    variable ar = IO.readfile (fn);
+
+    pj = strtok (ar[0]);
+    }
+  else
+    pj = args;
+
+  if (length (pj) + length (assoc_get_keys (VED_WIND)) > 10)
+    return;
+
+  variable wc = VED_CUR_WIND, i, w = NULL, j, found, nwns, owns = assoc_get_keys (VED_WIND);
+
+  _for i (0, length (pj) - 1)
+    {
+    fn = pj[i];
+    if (access (fn, F_OK|R_OK))
+      continue;
+
+    new_wind (;on_wind_new);
+
+    nwns = assoc_get_keys (VED_WIND);
+
+    if (length (nwns) == length (owns))
+      continue;
+
+    _for j (0, length (nwns) - 1)
+      if (any (nwns[j] == owns))
+        continue;
+      else
+        {
+        w = nwns[j];
+        break;
+        }
+
+    owns = @nwns;
+    variable cw = get_cur_wind ();
+    variable ft = get_ftype (fn);
+    variable s = init_ftype (ft);
+    variable func = __get_reference (sprintf ("%s_settype", ft));
+    (@func) (s, fn, cw.frame_rows[get_cur_frame ()], NULL);
+
+    __vsetbuf (s._abspath);
+    }
+
+  if (NULL == w)
+    return;
+
+  VED_PREV_WIND = wc;
+  VED_CUR_WIND = w;
+
+  __vdraw_wind ();
 }
 
 VED_PAGER[string (',')]           = &handle_comma;

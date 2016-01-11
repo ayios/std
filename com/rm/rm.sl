@@ -1,5 +1,7 @@
 load.module ("std", "pcre", NULL;err_handler = &__err_handler__);
 
+public variable PCRE_UCP = 0x20000000;
+
 load.from ("file", "remove", NULL;err_handler = &__err_handler__);
 
 load.from ("__/FS", "walk", NULL;err_handler = &__err_handler__);

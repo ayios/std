@@ -11,7 +11,7 @@ private define new (s, pat, sub)
       global = qualifier ("global"),
       askwhensubst = qualifier ("askwhensubst", 1),
       askonsubst = qualifier ("askonsubst", s.askonsubst),
-      pat = pcre_compile (pat, qualifier ("pcreopts", 0x20000000|PCRE_UTF8)),
+      pat = pcre_compile (pat, qualifier ("pcreopts", PCRE_UCP|PCRE_UTF8)),
       substlist = s.assign (sub),
       new_lines = s.new_lines,
       };

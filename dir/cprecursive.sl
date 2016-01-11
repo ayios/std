@@ -3,6 +3,8 @@ load.from ("stdio", "copy", NULL;err_handler = &__err_handler__);
 load.from ("__/FS", "walk", NULL;err_handler = &__err_handler__);
 load.from ("dir", "makedir", NULL;err_handler = &__err_handler__);
 
+public variable PCRE_UCP = 0x20000000;
+
 private define dir_callback (dir, st, source, dest, opts, exit_code)
 {
   ifnot (NULL == opts.ignoredir)

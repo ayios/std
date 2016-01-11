@@ -388,7 +388,7 @@ define osloop ()
       _loop_ ();
     catch RunTimeError:
       {
-      Err.eprint (__get_exception_info);
+      Err.eprint (__get_exception_info, r);
 %      IO.tostderr (Err.efmt (__get_exception_info.object));
       smg->init ();
       draw (ERR); % new func: draw_and_take_some_action

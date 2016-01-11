@@ -1004,5 +1004,13 @@ define init_commands ()
   a["search"].func = &_search_;
   a["search"].dir = Dir->Vget ("STDDIR") + "/com/search";
 
+  variable pj = "PROJECT_" + strup (APP.appname);
+  variable f = __get_reference (pj);
+  ifnot (NULL == f)
+    {
+    a["project_new"] = @Argvlist_Type;
+    a["project_new"].func = f;
+    a["project_new"].args = ["--from-file= filename read from filename"];
+    }
   a;
 }

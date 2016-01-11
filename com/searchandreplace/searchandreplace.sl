@@ -3,6 +3,8 @@ Use ("Subst");
 load.module ("std", "pcre", NULL;err_handler = &__err_handler__);
 load.module ("std", "fork", NULL;err_handler = &__err_handler__);
 
+public variable PCRE_UCP = 0x20000000;
+
 Subst->New (;methods = "new,exec,new_lines,assign,askonsubst",
    funcs = ["__new__", "exec__", "new_lines__", "assign_", "askonsubst______"],
    refs = [NULL, NULL, NULL, NULL, NULL]);

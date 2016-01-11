@@ -1,4 +1,8 @@
 load.module ("std", "pcre", NULL;err_handler = &__err_handler__);
+
+public variable PCRE_UCP = 0x20000000;
+public variable PCRE_NO_UTF8_CHECK = 0x00002000;
+
 load.from ("__/FS", "walk", NULL;err_handler = &__err_handler__);
 
 private variable
@@ -22,7 +26,7 @@ private define grepit (lline, file)
     holdcol = 0,
     orig = lline;
 
-  while (pcre_exec (PAT, lline))
+  while (pcre_exec (PAT, lline, 0, PCRE_NO_UTF8_CHECK))
     {
     FNAMES = [FNAMES, file];
     LINENRS = [LINENRS, INDEX];
@@ -38,6 +42,18 @@ private define grepit (lline, file)
       break;
     }
 }
+private define _r_ (ns, func, caller, args, handler)
+{
+  struct {
+    ns = ns,
+    func = func,
+    caller = caller,
+    args = args,
+    handler = handler,
+    err = String_Type[0],
+    };
+}
+
 
 private define exec (file)
 {
@@ -61,6 +77,8 @@ private define exec (file)
       grepit (str, file);
     catch AnyError:
       {
+      variable r = _r_ ("grepit", "search", NULL, NULL, NULL);
+      Err.eprint (__get_exception_info, r);
       IO.tostderr (sprintf ("caught an error in exec func in script: %s", __FILE__));
       IO.tostderr (sprintf ("file that occured: %s", file));
       IO.tostderr (sprintf ("linenr that occured: %d", i));
@@ -248,7 +266,7 @@ define main ()
 
     try (err)
       {
-      PAT = pcre_compile (PAT, 0);
+      PAT = pcre_compile (PAT, PCRE_UTF8|PCRE_UCP);
       }
     catch ParseError:
       {

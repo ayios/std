@@ -1,4 +1,7 @@
 load.module ("std", "pcre", NULL;err_handler = &__err_handler__);
+
+public variable PCRE_UCP = 0x20000000;
+
 load.from ("__/FS", "walk", NULL;err_handler = &__err_handler__);
 load.from ("file", "copyfile", NULL;err_handler = &__err_handler__);
 load.from ("string", "strtoint", NULL;err_handler = &__err_handler__);
@@ -50,18 +53,18 @@ define getpage (page)
     colfn = sprintf ("%s/Man_Page_Fname_col.txt", MYMANDIR),
     manpages = String_Type[0],
     matches = String_Type[0];
- 
+
   if (".gz" == path_extname (page))
     {
     p = proc->init (0, 1, 0);
     p.stdout.file = fname;
- 
+
     status = p.execv ([gzip, "-dc", page], NULL);
- 
+
     p = proc->init (0, 1, 1);
     p.stdout.file = outfn;
     p.stderr.file = errfn;
- 
+
     status = p.execv ([groff, "-Tutf8", "-m", "man", fname], NULL);
     }
   else
@@ -70,12 +73,12 @@ define getpage (page)
     p = proc->init (0, 1, 1);
     p.stdout.file = outfn;
     p.stderr.file = errfn;
- 
+
     status = p.execv ([groff, "-Tutf8", "-m", "man", fname], NULL);
     }
 
   ar = IO.readfile (errfn);
- 
+
   () = remove (errfn);
 
   errfn = Dir->Vget ("TEMPDIR") + "/" + string (getpid) + substr (string (_time), 7, -1)  + "manerrs";
@@ -93,7 +96,7 @@ define getpage (page)
       st = stat_file (page);
       if (NULL == st)
         page = sprintf ("%s.gz", page);
- 
+
       st = stat_file (page);
       if (NULL == st)
         continue;
@@ -111,7 +114,7 @@ define getpage (page)
         matchfn = sprintf ("%s/%s", MYMANDIR, match);
         p = proc->init (0, 1, 0);
         p.stdout.file = matchfn;
- 
+
         status = p.execv ([gzip, "-dc", page], NULL);
         }
       else
@@ -120,7 +123,7 @@ define getpage (page)
 
     p = proc->init (0, 1, 0);
     p.stdout.file = outfn;
- 
+
     status = p.execv ([groff, "-Tutf8", "-m", "man", "-I", MYMANDIR, fname], NULL);
 
     _for i (0, length (manpages) - 1)
@@ -130,27 +133,27 @@ define getpage (page)
       () = remove (sprintf ("%s/%s", MYMANDIR, match));
       }
     }
- 
+
   p = proc->init (1, openstdout, 0);
 
   if (openstdout)
     initproc (p);
 
   p.stdin.file = outfn;
- 
+
   status = p.execv ([col, "-b"], NULL);
- 
+
   () = remove (outfn);
   () = remove (fname);
 
-  return 0;
+  0;
 }
 
 define file_callback (file, st, filelist)
 {
   list_append (filelist, file);
 
-  return 1;
+  1;
 }
 
 define main ()
@@ -262,11 +265,11 @@ define main ()
       retval = getpage (man_page[0]);
       exit_me (retval);
       }
- 
+
     ar = array_map (String_Type, &path_basename, man_page);
     _for i (0, length (ar) - 1)
       ar[i] = strchop (ar[i], '.', 0)[1];
- 
+
     variable sorted = array_sort (ar);
     ar = ar[sorted];
     man_page = man_page[sorted];
