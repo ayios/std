@@ -5844,7 +5844,9 @@ define PROJECT_VED (argv)
 
     owns = @nwns;
     variable cw = get_cur_wind ();
-    variable ft = get_ftype (fn);
+    variable ft = qualifier ("ftype");
+    if (NULL == ft)
+      ft = get_ftype (fn);
     variable s = init_ftype (ft);
     variable func = __get_reference (sprintf ("%s_settype", ft));
     (@func) (s, fn, cw.frame_rows[get_cur_frame ()], NULL);

@@ -4,6 +4,7 @@ load.module ("std", "pcre", NULL;err_handler = &__err_handler__);
 load.module ("std", "fork", NULL;err_handler = &__err_handler__);
 
 public variable PCRE_UCP = 0x20000000;
+public variable PCRE_NO_UTF8_CHECK = 0x00002000;
 
 Subst->New (;methods = "new,exec,new_lines,assign,askonsubst",
    funcs = ["__new__", "exec__", "new_lines__", "assign_", "askonsubst______"],

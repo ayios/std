@@ -18,6 +18,19 @@ if (1 == __argc)
   SCRATCH_VED.ved (SCRATCH);
 else
   {
+  ft = is_arg ("--ft=", __argv);
+  ifnot (NULL == ft)
+    {
+    ft = strchop (__argv[ft], '=', 0);
+    if (2 == length (ft))
+      {
+      ft = ft[1];
+
+      ifnot (any (ft == assoc_get_keys (FTYPES)))
+        ft = NULL;
+      }
+    }
+
   pj = is_arg ("--pj=", __argv);
 
   ifnot (NULL == pj)
@@ -30,24 +43,11 @@ else
       APP.func.exit ();
       }
 
-    PROJECT_VED ([NULL, strchopr (tk[1], ',', 0)]);
+    PROJECT_VED ([NULL, strchopr (tk[1], ',', 0)];ftype = ft);
     del_wind ("a");
     variable b = get_cur_buf ();
     b.ved (b._abspath);
     APP.func.exit ();
-    }
-
-  ft = is_arg ("--ft=", __argv);
-  ifnot (NULL == ft)
-    {
-    ft = strchop (__argv[ft], '=', 0);
-    if (2 == length (ft))
-      {
-      ft = ft[1];
-
-      ifnot (any (ft == assoc_get_keys (FTYPES)))
-        ft = NULL;
-      }
     }
 
   if (__stdin)
