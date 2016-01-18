@@ -182,7 +182,7 @@ private variable regexps = [
 |(^private(?=\s))\
 |(^public(?=\s))\
 |(^static(?=\s))\
-|(^typedef struct$)\
+|(^typedef struct)\
 |((?<!\w)struct(?=[\s]*))\
 |^\s*(try(?=[\s]*))\
 |^\s*(catch(?=\s))\

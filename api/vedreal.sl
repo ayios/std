@@ -58,8 +58,12 @@ private define _buffer_other_ ()
   _for i (0, length (w.bufnames) - 1)
     {
     b = w.bufnames[i];
-    ifnot (any (b == SPECIAL))
-      ar = [ar, b];
+
+    if (qualifier_exists ("not_special"))
+      if (any (b == SPECIAL))
+        continue;
+
+    ar = [ar, b];
     }
 
   if (1 == length (ar))
@@ -395,9 +399,9 @@ private define handle_comma (s)
     return;
 
   if ('m' == chr)
-    _buffer_other_ (;argv0 = "bp");
+    _buffer_other_ (;not_special, argv0 = "bp");
   else if ('n' == chr)
-    _buffer_other_ (;argv0 = "bn");
+    _buffer_other_ (;not_special, argv0 = "bn");
   else if ('p' == chr)
     {
     refresh = 0;

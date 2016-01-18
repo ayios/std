@@ -1050,6 +1050,11 @@ define wind_change (to)
   __vdraw_wind ();
 }
 
+private define next_wind (s)
+{
+  wind_change (".");
+}
+
 define on_wind_new (w)
 {
   (@__get_reference ("__initrline"));
@@ -2096,6 +2101,9 @@ define on_wind_new (w)
 {
   variable fn = Dir->Vget ("TEMPDIR") + "/" + string (_time) + ".noname";
   variable s = init_ftype ("txt");
+
+  SPECIAL = [SPECIAL, fn];
+
   variable func = __get_reference ("txt_settype");
   (@func) (s, fn, w.frame_rows[0], NULL);
 
@@ -4430,13 +4438,16 @@ private define ed_newline (s)
 private define ed_Put (s)
 {
   variable reg = _get_reg_ (qualifier ("reg", "\""));
+  variable lnr = __vlnr (s, '.');
 
   if (NULL == reg)
-    return;
+    if (qualifier_exists ("return_line"))
+      return s.lines[lnr];
+    else
+      return;
 
   variable
-    lines = strchop (reg, '\n', 0),
-    lnr = __vlnr (s, '.');
+    lines = strchop (reg, '\n', 0);
 
   if (length (lines) > 1)
     {
@@ -4460,6 +4471,9 @@ private define ed_Put (s)
   set_modified (s);
 
   s.draw ();
+
+  if (qualifier_exists ("return_line"))
+    return s.lines[lnr];
 }
 
 private define ed_put (s)
@@ -4624,51 +4638,54 @@ private define ins_del_prev (is, s, line)
     len;
 
   ifnot (s._index - s._indent)
-    {
-    ifnot (is.lnr)
+    ifnot ('\b' == is.chr)
       return;
-
-   if (s.ptr[0] != s.rows[0])
-     s.ptr[0]--;
-   else
-     s._ii--;
-
-    is.lnr--;
-
-    s._index = strlen (s.lines[is.lnr]);
-    s.ptr[1] = s._index > s._maxlen ? s._maxlen : s._index;
-
-    if (is.lnr == s._len)
-      @line = s.lines[is.lnr];
     else
-      @line = s.lines[is.lnr] + @line;
-
-    s.lines[is.lnr] = @line;
-    s.lines[is.lnr + 1] = NULL;
-    s.lines = s.lines[wherenot (_isnull (s.lines))];
-    s._len--;
-
-    s._i = s._ii;
-
-    s.draw (;dont_draw);
-
-    len = strlen (@line);
-    if (len > s._maxlen)
       {
-      s._findex = len - s._maxlen;
-      s.ptr[1] = s._maxlen - (len - s._index);
-      s._is_wrapped_line = 1;
+      ifnot (is.lnr)
+        return;
+
+      if (s.ptr[0] != s.rows[0])
+        s.ptr[0]--;
+      else
+        s._ii--;
+
+      is.lnr--;
+
+      s._index = strlen (s.lines[is.lnr]);
+      s.ptr[1] = s._index > s._maxlen ? s._maxlen : s._index;
+
+      if (is.lnr == s._len)
+        @line = s.lines[is.lnr];
+      else
+        @line = s.lines[is.lnr] + @line;
+
+      s.lines[is.lnr] = @line;
+      s.lines[is.lnr + 1] = NULL;
+      s.lines = s.lines[wherenot (_isnull (s.lines))];
+      s._len--;
+
+      s._i = s._ii;
+
+      s.draw (;dont_draw);
+
+      len = strlen (@line);
+      if (len > s._maxlen)
+        {
+        s._findex = len - s._maxlen;
+        s.ptr[1] = s._maxlen - (len - s._index);
+        s._is_wrapped_line = 1;
+        }
+      else
+        s._findex = s._indent;
+
+      lline = __vgetlinestr (s, @line, s._findex + 1 - s._indent);
+
+      waddline (s, lline, 0, s.ptr[0]);
+      __vdraw_tail (s;chr = String.decode (substr (@line, s._index + 1, 1))[0]);
+      is.modified = 1;
+      return;
       }
-    else
-      s._findex = s._indent;
-
-    lline = __vgetlinestr (s, @line, s._findex + 1 - s._indent);
-
-    waddline (s, lline, 0, s.ptr[0]);
-    __vdraw_tail (s;chr = String.decode (substr (@line, s._index + 1, 1))[0]);
-    is.modified = 1;
-    return;
-    }
 
   @line = substr (@line, 1, s._index - 1) + substr (@line, s._index + 1, - 1);
 
@@ -5469,6 +5486,11 @@ private define paste_xsel (s)
   ed_Put (s;reg = "*");
 }
 
+private define ins_paste_xsel (is, s, line)
+{
+  @line = ed_Put (s;reg = "*", return_line);
+}
+
 private define ins_getline (is, s, line)
 {
   forever
@@ -5574,7 +5596,7 @@ private define ins_getline (is, s, line)
 
     if (keys->F12 == is.chr)
       {
-      paste_xsel (s);
+      ins_paste_xsel (is, s, line);
       continue;
       }
 
@@ -5863,6 +5885,7 @@ define PROJECT_VED (argv)
   __vdraw_wind ();
 }
 
+VED_PAGER[string (keys->F3)]      = &next_wind;
 VED_PAGER[string (',')]           = &handle_comma;
 VED_PAGER[string ('"')]           = &_register_;
 VED_PAGER[string (keys->CTRL_a)]  = &_incr_nr_;
