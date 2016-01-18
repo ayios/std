@@ -5,6 +5,7 @@ Use ("Subst");
 Use ("Diff");
 Use ("Vundo");
 
+public variable PCRE_NO_UTF8_CHECK = 0x00002000;
 public variable PCRE_UCP = 0x20000000;
 
 typedef struct

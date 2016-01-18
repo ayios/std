@@ -28,10 +28,9 @@ public define __getpasswd ()
       HASHEDDATA = os->encryptpasswd (passwd);
       passwd+= "\n";
       }
-
     }
 
-  return passwd;
+  passwd;
 }
 
 private define _glob_ (argv)
@@ -90,7 +89,7 @@ private define _glob_ (argv)
    argv = [argv, args[i]];
    }
 
-  return argv;
+  argv;
 }
 
 private define _execProc_Type_ (func, argv)
@@ -119,6 +118,4 @@ private define _execProc_Type_ (func, argv)
   (@func) (argv;;struct {@__qualifiers (), issudo = issudo, passwd = passwd});
 }
 
-static variable proctype;
-
-proctype = &_execProc_Type_;
+static variable proctype = &_execProc_Type_;

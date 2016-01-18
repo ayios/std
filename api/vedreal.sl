@@ -17,7 +17,10 @@ define addfname (fname)
 
   ifnot (any (w.bufnames == absfname))
     {
-    variable ft = get_ftype (fname);
+    variable ft = qualifier ("ftype");
+    if (NULL == ft)
+      ft = get_ftype (fname);
+
     s = init_ftype (ft);
     variable func = __get_reference (sprintf ("%s_settype", ft));
     (@func) (s, fname, w.frame_rows[get_cur_frame ()], NULL);
@@ -41,8 +44,30 @@ private define _edit_other ()
     return;
     }
 
-  variable fname = ();
-  addfname (fname);
+  variable args = list_to_array (__pop_list (_NARGS));
+
+  variable ft = NULL, ind = is_arg ("--ftype=", args);
+  ifnot (NULL == ind)
+    {
+    if (1 == _NARGS) % code needs to be written (change the filetype) 
+      {
+      __vreread (get_cur_buf ());
+      return;
+      }
+
+    ft = args[ind];
+    args[ind] = NULL;
+    args = args[wherenot (_isnull (args))];
+    ft = strchop (ft, '=', 0);
+    if (1 == length (ft))
+      return;
+   ft = ft[1];
+   ifnot (any (ft == assoc_get_keys (FTYPES)))
+     return;
+    }
+
+  % one filename
+  addfname (args[0];ftype = ft);
 }
 
 private define _buffer_other_ ()
@@ -126,11 +151,6 @@ private define _bdelete ()
   bufdelete (s, s._abspath, force);
 }
 
-VED_CLINE["e"] = &_edit_other;
-VED_CLINE["b"] = &_edit_other;
-VED_CLINE["bd"] = &_bdelete;
-VED_CLINE["bd!"] = &_bdelete;
-
 private define my_commands ()
 {
   variable i;
@@ -144,6 +164,8 @@ private define my_commands ()
     a[keys[i]].type = "Func_Type";
     }
 
+  a["e"].args = ["--ftype= string set buffer to filetype"];
+
   a["substitute"] = @Argvlist_Type;
   a["substitute"].func = &__substitute;
   a["substitute"].type = "Func_Type";
@@ -154,7 +176,7 @@ private define my_commands ()
      "--dont-ask-when-subst void dont ask when substitute (yes by default)",
      "--range= int first linenr, last linenr"];
 
-  return a;
+  a;
 }
 
 private define _filter_bufs_ (v)
@@ -171,7 +193,12 @@ private define _filter_bufs_ (v)
       ar = [ar, b];
     }
 
-  return ar[array_sort (ar)];
+  ar[array_sort (ar)];
+}
+
+private define __parse_argtypes__ (s, arg, type, baselen)
+{
+  0; %  needs code
 }
 
 private define tabhook (s)
@@ -191,12 +218,13 @@ define rlineinit ()
     historyaddforce = 1,
     tabhook = &tabhook,
     %totype = "Func_Type",
+    parse_argtype = &__parse_argtypes__,
     @__qualifiers
     });
 
   (@__get_reference ("iarg")) = length (rl.history);
 
-  return rl;
+  rl;
 }
 
 define __write_buffers ()
@@ -412,18 +440,6 @@ private define handle_comma (s)
     smg->refresh;
 }
 
-VED_PAGER[string (',')] = &handle_comma;
-
-VED_CLINE["bp"] =       &_buffer_other_;
-VED_CLINE["bn"] =       &_buffer_other_;
-VED_CLINE["r"]  =       &_read_;
-VED_CLINE["q"]  =       &cl_quit;
-VED_CLINE["Q"]  =       &cl_quit;
-VED_CLINE["q!"] =       &cl_quit;
-VED_CLINE["wq"] =       &write_quit;
-VED_CLINE["Wq"] =       &write_quit;
-VED_CLINE["messages"] = &__vmessages;
-
 private define _ved_ (t)
 {
   return load.getref ("ftypes/" + t, "ved", NULL;err_handler = &__err_handler__, fun = t + "_ved");
@@ -441,5 +457,22 @@ define init_ftype (ftype)
   type._type = ftype;
   type.ved = _ved_ (ftype);
 
-  return type;
+  type;
 }
+
+VED_PAGER[string (',')] = &handle_comma;
+
+VED_CLINE["e"]   =      &_edit_other;
+VED_CLINE["b"]   =      &_edit_other;
+VED_CLINE["bd"]  =      &_bdelete;
+VED_CLINE["bd!"] =      &_bdelete;
+VED_CLINE["bp"]  =      &_buffer_other_;
+VED_CLINE["bn"]  =      &_buffer_other_;
+VED_CLINE["r"]   =      &_read_;
+VED_CLINE["q"]   =      &cl_quit;
+VED_CLINE["Q"]   =      &cl_quit;
+VED_CLINE["q!"]  =      &cl_quit;
+VED_CLINE["wq"]  =      &write_quit;
+VED_CLINE["Wq"]  =      &write_quit;
+VED_CLINE["messages"] = &__vmessages;
+

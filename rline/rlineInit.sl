@@ -34,6 +34,7 @@ typedef struct
   osappnew,
   osapprec,
   wind_mang,
+  parse_argtype,
   } Rline_Type;
 
 typedef struct

@@ -134,12 +134,16 @@ static define set (s)
   s.argv = qualifier ("argv", [""]);
 }
 
-private define _Null () {};
+private define _Null ()
+{
+  loop (_NARGS) pop ();
+}
 
 static define init (getcommands)
 {
   variable rl = @Rline_Type;
 
+  % code needs to be written to check funcrefs
   rl.execline = qualifier ("execline", &_execline_);
   rl._pchar = qualifier ("pchar", ":");
   rl._prow = qualifier ("prow", PROMPTROW);
@@ -162,6 +166,7 @@ static define init (getcommands)
   rl.osappnew = qualifier ("osappnew");
   rl.osapprec = qualifier ("osapprec");
   rl.wind_mang = qualifier ("wind_mang");
+  rl.parse_argtype = qualifier ("parse_argtype", &_Null);
 
   if (0 == length (rl.history) && NULL != rl.histfile)
     rl.history = readhistory (rl.histfile);
@@ -1471,14 +1476,10 @@ private define getpattern (s, pat)
     }
 }
 
-private define parse_argtype (s, arg, type, baselen)
+% split to functions so we can call them from the structure
+% so they can be binded by the interesting parties
+private define __parse_argtype__ (s, arg, type, baselen)
 {
-  if ("void" == type)
-    {
-    prompt (s, s._lin, s._col);
-    return;
-    }
-
   variable col;
 
   if ("--pat=" == arg || "pattern" == type)
@@ -1549,6 +1550,21 @@ private define parse_argtype (s, arg, type, baselen)
       s.cmp_lnrs = [s.cmp_lnrs[0] - 1, s.cmp_lnrs];
       prompt (s, s._lin, s._col);
       }
+}
+
+private define parse_argtype (s, arg, type, baselen)
+{
+  if ("void" == type)
+    {
+    prompt (s, s._lin, s._col);
+    return;
+    }
+
+  if (s.parse_argtype (arg, type, baselen))
+    return;
+
+  __parse_argtype__ (s, arg, type, baselen);
+
 }
 
 private define argcompletion (s)
