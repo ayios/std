@@ -139,6 +139,12 @@ private define _Null ()
   loop (_NARGS) pop ();
 }
 
+private define null_argtype ()
+{
+  loop (_NARGS) pop ();
+  0;
+}
+
 static define init (getcommands)
 {
   variable rl = @Rline_Type;
@@ -166,7 +172,7 @@ static define init (getcommands)
   rl.osappnew = qualifier ("osappnew");
   rl.osapprec = qualifier ("osapprec");
   rl.wind_mang = qualifier ("wind_mang");
-  rl.parse_argtype = qualifier ("parse_argtype", &_Null);
+  rl.parse_argtype = qualifier ("parse_argtype", &null_argtype);
 
   if (0 == length (rl.history) && NULL != rl.histfile)
     rl.history = readhistory (rl.histfile);
@@ -185,7 +191,7 @@ private define find_col (col, columns)
   while ((i + 1) * columns <= col)
     i++;
 
-  return i, col - (columns * i);
+  i, col - (columns * i);
 }
 
 static define prompt (s, line, col)
@@ -227,7 +233,7 @@ private define appendslash (file)
   if ('/' != file[-1] && 0 == (1 == strlen (file) && '.' == file[0]))
     return __isdirectory (file) ? "/" : "";
 
-  return  "";
+  "";
 }
 
 static define parse_args (s)
@@ -488,7 +494,7 @@ private define printout (s, ar, col, len)
 
   smg->setrcdr (s._row, lcol);
 
-  return lar;
+  lar;
 }
 
 private define firstindices (str, ar, pat)
@@ -888,7 +894,7 @@ private define hlitem (s, ar, base, acol, item)
     chr = getch (;disable_langchange);
     }
 
-  return chr;
+  chr;
 }
 
 private define lcmpcompletion (s)
@@ -2061,4 +2067,3 @@ static define readline (s)
     prompt (s, s._lin, s._col);
     }
 }
-

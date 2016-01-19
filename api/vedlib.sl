@@ -251,9 +251,12 @@ define get_ftype (fn)
 {
   variable ftype = substr (path_extname (fn), 2, -1);
   ifnot (any (assoc_get_keys (FTYPES) == ftype))
-    ftype = "txt";
+    if ("mutt-" == substr (path_basename (fn), 1, 5))
+      ftype = "mail";
+    else
+      ftype = "txt";
 
-  return ftype;
+  ftype;
 }
 
 define init_ftype (ftype)
@@ -1450,7 +1453,7 @@ define __hl_groups (lines, vlines, colors, regexps)
     color,
     regexp,
     line,
-    iscomment = 0,
+%    iscomment = 0,
     context;
 
   _for i (0, length (lines) - 1)
@@ -1459,7 +1462,7 @@ define __hl_groups (lines, vlines, colors, regexps)
     if (0 == strlen (line) || "\000" == line)
       continue;
 
-    iscomment = '%' == strtrim_beg (line)[0];
+%    iscomment = '%' == strtrim_beg (line)[0];
 
     _for ii (0, length (regexps) - 1)
       {
@@ -1467,8 +1470,8 @@ define __hl_groups (lines, vlines, colors, regexps)
       regexp = regexps[ii];
       col = 0;
 
-      if (ii && iscomment)
-        break;
+%      if (ii && iscomment)
+%        break;
 
       while (subs = pcre_exec (regexp, line, col), subs > 1)
         {
@@ -1507,8 +1510,7 @@ private define lexicalhl (s, lines, vlines)
 
 define deftype ()
 {
-  variable type = struct
-    {
+  struct {
     _indent = 0,
     _shiftwidth = 4,
     _expandtab = NULL,
@@ -1521,8 +1523,6 @@ define deftype ()
     vedloop = &_vedloop_,
     vedloopcallback = &_vedloopcallback_,
     };
-
-  return type;
 }
 
 % PAGER
@@ -1547,7 +1547,7 @@ private define __pg_left (s)
 
   s.ptr[1]--;
 
-  return 0;
+  0;
 }
 
 private define __pg_right (s, linlen)
@@ -1565,7 +1565,7 @@ private define __pg_right (s, linlen)
   s._index++;
   s._findex++;
 
-  return 1;
+  1;
 }
 
 private define _indent_in_ (s, line, i_)
@@ -1579,7 +1579,7 @@ private define _indent_in_ (s, line, i_)
   while (isblank (line[@i_]) && @i_ < s._shiftwidth + s._indent)
     @i_++;
 
-  return substr (line, @i_ + 1 - s._indent, -1);
+  substr (line, @i_ + 1 - s._indent, -1);
 }
 
 private define _adjust_col_ (s, linlen, plinlen)
@@ -2691,7 +2691,7 @@ private define s_getlnr (s)
     else
       lnr--;
 
-  return lnr;
+  lnr;
 }
 
 private define s_backslash_reg_ (s)
@@ -3029,7 +3029,7 @@ vis.l_page_down = &v_l_page_down;
 private define v_l_down (vs, s)
 {
   if (__vlnr (s, '.') == s._len)
-      return;
+    return;
 
   if (s.ptr[0] == s.vlins[-1])
     {
@@ -3537,7 +3537,7 @@ private define v_bw_calclines_down_ (s, vs, dec)
 private define v_bw_down (vs, s)
 {
   if (__vlnr (s, '.') == s._len)
-      return;
+    return;
 
   if (s.ptr[0] == s.vlins[-1])
     {
@@ -3856,7 +3856,7 @@ private define v_init (s)
   v.cur = s._index;
   v.startcol = [s.ptr[0]];
 
-  return struct
+  struct
     {
     wrappedmot = 0,
     findex = s._findex,
@@ -4017,7 +4017,7 @@ private define ed_del_line (s)
 
   set_modified (s;_i = s._i);
 
-  return 0;
+  0;
 }
 
 private define ed_del_word (s, what)
@@ -5363,6 +5363,7 @@ private define __vfind_ldfnane (str, i)
     @i--;
     }
   while (@i);
+
   fn;
 }
 
