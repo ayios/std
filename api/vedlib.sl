@@ -1453,7 +1453,7 @@ define __hl_groups (lines, vlines, colors, regexps)
     color,
     regexp,
     line,
-%    iscomment = 0,
+    iscomment = 0,
     context;
 
   _for i (0, length (lines) - 1)
@@ -1462,7 +1462,7 @@ define __hl_groups (lines, vlines, colors, regexps)
     if (0 == strlen (line) || "\000" == line)
       continue;
 
-%    iscomment = '%' == strtrim_beg (line)[0];
+    iscomment = '%' == strtrim_beg (line)[0];
 
     _for ii (0, length (regexps) - 1)
       {
@@ -1470,8 +1470,8 @@ define __hl_groups (lines, vlines, colors, regexps)
       regexp = regexps[ii];
       col = 0;
 
-%      if (ii && iscomment)
-%        break;
+      if (ii && iscomment)
+        break;
 
       while (subs = pcre_exec (regexp, line, col), subs > 1)
         {
@@ -2237,7 +2237,30 @@ private define _set_nr_ (s, incrordecr)
 
   nr = __vfind_nr (s._indent, line, col, &start, &end, &ishex, &isoct, &isbin);
   ifnot (strlen (nr))
+    {
+    nr = String.decode (line)[col];
+
+    if ("+" == incrordecr)
+      nr += count;
+    else
+      nr -= count;
+
+    if (any (nr ==  [[0:31], ['~' + 1:160]]))
+      return;
+
+    line = sprintf ("%s%s%s", substr (line, 1, col), char (nr), substr (line, col + 2, -1));
+
+    s.lins[s.ptr[0] - s.rows[0]] = line;
+    s.lines[i] = line;
+    set_modified (s);
+
+    s.st_.st_size = Array.getsize (s.lines);
+
+    waddline (s, line, 0, s.ptr[0]);
+
+    __vdraw_tail (s);
     return;
+    }
 
   variable isdbl = _slang_guess_type (nr) == Double_Type;
   variable convf = [&atoi, &atof];
