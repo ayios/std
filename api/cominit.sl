@@ -686,6 +686,7 @@ private define _list_bg_jobs_ (argv)
 
 private define _builtinpre_ (argv)
 {
+  SHELLLASTEXITSTATUS = 0;
   precom ();
   shell_pre_header (argv);
 }
@@ -712,11 +713,12 @@ private define _echo_ (argv)
   argv = argv[[1:]];
 
   variable hasnewline = wherefirst ("-n" == argv);
-
+  variable s = @Struct_Type ("");
   ifnot (NULL == hasnewline)
     {
     argv[hasnewline] = NULL;
     argv = argv[wherenot (_isnull (argv))];
+    s = @Struct_Type ("n");
     hasnewline = "";
     }
   else
@@ -727,20 +729,24 @@ private define _echo_ (argv)
   ifnot (len)
     return;
 
-  variable tostd = APP.realshell ? IO->Fun ("__tostdout__").func : &toscratch;
+  variable tostd = APP.realshell ? IO->Fget ("__tostdout__").func : &toscratch;
 
   if (1 == len)
     {
     if ('>' == argv[0][0])
+      {
+      SHELLLASTEXITSTATUS = 1;
+      _builtinpost_ ();
       return;
+      }
 
     if ('$' == argv[0][0])
       if ('?' == argv[0][1])
-        (@tostd) (string (SHELLLASTEXITSTATUS) + hasnewline);
+        (@tostd) (string (SHELLLASTEXITSTATUS);;s);
       else
-        (@tostd) (_$ (argv[0]) + hasnewline);
+        (@tostd) (_$ (argv[0]);;s);
     else
-      (@tostd) (argv[0] + hasnewline);
+      (@tostd) (argv[0];;s);
     }
   else
     {
@@ -749,14 +755,14 @@ private define _echo_ (argv)
 
     if (-1 == retval)
       {
-      _builtinpost_ ();
       SHELLLASTEXITSTATUS = 1;
+      _builtinpost_ ();
       return;
       }
 
     ifnot (retval)
       {
-      (@tostd) (strjoin (argv, " ") + hasnewline);
+      (@tostd) (strjoin (argv, " ");;s);
       _builtinpost_ ();
       return;
       }
@@ -764,22 +770,31 @@ private define _echo_ (argv)
     argv[-1] = NULL;
     argv = argv[wherenot (_isnull (argv))];
 
-    if (">>" == flags || 0 == access (file, F_OK))
+    if (">>" == flags)
       {
       if (-1 == String.append (file, strjoin (argv, " ") + hasnewline))
-       return;
+        SHELLLASTEXITSTATUS = 1;
       }
     else
       {
       variable fd = open (file, O_CREAT|O_WRONLY, File->Vget ("PERM")["__PUBLIC"]);
       if (NULL == fd)
+        {
+        SHELLLASTEXITSTATUS = 1;
         IO.tostderr (file + ":" + errno_string (errno));
+        }
       else
         if (-1 == write (fd, strjoin (argv, " ") + hasnewline))
+          {
+          SHELLLASTEXITSTATUS = 1;
           IO.tostderr (file + ":" + errno_string (errno));
+          }
         else
           if (-1 == close (fd))
+            {
+            SHELLLASTEXITSTATUS = 1;
             IO.tostderr (file + ":" + errno_string (errno));
+            }
       }
     }
 
@@ -788,8 +803,6 @@ private define _echo_ (argv)
 
 private define _cd_ (argv)
 {
-  _builtinpre_ (argv);
-
   if (1 == length (argv))
     {
     ifnot (getcwd () == "$HOME/"$)
