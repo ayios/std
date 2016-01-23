@@ -1566,10 +1566,10 @@ private define parse_argtype (s, arg, type, baselen)
     return;
     }
 
-  if (s.parse_argtype (arg, type, baselen))
+  if (s.parse_argtype (arg, type, baselen;;__qualifiers))
     return;
 
-  __parse_argtype__ (s, arg, type, baselen);
+  __parse_argtype__ (s, arg, type, baselen;;__qualifiers);
 
 }
 

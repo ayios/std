@@ -239,13 +239,17 @@ Vundo.__rec[1] = struct {pos = @Pos_Type, data, inds, deleted, blwise};
 Vundo.__rec[2] = struct {pos = @Pos_Type, data, inds, deleted, blwise};
 Vundo.__level = 0;
 
-define getXsel (){return "";}
+define getXsel (){"";}
 define seltoX (sel){}
-define set_modified ();
 define topline ();
 define toplinedr ();
 define __eval ();
 define insert ();
+
+define set_modified (s)
+{
+  s._flags |= VED_MODIFIED;
+}
 
 define get_ftype (fn)
 {
@@ -2248,7 +2252,7 @@ private define _set_nr_ (s, incrordecr)
     if (any (nr ==  [[0:31], ['~' + 1:160]]))
       return;
 
-    line = sprintf ("%s%s%s", substr (line, 1, col), char (nr), substr (line, col + 2, -1));
+    line = sprintf ("%s%c%s", substr (line, 1, col), nr, substr (line, col + 2, -1));
 
     s.lins[s.ptr[0] - s.rows[0]] = line;
     s.lines[i] = line;
@@ -2305,11 +2309,6 @@ private define _incr_nr_ (s)
 private define _decr_nr_ (s)
 {
   _set_nr_ (s, "-";count = VEDCOUNT == -1 ? 1 : VEDCOUNT);
-}
-
-define set_modified (s)
-{
-  s._flags |= VED_MODIFIED;
 }
 
 private define undo (s)
