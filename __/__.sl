@@ -192,8 +192,6 @@ private define add_self (ns)
 
   methods = [methods, "__name"];
 
-  variable trace = qualifier ("trace", 1);
-
   NSS[ns]["__SELF__"] = @Struct_Type (methods);
   NSS[ns]["__SELF__"].__name = ns;
   NSS[ns]["__SELF__"].err_handler = qualifier ("err_handler");
@@ -528,6 +526,18 @@ private define self_get (ns)
   ns["__SELF__"];
 }
 
+private define RunTime_Type (ns, func, caller, args, handler)
+{
+  struct {
+    ns = ns,
+    func = func,
+    caller = caller,
+    args = args,
+    handler = handler,
+    err = String_Type[0],
+    };
+}
+
 private define __print_exc__ (e, __r__)
 {
   try
@@ -585,7 +595,7 @@ private define err_handler (e, __r__)
     (@handler) (__r__;;__qualifiers);
 }
 
-private define RunTime_Type ()
+private define __runTime__ ()
 {
   loop (_NARGS) pop ();
 }
@@ -620,7 +630,7 @@ static define __call__ ()
     ifnot (needsobj)
       list_delete (args, 0);
 
-    RunTime_Type (from, func, caller, &inited, args;;__qualifiers);
+    __runTime__ (from, func, caller, &inited, args;;__qualifiers);
 
     (@func) (__push_list (args);;__qualifiers);
     }
@@ -667,18 +677,9 @@ func_init ("__", "vput___", &var_put, 0);
 func_init ("__", "vdel__", &var_del, 0);
 func_init ("__", "fget__", &func_get, 0);
 
-private define RunTime_Type (ns, func, caller, inited, args)
+private define __runTime__ (ns, func, caller, inited, args)
 {
-  list_append (__R__, struct
-    {
-    ns = ns,
-    func = func,
-    caller = caller,
-    args = args,
-    handler = qualifier ("err_handler"),
-    err = String_Type[0],
-    });
-
+  list_append (__R__, RunTime_Type (ns, func, caller, args, qualifier ("err_handler")));
   @inited = 1;
 }
 
@@ -737,8 +738,8 @@ Use ("Array");
 Use ("IO");
 
 Err->Fun ("efmt_", &err_format_exc);
-Err->Fun ("isnot_an_exception_", &isnot_an_exception);
 Err->Fun ("eprint__", &__print_exc__);
+Err->Fun ("rtime_type_____", &RunTime_Type);
 
 Struct->Fun ("__field_exists__", &field_exists);
 

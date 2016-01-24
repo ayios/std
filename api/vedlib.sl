@@ -1431,7 +1431,7 @@ private define _loop_ (s)
       return 1;
     }
 
-  return 0;
+  0;
 }
 
 private define _vedloop_ (s)
@@ -1441,7 +1441,10 @@ private define _vedloop_ (s)
       if (_loop_ (s))
         break;
     catch AnyError:
+      {
+      Err.eprint (NULL, Err.rtime_type ("ved", "_vedloop_", NULL, NULL, NULL));
       (@__get_reference ("__vmessages"));
+      }
 }
 
 %%% SYNTAX PUBLIC FUNCTIONS

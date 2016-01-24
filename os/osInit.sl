@@ -367,21 +367,9 @@ private define  _loop_ ()
     throw RunTimeError, " ", __get_exception_info ();
 }
 
-private define _R_ (ns, func, caller, args, handler)
-{
-  struct {
-    ns = ns,
-    func = func,
-    caller = caller,
-    args = args,
-    handler = handler,
-    err = String_Type[0],
-    };
-}
-
 define osloop ()
 {
-  variable r = _R_ ("os", "osloop", NULL, NULL, NULL);
+  variable r = Err.rtime_type ("os", "osloop", NULL, NULL, NULL);
 
   forever
     try
@@ -389,7 +377,6 @@ define osloop ()
     catch RunTimeError:
       {
       Err.eprint (__get_exception_info, r);
-%      IO.tostderr (Err.efmt (__get_exception_info.object));
       smg->init ();
       draw (ERR); % new func: draw_and_take_some_action
       }

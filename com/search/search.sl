@@ -42,18 +42,6 @@ private define grepit (lline, file)
       break;
     }
 }
-private define _r_ (ns, func, caller, args, handler)
-{
-  struct {
-    ns = ns,
-    func = func,
-    caller = caller,
-    args = args,
-    handler = handler,
-    err = String_Type[0],
-    };
-}
-
 
 private define exec (file)
 {
@@ -77,7 +65,7 @@ private define exec (file)
       grepit (str, file);
     catch AnyError:
       {
-      variable r = _r_ ("grepit", "search", NULL, NULL, NULL);
+      variable r = Err.rtime_type ("grepit", "search", NULL, NULL, NULL);
       Err.eprint (__get_exception_info, r);
       IO.tostderr (sprintf ("caught an error in exec func in script: %s", __FILE__));
       IO.tostderr (sprintf ("file that occured: %s", file));
