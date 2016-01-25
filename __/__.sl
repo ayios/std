@@ -426,11 +426,9 @@ private define func_init (ns, func, ref, method)
       variable orig = funcfname, basedir = qualifier ("DIRNS", DIRNS);
 
       ifnot (path_is_absolute (funcfname))
-        if (-1 == access (funcfname, F_OK|R_OK))
-          if (-1 == access ((funcfname = orig + ".sl", funcfname), F_OK|R_OK))
-            if (-1 == access ((funcfname = path_concat (basedir, ns) + "/" + orig, funcfname), F_OK|R_OK))
-              if (-1 == access ((funcfname = funcfname + ".sl", funcfname), F_OK|R_OK))
-                funcfname = NULL;
+        if (-1 == access ((funcfname = path_concat (basedir, ns) + "/" + orig, funcfname), F_OK|R_OK))
+          if (-1 == access ((funcfname = funcfname + ".sl", funcfname), F_OK|R_OK))
+            funcfname = NULL;
 
       if (NULL != funcfname && path_is_absolute (funcfname))
         if (-1 == access (funcfname, F_OK|R_OK))
