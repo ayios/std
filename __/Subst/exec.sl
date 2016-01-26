@@ -36,7 +36,6 @@ private define exec (s, ar)
 
     found = pcre_exec (s.pat, str, 0);
 
-IO.tostderr (s.pat, found);
     if (found)
       {
       matches++;
