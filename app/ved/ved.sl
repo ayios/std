@@ -12,7 +12,7 @@ load.from ("api", "clientapi", NULL;err_handler = &__err_handler__);
 private variable __stdin = any (__argv == "-");
 private variable fn;
 private variable pj;
-private variable ft = is_arg ("--ft=", __argv);
+private variable ft = is_arg ("--ftype=", __argv);
 
 ifnot (NULL == ft)
   {

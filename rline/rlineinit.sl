@@ -1354,6 +1354,7 @@ static define fnamecmpToprow (s, fname)
 
     if (any (keys->rmap.backspace == chr) && strlen (@fname))
       {
+      restore (s.cmp_lnrs, [s._row, s._col], 1, s._columns);
       @fname = substr (@fname, 1, strlen (@fname) - 1);
       continue;
       }

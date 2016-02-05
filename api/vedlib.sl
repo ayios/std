@@ -92,7 +92,8 @@ private variable vis = struct
   l_up,
   l_page_up,
   l_page_down,
-  l_keys = ['w', 's', 'y', 'Y', 'd', '>', '<', keys->DOWN, keys->UP, keys->PPAGE, keys->NPAGE],
+  l_keys = ['w', 's', 'y', 'Y', 'd', '>', '<', 'g', 'G', keys->DOWN, keys->UP,
+    keys->PPAGE, keys->NPAGE, keys->CTRL_f, keys->CTRL_b],
   c_mode,
   c_left,
   c_right,
@@ -2928,19 +2929,27 @@ vis.l_up = &v_l_up;
 
 private define v_l_page_up (vs, s)
 {
-  if (s._i < s._avlins || s._avlins > s._len)
+  if (s._avlins > s._len)
     return;
 
   variable count = qualifier ("count", 1);
   variable i = 1;
   variable ii;
 
-  while (i <= count && s._i)
+  while (i <= count && (s._i || (s._i == 0 && vs.lnrs[0] != 0)))
     {
     variable isnotiatfpg = 1;
     ii = s._avlins;
 
-    if (s._i - s._avlins >= 0)
+    if (0 == s._i || (s._i < s._avlins && s._i > 1))
+      {
+      s._i = 0;
+      ii = vs.lnrs[0];
+      loop (ii)
+        v_l_up (vs, s);
+      break;
+      }
+    else if (s._i - s._avlins >= 0)
       s._i -= s._avlins;
     else
       {
@@ -3015,14 +3024,20 @@ private define v_l_page_down (vs, s)
 
   while (i <= count && notend)
     {
-    if (s._i + s._avlins < s._len)
+    if (vs.lnrs[-1] + s._avlins < s._len)
       {
-      ii = s._avlins - (s.ptr[0] - s.vlins[0]);
       ii = s._avlins;
       s._i += s._avlins;
       }
     else
-      break;
+      {
+      if (vs.lnrs[-1] == s._len)
+        break;
+
+      ii = s._len - vs.lnrs[-1];
+      s._i += ii;
+      notend = 0;
+      }
 
     loop (ii)
       {
@@ -3133,18 +3148,29 @@ private define v_l_loop (vs, s)
       continue;
       }
 
-    if (chr == keys->PPAGE)
+    if (chr == 'g')
+      {
+      vs.l_page_up (s;count = s._len / s._avlins + 1);
+      continue;
+      }
+
+    if (any (chr == [keys->PPAGE, keys->CTRL_b]))
       {
       vs.l_page_up (s;count = VEDCOUNT);
       continue;
       }
 
-    if (chr == keys->NPAGE)
+    if (chr == 'G')
+      {
+      vs.l_page_down (s;count = s._len / s._avlins + 1);
+      continue;
+      }
+
+    if (any (chr == [keys->NPAGE, keys->CTRL_f]))
       {
       vs.l_page_down (s;count = VEDCOUNT);
       continue;
       }
-
 
     if ('y' == chr)
       {
@@ -5993,3 +6019,5 @@ private define msg_handler (s, msg)
 }
 
 new_wind ();
+
+%insert: when C_n don't return the same word, utleast a difference

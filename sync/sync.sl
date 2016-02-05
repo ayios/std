@@ -229,15 +229,15 @@ private define _copy (s, source, dest, st_source, st_dest)
     if (s.interactive_copy)
       {
       retval = ask ([sprintf ("update `%s'", dest),
-        "y[es]/Y[es to all]/n[no]/N[o to all] escape to abort (same as 'n')"],
+        "y[es]/Y[es to all]/n[no]/N[o to all]/q[quit]"],
           ['y',  'Y',  'n',  'N']);
 
-      if ('n' == retval || 'N' == retval || 033 == retval)
+      if ('n' == retval || 'N' == retval)
         {
         IO.tostdout (sprintf ("%s aborting ...", source));
 
         Accept_All_As_No = 'N' == retval;
-        return 0;
+        return 'n' == retval;
         }
 
       if ('q' == retval)
