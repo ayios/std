@@ -10,7 +10,7 @@ if (is_defined ("init_ftype"))
   }
 
 if (is_defined (APP.stdouttype + "_settype"))
-  (@__get_reference (APP.stdouttype + "_settype")) (OUT_VED, STDOUT, VED_ROWS, NULL);
+  (@__get_reference (APP.stdouttype + "_settype")) (OUT_VED, STDOUT, VED_ROWS, NULL;_autochdir = 0);
 
 define tostdout__ ()
 {

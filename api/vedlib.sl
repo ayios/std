@@ -279,7 +279,7 @@ define init_ftype (ftype)
 
 define __get_null_str (indent)
 {
-  return sprintf ("%s\000", repeat (" ", indent));
+  sprintf ("%s\000", repeat (" ", indent));
 }
 
 define __vgetlines (fname, indent, st)
@@ -313,7 +313,7 @@ define __vgetlines (fname, indent, st)
 
   indent = repeat (" ", indent);
 
-  return array_map (String_Type, &sprintf, "%s%s", indent, lines);
+  array_map (String_Type, &sprintf, "%s%s", indent, lines);
 }
 
 private define _on_lang_change_ (mode, ptr)
@@ -331,19 +331,19 @@ define __vwrite_prompt (str, col)
 define __vlinlen (s, r)
 {
   r = (r == '.' ? s.ptr[0] : r) - s.rows[0];
-  return strlen (s.lins[r]) - s._indent;
+  strlen (s.lins[r]) - s._indent;
 }
 
 define __vline (s, r)
 {
   r = (r == '.' ? s.ptr[0] : r) - s.rows[0];
-  return s.lins[r];
+  s.lins[r];
 }
 
 define __vlnr (s, r)
 {
   r = (r == '.' ? s.ptr[0] : r) - s.rows[0];
-  return s.lnrs[r];
+  s.lnrs[r];
 }
 
 define __vtail (s)
@@ -352,7 +352,7 @@ define __vtail (s)
     lnr = __vlnr (s, '.') + 1,
     line = __vline (s, '.');
 
-  return sprintf (
+  sprintf (
     "[%s] (row:%d col:%d lnr:%d/%d %.0f%% strlen:%d chr:%d) undo %d/%d",
     path_basename (s._fname), s.ptr[0], s.ptr[1] - s._indent + 1, lnr,
     s._len + 1, (100.0 / s._len) * (lnr - 1), __vlinlen (s, '.'),
@@ -371,7 +371,7 @@ define __vdraw_tail (s)
 
 define __vgetlinestr (s, line, ind)
 {
-  return substr (line, ind + s._indent, s._linlen);
+  substr (line, ind + s._indent, s._linlen);
 }
 
 define __vfpart_of_word (s, line, col, start)
@@ -391,7 +391,7 @@ define __vfpart_of_word (s, line, col, start)
     @start = col + 1;
     }
 
-  return substr (line, @start + 1, origcol - @start + 1);
+  substr (line, @start + 1, origcol - @start + 1);
 }
 
 define __vfind_word (s, line, col, start, end)
@@ -416,7 +416,7 @@ define __vfind_word (s, line, col, start, end)
 
   @end = col - 1;
 
-  return substr (line, @start + 1, @end - @start + 1);
+  substr (line, @start + 1, @end - @start + 1);
 }
 
 define __vfind_Word (s, line, col, start, end)
@@ -436,7 +436,7 @@ define __vfind_Word (s, line, col, start, end)
 
   @end = col - 1;
 
-  return substr (line, @start + 1, @end - @start + 1);
+  substr (line, @start + 1, @end - @start + 1);
 }
 
 define __vparse_arg_range (s, arg, lnrs)
@@ -462,25 +462,17 @@ define __vparse_arg_range (s, arg, lnrs)
   if (range[0] > range[1] || 0 > range[0] || range[1] > s._len)
     return NULL;
 
-  return lnrs[[range[0]:range[1]]];
+  lnrs[[range[0]:range[1]]];
 }
 
 define __get_dec (chr, dir)
 {
-  return any ([['0':'9'], '.'] == chr);
+  any ([['0':'9'], '.'] == chr);
 }
 
 define __get_hex (chr, dir)
 {
-  variable c;
-  if ("lhs" == dir)
-    c = ['0'];
-  else
-    c = [['0':'9'], ['a':'f'], ['A':'F'], 'x'];
-
-% why is not working?
-% return any ("lhs" == dir ? ['0'] : [['0':'9'], ['a':'f'], ['A':'F']] == chr);
-  return any (c == chr);
+  any (chr == ("lhs" == dir ? ['0'] : [['0':'9'], ['a':'f'], ['A':'F'], 'x']));
 }
 
 %define string_get_inline_nr_as_str (str)
@@ -563,7 +555,7 @@ define __vfind_nr (indent, line, col, start, end, ishex, isoct, isbin)
     catch SyntaxError:
       return "";
 
-  return nr;
+  nr;
 }
 
 private define write_line (fp, line, indent)
@@ -591,7 +583,7 @@ define __vwritetofile (file, lines, indent, bts)
   if (-1 == fclose (fp))
     return errno;
 
-  return 0;
+  0;
 }
 
 define __vwritefile (s, overwrite, ptr, file, append)
@@ -1212,7 +1204,7 @@ private define _get_reg_ (reg)
 
   if ("=" == reg)
     {
-    variable res = __eval (NULL;return_str);
+    variable res = __eval (;return_str);
     ifnot (NULL == res)
       return res;
     else
@@ -3184,7 +3176,8 @@ private define v_l_loop (vs, s)
       {
       loop (VEDCOUNT)
         _for i (0, length (vs.lnrs) - 1)
-          s.lines[vs.lnrs[i]] = repeat (" ", s._shiftwidth) + s.lines[vs.lnrs[i]];
+          if (strlen (s.lines[vs.lnrs[i]]))
+            s.lines[vs.lnrs[i]] = repeat (" ", s._shiftwidth) + s.lines[vs.lnrs[i]];
 
       s.st_.st_size = Array.getsize (s.lines);
       ifnot (size == s.st_.st_size)
@@ -3660,6 +3653,16 @@ private define v_bw_right (vs, s)
 
 vis.bw_right = &v_bw_right;
 
+private define __iswstxt__ (t)
+{
+ variable i, len = strbytelen (t);
+ _for i (0, len - 1)
+   ifnot (' ' == t[i])
+     return 0;
+
+  1;
+}
+
 private define v_bw_mode (vs, s)
 {
   variable
@@ -3787,7 +3790,7 @@ private define v_bw_mode (vs, s)
         line = s.lines[lnr];
         len = strlen (line);
 
-        if (0 == len && vs.startcol)
+        if (0 == len && (vs.startcol || __iswstxt__ (line)))
           continue;
 
         if (vs.startcol)

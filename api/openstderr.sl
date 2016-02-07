@@ -42,6 +42,6 @@ if (is_defined ("init_ftype"))
   }
 
 if (is_defined ("txt_settype"))
-  txt_settype (ERR_VED, STDERR, VED_ROWS, NULL);
+  txt_settype (ERR_VED, STDERR, VED_ROWS, NULL;_autochdir = 0);
 
 SPECIAL = [SPECIAL, STDERR];

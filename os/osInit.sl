@@ -309,7 +309,7 @@ private define init_commands ()
   a["messages"] = @Argvlist_Type;
   a["messages"].func = &__messages;
 
-  return a;
+  a;
 }
 
 private define tabhook (s)
@@ -341,13 +341,11 @@ private define tabhook (s)
 
 define initrline ()
 {
-  variable rl = rline->init (&init_commands;
+  return rline->init (&init_commands;
     histfile = Dir->Vget ("HISTDIR") + "/" + string (OSUID) + "oshistory",
     tabhook = &tabhook,
     on_lang = &toplinedr,
     on_lang_args = {"-- OS --"});
-
-  return rl;
 }
 
 private define  _loop_ ()
