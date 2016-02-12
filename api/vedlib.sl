@@ -5258,7 +5258,7 @@ define ctrl_completion_rout (s, line, type)
       if ("ins_linecompletion" == type)
         ar = Re.unique_lines (s.lines, item, NULL;ign_lead_ws);
       else if ("ins_wordcompletion" == type)
-        ar = Re.unique_words (s.lines, item, NULL);
+        ar = Re.unique_words (s.lines, item, NULL;ign_pat);
       else if ("blockcompletion" == type)
         ifnot (strlen (item))
           ar = block_ar;
