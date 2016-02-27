@@ -19,6 +19,16 @@ private variable regexps = [
 % api public functions and vars
   pcre_compile ("\
 ((?<=\s|\[\()(keys(?=(->)))\
+|(?<=\s|\[|\()([tT]his(?=\.))\
+|(?<=^|\s)(class(?=\s))\
+|(?<=\s)(var(?=\s))\
+|(?<=\s)(let(?=\s))\
+|(?<=\s)(def(?=\s))\
+|(?<=\s)(fun(?=\s))\
+|(?<=\s)(import(?=\s))\
+|(?<=^|\s)(end(?=\s|$))\
+|(?<=&|\s|\[|\()(unless(?=\s|,))\
+|(?<=&|\s|\[|\()(raise(?=\s|,))\
 |(?<=&|\s|\[|\()(which(?=\s|,))\
 |(?<=&|\s|\[|\()(getch(?=\s|,))\
 |(?<=&|\s|\[|\()(fstat(?=\s|,))\
@@ -30,7 +40,7 @@ private variable regexps = [
 |(?<=&|\s|\[|\(|^)(send_msg(_dr)?(?=\s|,))\
 |(?<=&|\s|\[|\(|^)(tostd[out|err]+(?=\s|,))\
 |(?<=&|\s|\[|\()(exception_to_array(?=\s|,))\
-|(?<=\s|\[|^)((PERM|FILE_FLAGS)+\s*(?==|\[))\
+|(?<=\s|\[|^)((PERM|FLAGS)+\s*(?==|\[))\
 |(?<=\s|\[|:)((LINES|COLUMNS)(?=\s|:|\]|\)))\
 |(?<=\s|\[|:)(((PROMPT|MSG)+ROW)(?=\s|:|\]|\)))\
 |(?<=&|\s|\[|\(|^)((getref|load|import)+f...(?=\s|,))\

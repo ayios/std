@@ -3730,7 +3730,7 @@ private define v_bw_mode (vs, s)
             ? "" : substr (line, vs.startcol + 1 + strlen (vs.sel[i]), -1));
         else
           line = sprintf ("%s", vs.index[i] == strlen (line)
-            ? "" : substr (line, strlen (vs.sel[1]) + 1, -1));
+            ? "" : substr (line, strlen (vs.sel[i]) + 1, -1));
 
         s.lines[lnr] = line;
         }
